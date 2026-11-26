@@ -89,18 +89,18 @@
 
     
     
-<p>A recipe such as <code>needle</code> is a fixed sequence of stages:
-segment the document, rank the chunks, read the best. When you want a
-sequence of your own, with a check after the answer or a step that
-rewrites the question, you build it from steps and run the steps in
-order as one arm. The arm is an ordinary <code><a href="../reference/hr_arm.html">hr_arm()</a></code>, so
+<p>A recipe such as <code>needle</code> runs a fixed sequence of stages:
+segment the document, rank the chunks, read the best. For a sequence of
+your own, such as one with a check after the answer or a step that
+rewrites the question, you build it from steps and run them in order as
+one arm. That arm is an ordinary <code><a href="../reference/hr_arm.html">hr_arm()</a></code>, so
 <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> compares it with recipes and with other
 chains on the same labelled questions, as
 <code><a href="../articles/compare.html">vignette("compare")</a></code> does for recipes.</p>
-<p><code><a href="../reference/hr_chain.html">hr_chain()</a></code> passes each step’s output to the next step, a
+<p><code><a href="../reference/hr_chain.html">hr_chain()</a></code> passes each step’s output to the next step. A
 step’s settings come from its schema and reach it as
-<code>ctx$step_params</code>, and no step that is not held may follow a
-held command step:</p>
+<code>ctx$step_params</code>. No step that is not held may follow a held
+command step:</p>
 <p><img src="../reference/figures/composition.svg" class="r-plt" alt="hr_chain() runs ingest (document in, doc out), segment (doc in, chunks out), retrieve (chunks in, chunks out) and read (chunks in, answer out), each step handing its output to the next. Settings declared with hr_param() and hr_schema() pass through hr_step() and hr_validate() to ctx$step_params; hr_settings() lists them by path, hr_set() changes them and hr_sweep() makes one arm per row. A coding loop runs draft, visible check, revise and held check, and the held command step comes last." width="100%"></p>
 <p>Everything here runs offline on a stand-in model.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
@@ -119,12 +119,11 @@ held command step:</p>
 <h2 id="steps">Steps<a class="anchor" aria-label="anchor" href="#steps"></a>
 </h2>
 <p>A step is a function of <code>(input, ctx)</code> that does one part
-of a run. <code><a href="../reference/gr_step.html">gr_step()</a></code> builds the document stages,
-<code>"ingest"</code>, <code>"segment"</code> and <code>"read"</code>,
-and <code><a href="../reference/gr_step.html">gr_step_retrieve()</a></code> builds a step that ranks the chunks
-and keeps the best without asking for an answer. Their settings are the
-ones the stage’s spec takes, and they are checked when the step is
-built:</p>
+of a run. <code><a href="../reference/gr_step.html">gr_step()</a></code> builds a step for a document stage:
+<code>"ingest"</code>, <code>"segment"</code> or <code>"read"</code>.
+<code><a href="../reference/gr_step.html">gr_step_retrieve()</a></code> builds a step that ranks the chunks and
+keeps the best without asking for an answer. Both take the settings the
+stage’s spec takes, and both check them when they build the step:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_step.html">gr_step_retrieve</a></span><span class="op">(</span>top_k <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;gr_step&gt; retrieve (retrieve): top_k=4</span></span>
@@ -132,10 +131,11 @@ built:</p>
 <span><span class="co">#&gt; Error in registry_get("reader", spec$reader) : </span></span>
 <span><span class="co">#&gt;   Unknown reader 'no_such_reader'. Registered: ensemble, extract, hierarchical, iterative, map_reduce, preview, refine, rerank, retrieve, screen, skim, stuff.</span></span></code></pre></div>
 <p><code><a href="../reference/hr_step.html">hr_step()</a></code> builds a step of your own. Inside a chain,
-<code>ctx</code> is the context <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> gives an arm
-(its client, trace, <code>judge</code> and <code>note</code> shortcuts,
-and <code>params</code>), with the step’s name in <code>ctx$step</code>
-and its settings in <code>ctx$step_params</code>. This one grades the
+<code>ctx</code> is the context that <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> gives
+an arm: its client, its trace, the <code>judge</code> and
+<code>note</code> shortcuts, and <code>params</code>.
+<code>ctx$step</code> holds the step’s name and
+<code>ctx$step_params</code> its settings. The step below grades the
 answer with a model and records the verdict as a signal of the run:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">judge</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_step.html">hr_step</a></span><span class="op">(</span><span class="st">"judge"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">a</span>, <span class="va">ctx</span><span class="op">)</span> <span class="op">{</span></span>
@@ -144,19 +144,19 @@ answer with a model and records the verdict as a signal of the run:</p>
 <span>  <span class="va">ctx</span><span class="op">$</span><span class="fu">note</span><span class="op">(</span><span class="st">"judged"</span>, <span class="va">j</span><span class="op">$</span><span class="va">verdicts</span><span class="op">$</span><span class="va">verdict</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
 <span>  <span class="va">a</span></span>
 <span><span class="op">}</span>, input <span class="op">=</span> <span class="st">"answer"</span>, output <span class="op">=</span> <span class="st">"answer"</span><span class="op">)</span></span></code></pre></div>
-<p><code>input</code> and <code>output</code> declare what a step takes
-and returns: <code>"document"</code>, <code>"doc"</code>,
-<code>"chunks"</code>, <code>"answer"</code> or <code>"state"</code>.
-They are optional, and <code><a href="../reference/hr_chain.html">hr_chain()</a></code> uses them to check the
+<p>The optional <code>input</code> and <code>output</code> arguments
+declare what a step takes and returns: <code>"document"</code>,
+<code>"doc"</code>, <code>"chunks"</code>, <code>"answer"</code> or
+<code>"state"</code>. <code><a href="../reference/hr_chain.html">hr_chain()</a></code> uses them to check the
 order of the steps.</p>
 </div>
 <div class="section level2">
 <h2 id="chains">Chains<a class="anchor" aria-label="anchor" href="#chains"></a>
 </h2>
-<p><code><a href="../reference/hr_chain.html">hr_chain()</a></code> runs its steps in order: the first gets the
-item, each later step gets what the step before returned, and the chain
-returns what the last step returns. An argument’s name is the step’s
-name in the chain.</p>
+<p><code><a href="../reference/hr_chain.html">hr_chain()</a></code> runs its steps in order. The first step gets
+the item, each later step gets what the step before it returned, and the
+chain returns what the last step returns. The name you give each
+argument is that step’s name in the chain.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">checked</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_chain.html">hr_chain</a></span><span class="op">(</span>segment <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step</a></span><span class="op">(</span><span class="st">"segment"</span><span class="op">)</span>,</span>
 <span>                    retrieve <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step_retrieve</a></span><span class="op">(</span>top_k <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span>
@@ -167,18 +167,24 @@ name in the chain.</p>
 <span><span class="co">#&gt;   params: retrieve.top_k = 4, read.reader = stuff </span></span>
 <span><span class="co">#&gt;   hash: 4cb127da751d</span></span></code></pre></div>
 <p>The arm records each step’s settings as <code>"step.setting"</code>,
-so a benchmark gets a <code>param.retrieve.top_k</code> column for it. A
-chain is derived from another by naming steps: <code>NULL</code> drops
-one, a step under an existing name replaces it where it stands, and a
-step under a new name is added at the end.</p>
+so a benchmark of <code>checked</code> has a
+<code>param.retrieve.top_k</code> column. To derive one chain from
+another, pass the old chain and name the steps to change:</p>
+<ul>
+<li>
+<code>NULL</code> drops a step.</li>
+<li>A step under an existing name replaces that step where it
+stands.</li>
+<li>A step under a new name goes at the end.</li>
+</ul>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nojudge</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_chain.html">hr_chain</a></span><span class="op">(</span><span class="va">checked</span>, judge <span class="op">=</span> <span class="cn">NULL</span>, name <span class="op">=</span> <span class="st">"nojudge"</span><span class="op">)</span></span>
 <span><span class="va">wider</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_chain.html">hr_chain</a></span><span class="op">(</span><span class="va">checked</span>, retrieve <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step_retrieve</a></span><span class="op">(</span>top_k <span class="op">=</span> <span class="fl">8</span><span class="op">)</span>, name <span class="op">=</span> <span class="st">"wider"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">wider</span>, <span class="st">"hr_steps"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "segment"  "retrieve" "read"     "judge"</span></span></code></pre></div>
-<p>The three run side by side like any arms. Each run sends its requests
-at its own draw, so a cache does not hand one run’s reply to the
-next:</p>
+<p>The three chains run side by side like any other arms. Each run sends
+its requests at its own draw, so a cache does not hand one run’s reply
+to the next:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">checked</span>, <span class="va">nojudge</span>, <span class="va">wider</span><span class="op">)</span>, <span class="va">ref</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">cl</span>,</span>
 <span>                      scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
@@ -195,13 +201,15 @@ next:</p>
 <div class="section level3">
 <h3 id="what-a-chain-checks-when-it-is-built">What a chain checks when it is built<a class="anchor" aria-label="anchor" href="#what-a-chain-checks-when-it-is-built"></a>
 </h3>
-<p>A step that takes chunks when no step before it returns chunks warns
-with class <code>hr_chain_gap</code>: a read step would cut the document
-at the default settings without saying so. A segment step first in a
-chain does not warn, though it reads the document at the default ingest
-settings; put an ingest step before it to choose them. After a step that
-returns the answer, only steps that take <code>"answer"</code> or
-<code>"state"</code>, or declare nothing, can follow.</p>
+<p><code><a href="../reference/hr_chain.html">hr_chain()</a></code> warns with class <code>hr_chain_gap</code>
+when a step takes chunks and no step before it returns them. Without the
+warning, a read step would cut the document at the default settings
+without saying so. A segment step first in a chain does not warn, though
+it reads the document at the default ingest settings; put an ingest step
+before it to choose them.</p>
+<p>After a step that returns the answer, only steps that take
+<code>"answer"</code> or <code>"state"</code>, or declare nothing, can
+follow.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_chain.html">hr_chain</a></span><span class="op">(</span>read <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step</a></span><span class="op">(</span><span class="st">"read"</span>, reader <span class="op">=</span> <span class="st">"stuff"</span><span class="op">)</span>, name <span class="op">=</span> <span class="st">"gap"</span><span class="op">)</span>,</span>
 <span>         hr_chain_gap <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">w</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">w</span><span class="op">)</span><span class="op">)</span></span>
@@ -210,8 +218,8 @@ returns the answer, only steps that take <code>"answer"</code> or
 <span>             retrieve <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step_retrieve</a></span><span class="op">(</span><span class="op">)</span>, name <span class="op">=</span> <span class="st">"late"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Error in chain_check_order(steps, what) : </span></span>
 <span><span class="co">#&gt;   Chain 'late': step 'retrieve' takes "chunks", but it comes after step 'read', which returns the answer. After an answer only steps that take "answer" or "state" can follow.</span></span></code></pre></div>
-<p>Step names cannot contain a dot, since settings are named
-<code>"step.setting"</code>, and cannot repeat.</p>
+<p>Step names cannot repeat, and they cannot contain a dot, because
+settings are named <code>"step.setting"</code>.</p>
 </div>
 <div class="section level3">
 <h3 id="when-two-chains-are-the-same">When two chains are the same<a class="anchor" aria-label="anchor" href="#when-two-chains-are-the-same"></a>
@@ -219,9 +227,9 @@ returns the answer, only steps that take <code>"answer"</code> or
 <p>A chain’s configuration is a hash of its steps’ code, the values that
 code reads, and their resolved settings. Two chains with the same
 configuration send the same requests, and <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code>
-warns (<code>hr_same_config</code>) when asked to compare them. A
-setting given at its default gives the same configuration as the setting
-left out:</p>
+warns with class <code>hr_same_config</code> when you ask it to compare
+them. A setting given at its default gives the same configuration as the
+setting left out:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">a</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_chain.html">hr_chain</a></span><span class="op">(</span>segment <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step</a></span><span class="op">(</span><span class="st">"segment"</span><span class="op">)</span>, retrieve <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step_retrieve</a></span><span class="op">(</span><span class="op">)</span>, name <span class="op">=</span> <span class="st">"a"</span><span class="op">)</span></span>
 <span><span class="va">b</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_chain.html">hr_chain</a></span><span class="op">(</span>segment <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step</a></span><span class="op">(</span><span class="st">"segment"</span><span class="op">)</span>, retrieve <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step_retrieve</a></span><span class="op">(</span>top_k <span class="op">=</span> <span class="fl">6</span><span class="op">)</span>,</span>
@@ -233,13 +241,19 @@ left out:</p>
 <div class="section level2">
 <h2 id="settings-and-sweeps">Settings and sweeps<a class="anchor" aria-label="anchor" href="#settings-and-sweeps"></a>
 </h2>
-<p>Every step built with a schema has settings: <code><a href="../reference/gr_step.html">gr_step()</a></code>’s
-are the ones the stage’s spec takes, <code><a href="../reference/gr_step.html">gr_step_retrieve()</a></code>’s
-are the ranking settings, and a step of your own has the ones its
-<code>schema</code> declares. In a chain each setting is named by its
-path, <code>"step.setting"</code>. <code><a href="../reference/hr_settings.html">hr_settings()</a></code> lists them
-all, with the value each step resolved, whether it was given, and the
-default, range and evidence the schema declares:</p>
+<p>Every step built with a schema has settings:</p>
+<ul>
+<li>a <code><a href="../reference/gr_step.html">gr_step()</a></code> step has the settings the stage’s spec
+takes;</li>
+<li>a <code><a href="../reference/gr_step.html">gr_step_retrieve()</a></code> step has the ranking
+settings;</li>
+<li>a step of your own has the settings its <code>schema</code>
+declares.</li>
+</ul>
+<p>In a chain, each setting is named by its path,
+<code>"step.setting"</code>. <code><a href="../reference/hr_settings.html">hr_settings()</a></code> lists them all.
+For each one it gives the value the step resolved, whether you gave it,
+and the default, range and evidence the schema declares:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_settings.html">hr_settings</a></span><span class="op">(</span><span class="va">checked</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span>
@@ -259,9 +273,10 @@ default, range and evidence the schema declares:</p>
 <span><span class="co">#&gt; 27        fusion default default|rrf untested</span></span>
 <span><span class="co">#&gt; 28         rrf_k      60  [1, 10000]    cited</span></span></code></pre></div>
 <p><code><a href="../reference/hr_set.html">hr_set()</a></code> builds the chain again with some settings
-changed and the rest as they were. Each changed step is built again from
-its settings, so they are checked as when the step was first built, and
-the chain’s configuration is that of the new settings:</p>
+changed and the rest as they were. It builds each changed step again
+from its settings, so the new values go through the same checks as when
+the step was first built. The new chain has the configuration of its new
+settings:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">wide</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_set.html">hr_set</a></span><span class="op">(</span><span class="va">checked</span>, retrieve.top_k <span class="op">=</span> <span class="fl">8</span>, read.max_answer_tokens <span class="op">=</span> <span class="fl">400</span><span class="op">)</span></span>
 <span><span class="va">wide</span><span class="op">$</span><span class="va">params</span></span>
@@ -275,14 +290,15 @@ the chain’s configuration is that of the new settings:</p>
 <span><span class="co">#&gt; [1] 400</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">wide</span>, <span class="st">"hr_config"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">checked</span>, <span class="st">"hr_config"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
-<p>A number outside its range is moved to the nearest bound with a
-warning (<code>hr_param_clamped</code>), and a path that is not a
-setting of a step’s schema is an error (<code>hr_unknown_setting</code>)
-that lists the step’s settings. A setting a step keeps fixed, such as
-<code>max_answer_tokens</code> given to <code><a href="../reference/gr_step.html">gr_step_retrieve()</a></code>,
-which passes it to the read spec without ranking by it, cannot be set
-here either; build the step again and replace it with
-<code><a href="../reference/hr_chain.html">hr_chain()</a></code>.</p>
+<p>A number outside its range moves to the nearest bound with a warning
+of class <code>hr_param_clamped</code>. A path that is not a setting of
+a step’s schema is an error of class <code>hr_unknown_setting</code>,
+and its message lists the step’s settings.</p>
+<p><code><a href="../reference/hr_set.html">hr_set()</a></code> cannot change a setting that a step keeps fixed
+either. <code><a href="../reference/gr_step.html">gr_step_retrieve()</a></code>, for example, keeps a
+<code>max_answer_tokens</code> you give it fixed: it passes the value to
+the read spec and does not rank by it. To change a fixed setting, build
+the step again and replace it with <code><a href="../reference/hr_chain.html">hr_chain()</a></code>.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_set.html">hr_set</a></span><span class="op">(</span><span class="va">checked</span>, retrieve.top_k <span class="op">=</span> <span class="fl">50000</span><span class="op">)</span>,</span>
 <span>         hr_param_clamped <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">w</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">w</span><span class="op">)</span><span class="op">)</span></span>
@@ -290,14 +306,14 @@ here either; build the step again and replace it with
 <span><span class="kw"><a href="https://rdrr.io/r/base/try.html" class="external-link">try</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_set.html">hr_set</a></span><span class="op">(</span><span class="va">checked</span>, retrieve.topk <span class="op">=</span> <span class="fl">8</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Error in hr_set(checked, retrieve.topk = 8) : </span></span>
 <span><span class="co">#&gt;   'retrieve.topk' is not a setting of chain 'checked'. Settings of 'retrieve': retrieve.top_k, retrieve.min_score, retrieve.mmr, retrieve.bm25_k1, retrieve.bm25_b, retrieve.lexical_blend, retrieve.fusion, retrieve.rrf_k.</span></span></code></pre></div>
-<p>For a single step the setting’s own name is enough, as in
+<p>For a single step, the setting’s own name is enough:
 <code>hr_set(gr_step_retrieve(), top_k = 2)</code>.</p>
 <p><code><a href="../reference/hr_sweep.html">hr_sweep()</a></code> takes a chain and a grid whose columns are
 paths, and builds one chain per row with <code><a href="../reference/hr_set.html">hr_set()</a></code>. Each arm
-records its settings, so the benchmark has a
-<code>param.retrieve.top_k</code> column to group by. A row that builds
-the configuration of an earlier row is dropped with a message
-(<code>hr_sweep_collapsed</code>).</p>
+records its settings, so you can group the benchmark by its
+<code>param.retrieve.top_k</code> column. When a row builds the
+configuration of an earlier row, <code><a href="../reference/hr_sweep.html">hr_sweep()</a></code> drops it with a
+message of class <code>hr_sweep_collapsed</code>.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="va">nojudge</span>, <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>retrieve.top_k <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">4</span>, <span class="fl">8</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">arms</span><span class="op">)</span></span>
@@ -309,10 +325,10 @@ the configuration of an earlier row is dropped with a message
 <span><span class="co">#&gt; 1                    2       1</span></span>
 <span><span class="co">#&gt; 2                    4       1</span></span>
 <span><span class="co">#&gt; 3                    8       1</span></span></code></pre></div>
-<p>A setting the chain’s steps never use changes nothing that is sent,
-and a sweep over it compares the chain with itself.
+<p>Changing a setting the chain’s steps never use changes nothing that
+is sent, so a sweep over it compares the chain with itself.
 <code><a href="../reference/hr_sweep_check.html">hr_sweep_check()</a></code> finds such settings from the requests each
-arm sent. Here the read step sends every chunk it is given, so its own
+arm sent. Here the read step sends every chunk it gets, so its own
 <code>top_k</code> does nothing:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">stuffed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_chain.html">hr_chain</a></span><span class="op">(</span>segment <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step</a></span><span class="op">(</span><span class="st">"segment"</span><span class="op">)</span>, read <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step</a></span><span class="op">(</span><span class="st">"read"</span>, reader <span class="op">=</span> <span class="st">"stuff"</span><span class="op">)</span>,</span>
@@ -322,29 +338,35 @@ arm sent. Here the read step sends every chunk it is given, so its own
 <span><span class="fu"><a href="../reference/hr_sweep_check.html">hr_sweep_check</a></span><span class="op">(</span><span class="va">bench</span><span class="op">)</span></span>
 <span><span class="co">#&gt;                    arm              same_as runs requests           settings</span></span>
 <span><span class="co">#&gt; 1 stuffed:read.top_k=8 stuffed:read.top_k=2    5        5 read.top_k: 2 vs 8</span></span></code></pre></div>
-<p>A swept chain is a chain like any other: <code><a href="../reference/hr_chain.html">hr_chain()</a></code>
-derives a chain from it and <code><a href="../reference/hr_set.html">hr_set()</a></code> changes it further. A
-replay of a recorded benchmark matches each run’s sampled requests by
-the arm’s name, so a renamed or swept chain does not replay a recording
-made under another name: record the benchmark again under the new
-names.</p>
+<p>A swept chain is a chain like any other: you can derive a chain from
+it with <code><a href="../reference/hr_chain.html">hr_chain()</a></code> and change it further with
+<code><a href="../reference/hr_set.html">hr_set()</a></code>.</p>
+<p>A replay of a recorded benchmark matches each run’s sampled requests
+by the arm’s name. A renamed or swept chain therefore does not replay a
+recording made under another name; record the benchmark again under the
+new names.</p>
 </div>
 <div class="section level2">
 <h2 id="skills">Skills<a class="anchor" aria-label="anchor" href="#skills"></a>
 </h2>
-<p>A skill is a folder of instructions for one step: a
-<code>SKILL.md</code> file with a short header and the instructions,
-optional text files under <code>references/</code>, and optional scripts
-under <code>scripts/</code>. <code><a href="../reference/hr_skill.html">hr_skill()</a></code> reads a folder you
-choose. The package never looks for skills on its own and a model never
-chooses one: a person picks the skill and the step it goes to.</p>
-<p>The header sits between two <code>---</code> lines and is read
-without a YAML parser, so each line is a plain <code>key: value</code>.
-<code>name</code> is required, and <code>description</code> and
-<code>version</code> are kept. Any other key warns
-(<code>hr_skill_unknown_key</code>), and a nested or multi-line value is
-an error (<code>hr_bad_skill</code>). This skill is written into a
-temporary folder:</p>
+<p>A skill is a folder of instructions for one step. It holds:</p>
+<ul>
+<li>a <code>SKILL.md</code> file with a short header and the
+instructions;</li>
+<li>optional text files under <code>references/</code>;</li>
+<li>optional scripts under <code>scripts/</code>.</li>
+</ul>
+<p><code><a href="../reference/hr_skill.html">hr_skill()</a></code> reads a folder you choose. harnessr never
+looks for skills on its own, and a model never chooses one: you pick the
+skill and the step it goes to.</p>
+<p>The header sits between two <code>---</code> lines.
+<code><a href="../reference/hr_skill.html">hr_skill()</a></code> reads it without a YAML parser, so each line is
+a plain <code>key: value</code>. <code>name</code> is required, and
+<code><a href="../reference/hr_skill.html">hr_skill()</a></code> keeps <code>description</code> and
+<code>version</code>. Any other key warns with class
+<code>hr_skill_unknown_key</code>, and a nested or multi-line value is
+an error of class <code>hr_bad_skill</code>. The example writes this
+skill into a temporary folder:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">skill_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"units-skill"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">skill_dir</span>, <span class="st">"references"</span><span class="op">)</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, showWarnings <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
@@ -364,10 +386,11 @@ temporary folder:</p>
 <span><span class="co">#&gt;   State every amount with its unit and currency. </span></span>
 <span><span class="co">#&gt;   instructions: 100 characters</span></span>
 <span><span class="co">#&gt;   references: style.md</span></span></code></pre></div>
-<p>The skill’s text goes into the prompt as it is written. A skill from
-someone else can carry instructions you did not mean to send (prompt
-injection), so read a skill before you use it. Scripts are listed and
-never run; to run one, wrap it yourself in a command step, as in
+<p>harnessr puts the skill’s text into the prompt as it is written. A
+skill from someone else can carry instructions you did not mean to send
+(prompt injection), so read a skill before you use it. harnessr lists
+the scripts and never runs them. To run one, wrap it in a command step
+yourself, as in
 <code>hr_step_command("lint", c(rscript, units$scripts[["check.R"]]))</code>.</p>
 <p>Give a skill to a step of your own with
 <code>hr_step(skill = )</code>. Inside a chain, the step’s
@@ -375,8 +398,8 @@ never run; to run one, wrap it yourself in a command step, as in
 instructions and the references as a system message before the step’s
 own messages, and <code>ctx$skill</code> holds the skill. The built-in
 steps of <code><a href="../reference/gr_step.html">gr_step()</a></code> and <code><a href="../reference/gr_step.html">gr_step_retrieve()</a></code>
-build their requests in the stage they run, so they refuse a skill. The
-stand-in model here answers with the unit only when the skill’s
+refuse a skill, because they build their requests in the stage they run.
+The stand-in model below answers with the unit only when the skill’s
 instructions reach it:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">units_cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
@@ -396,14 +419,14 @@ instructions reach it:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">baseline</span>, <span class="st">"hr_config"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">skilled</span>, <span class="st">"hr_config"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
 <p>The skill’s hash covers its header, instructions, references and
-every byte of its scripts. It is part of the step’s fingerprint, so the
-two chains have different configurations, and the chain records it as
-the setting <code>answer.skill</code>, which a benchmark shows as
-<code>param.answer.skill</code>. A skill with a version gives the step
-that version.</p>
-<p>To see whether the skill does what it says, compare the chain with
-and without it on the same questions, with a scorer that checks the rule
-the skill sets. This one checks that the answer names the currency:</p>
+every byte of its scripts. The hash is part of the step’s fingerprint,
+so the two chains have different configurations. The chain records the
+skill as the setting <code>answer.skill</code>, and a benchmark shows it
+as <code>param.answer.skill</code>. When the skill has a version, the
+step takes that version.</p>
+<p>To test whether a skill does what it says, compare the chain with and
+without it on the same questions, using a scorer that checks the skill’s
+rule. The scorer here checks that the answer names the currency:</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">questions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>q1 <span class="op">=</span> <span class="st">"What was revenue in 2024?"</span>, q2 <span class="op">=</span> <span class="st">"What was revenue in 2023?"</span>,</span>
 <span>               q3 <span class="op">=</span> <span class="st">"What was the operating cost?"</span>, q4 <span class="op">=</span> <span class="st">"What was the order backlog?"</span>,</span>
@@ -425,9 +448,10 @@ the skill sets. This one checks that the answer names the currency:</p>
 <span><span class="va">units_report</span><span class="op">$</span><span class="va">contrasts</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"arm1"</span>, <span class="st">"arm2"</span>, <span class="st">"estimate"</span>, <span class="st">"lower"</span>, <span class="st">"upper"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;       arm1        arm2 estimate lower      upper</span></span>
 <span><span class="co">#&gt; 1 no-skill units-skill       -1    -1 0.04821512</span></span></code></pre></div>
-<p>A skill is not a setting of a step’s schema, so <code><a href="../reference/hr_set.html">hr_set()</a></code>
-cannot change it and a sweep by path cannot swap it. Sweep it with a
-function that builds the chain from a grid column instead:</p>
+<p>A skill is not a setting of a step’s schema, so neither
+<code><a href="../reference/hr_set.html">hr_set()</a></code> nor a sweep by path can swap it. To sweep a skill,
+give <code><a href="../reference/hr_sweep.html">hr_sweep()</a></code> a function that builds the chain from a
+grid column:</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">use_skill</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/hr_chain.html">hr_chain</a></span><span class="op">(</span>answer <span class="op">=</span> <span class="fu">answer</span><span class="op">(</span><span class="kw">if</span> <span class="op">(</span><span class="va">use_skill</span><span class="op">)</span> <span class="va">units</span><span class="op">)</span>, name <span class="op">=</span> <span class="st">"answer"</span><span class="op">)</span></span>
@@ -438,24 +462,27 @@ function that builds the chain from a grid column instead:</p>
 <div class="section level2">
 <h2 id="a-coding-sub-agent">A coding sub-agent<a class="anchor" aria-label="anchor" href="#a-coding-sub-agent"></a>
 </h2>
-<p>Steps need not read documents. A coding sub-agent drafts code with a
-model, runs the tests on the draft, and asks the model to fix a draft
-that failed. <code><a href="../reference/hr_step_command.html">hr_step_command()</a></code> (see
+<p>Steps do not have to read documents. A coding sub-agent drafts code
+with a model, runs the tests on the draft, and asks the model to fix a
+draft that failed. <code><a href="../reference/hr_step_command.html">hr_step_command()</a></code> (see
 <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code>) runs the tests: it runs one program
 you name and reads its result as <code>"passed"</code> or
 <code>"failed"</code>.</p>
-<p>The loop has two checks. A visible check runs after the draft, and
-the revise step reads its result in <code>input$check</code>. A held
-check runs last, and only the scorer sees it, in
-<code>attr(output, "hr_held")</code>. A revise step that saw the scoring
-check could fit the code to that check, so a held step must come last:
-<code><a href="../reference/hr_chain.html">hr_chain()</a></code> refuses a step that is not held after one that
-is (<code>hr_held_not_last</code>). Here the visible and the held check
-run the same tests; a held check can also run tests the loop never
-sees.</p>
-<p>The tests and the drafts go in a temporary folder. The stand-in model
-drafts a <code>clamp()</code> with a bug, and sends the fixed version
-when told the draft failed:</p>
+<p>The loop has two checks:</p>
+<ul>
+<li>A visible check runs after the draft. The revise step reads its
+result in <code>input$check</code>.</li>
+<li>A held check runs last. Only the scorer sees it, in
+<code>attr(output, "hr_held")</code>.</li>
+</ul>
+<p>A revise step that saw the scoring check could fit the code to that
+check, so a held step must come last. <code><a href="../reference/hr_chain.html">hr_chain()</a></code> refuses a
+step that is not held after one that is, with an error of class
+<code>hr_held_not_last</code>. Here the visible and the held check run
+the same tests; a held check can also run tests the loop never sees.</p>
+<p>The example puts the tests and the drafts in a temporary folder. The
+stand-in model drafts a <code>clamp()</code> with a bug, and sends the
+fixed version when told the draft failed:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rscript</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Rhome.html" class="external-link">R.home</a></span><span class="op">(</span><span class="st">"bin"</span><span class="op">)</span>, <span class="st">"Rscript"</span><span class="op">)</span></span>
 <span><span class="va">work</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"coding-loop"</span><span class="op">)</span></span>
@@ -496,9 +523,9 @@ printed:</p>
 <span>                   revise <span class="op">=</span> <span class="va">revise</span>,</span>
 <span>                   held <span class="op">=</span> <span class="fu"><a href="../reference/hr_step_command.html">hr_step_command</a></span><span class="op">(</span><span class="st">"held"</span>, <span class="va">run_tests</span>, held <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
 <span>                   name <span class="op">=</span> <span class="st">"coding"</span><span class="op">)</span></span></code></pre></div>
-<p>The scorer reads the held check. Compared with the same chain without
-the visible check and the revise step, which scores the first draft, the
-loop passes on every run:</p>
+<p>The scorer reads the held check. The second arm is the same chain
+without the visible check and the revise step, so it scores the first
+draft. The loop passes on every run:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">first</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_chain.html">hr_chain</a></span><span class="op">(</span><span class="va">coding</span>, check <span class="op">=</span> <span class="cn">NULL</span>, revise <span class="op">=</span> <span class="cn">NULL</span>, name <span class="op">=</span> <span class="st">"first-draft"</span><span class="op">)</span></span>
 <span><span class="va">held_passes</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_scorer.html">hr_scorer</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">item</span>, <span class="va">output</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
@@ -524,18 +551,18 @@ It reads the last <code>[ FAIL n | WARN n | SKIP n | PASS n ]</code>
 line the run printed, and a run with a failed test is
 <code>"failed"</code> whatever its exit code. Run the file with a
 reporter that prints that line, such as the default,
-<code>"progress"</code> or <code>"check"</code>: a run that prints no
-such line, as under <code>"summary"</code>, is read as
-<code>"error"</code>. Giving <code><a href="https://testthat.r-lib.org/reference/test_file.html" class="external-link">testthat::test_file()</a></code>
-<code>stop_on_failure = TRUE</code> as well makes the exit code agree
-with the result.</p>
+<code>"progress"</code> or <code>"check"</code>. A run that prints no
+such line, as under <code>"summary"</code>, reads as
+<code>"error"</code>. Pass <code>stop_on_failure = TRUE</code> to
+<code><a href="https://testthat.r-lib.org/reference/test_file.html" class="external-link">testthat::test_file()</a></code> as well if you want the exit code to
+agree with the result.</p>
 <p>A stand-in model’s handler must be stateless: its reply should depend
-only on the messages and settings it is given, as <code>coder</code>’s
-does. A handler that counts its calls, or remembers the last request,
-answers by the order the requests come in. That order changes when runs
-go to parallel workers, when a cache or a recording answers some of
-them, and when arms are added, so the same benchmark would score
-differently from one run to the next.</p>
+only on the messages and settings it gets, as <code>coder</code>’s does.
+A handler that counts its calls, or remembers the last request, answers
+by the order the requests come in. That order changes when runs go to
+parallel workers, when a cache or a recording answers some requests, and
+when you add arms. The same benchmark would then score differently from
+one run to the next.</p>
 </div>
 <div class="section level2">
 <h2 id="two-goals-start-to-finish">Two goals, start to finish<a class="anchor" aria-label="anchor" href="#two-goals-start-to-finish"></a>
@@ -543,11 +570,10 @@ differently from one run to the next.</p>
 <div class="section level3">
 <h3 id="run-your-own-tests-on-the-recipes">Run your own tests on the recipes<a class="anchor" aria-label="anchor" href="#run-your-own-tests-on-the-recipes"></a>
 </h3>
-<p>This goal sweeps a recipe over a grid of its settings and runs your
-own arm beside it, on the same questions and under one spending limit.
-<code><a href="../reference/hr_sweep.html">hr_sweep()</a></code> given a function builds one arm per row of the
-grid, and each arm records its settings as <code>param.*</code>
-columns:</p>
+<p>Here you sweep a recipe over a grid of its settings and run your own
+arm beside it, on the same questions and under one spending limit. Given
+a function, <code><a href="../reference/hr_sweep.html">hr_sweep()</a></code> builds one arm per row of the grid,
+and each arm records its settings as <code>param.*</code> columns:</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">my_arm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_chain.html">hr_chain</a></span><span class="op">(</span>segment <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step</a></span><span class="op">(</span><span class="st">"segment"</span><span class="op">)</span>, retrieve <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step_retrieve</a></span><span class="op">(</span>top_k <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span>
 <span>                   read <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step</a></span><span class="op">(</span><span class="st">"read"</span>, reader <span class="op">=</span> <span class="st">"stuff"</span><span class="op">)</span>, name <span class="op">=</span> <span class="st">"mine"</span><span class="op">)</span></span>
@@ -583,23 +609,23 @@ columns:</p>
 <span><span class="co">#&gt; 1 top_k: 4 vs 8</span></span>
 <span><span class="co">#&gt; 2 top_k: 2 vs 4</span></span>
 <span><span class="co">#&gt; 3 top_k: 2 vs 8</span></span></code></pre></div>
-<p>The first table covers only the swept arms: your arm has no
+<p>The first table covers only the swept arms. Your arm has no
 <code>param.*</code> settings, so <code><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate()</a></code> leaves its
-rows out. The second has one row per arm, yours included, so it compares
-the grid with your arm.</p>
-<p>The example document is short. Cut into chunks of 200 tokens, a
-<code>top_k</code> of 4 keeps every chunk, and cut into chunks of 500
-tokens, a <code>top_k</code> of 2 does. <code><a href="../reference/hr_sweep_check.html">hr_sweep_check()</a></code>
-finds the arms that sent the same requests as another. Those rows
-compare a configuration with itself.</p>
+rows out. The second table has one row per arm, yours included, so it
+compares the grid with your arm.</p>
+<p>The example document is short. In chunks of 200 tokens, a
+<code>top_k</code> of 4 keeps every chunk; in chunks of 500 tokens, a
+<code>top_k</code> of 2 does. <code><a href="../reference/hr_sweep_check.html">hr_sweep_check()</a></code> finds the
+arms that sent the same requests as another arm, and those rows compare
+a configuration with itself.</p>
 </div>
 <div class="section level3">
 <h3 id="chain-steps-into-a-sub-agent-of-your-own">Chain steps into a sub-agent of your own<a class="anchor" aria-label="anchor" href="#chain-steps-into-a-sub-agent-of-your-own"></a>
 </h3>
-<p>This goal compares a chain that has a judge step with the same chain
-without it, and sweeps the chain over <code>top_k</code>. A cache
-answers any request sent twice. The judge step grades the answer against
-a rubric with <code>ctx$judge()</code> and records the verdict with
+<p>Here you compare a chain that has a judge step with the same chain
+without it, and sweep the chain over <code>top_k</code>. A cache answers
+any request sent twice. The judge step grades the answer against a
+rubric with <code>ctx$judge()</code> and records the verdict with
 <code>ctx$note()</code>:</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">checked</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_chain.html">hr_chain</a></span><span class="op">(</span>segment <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step</a></span><span class="op">(</span><span class="st">"segment"</span><span class="op">)</span>, retrieve <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step_retrieve</a></span><span class="op">(</span>top_k <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span>
@@ -625,7 +651,7 @@ a rubric with <code>ctx$judge()</code> and records the verdict with
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;                  checked checked:retrieve.top_k=2 checked:retrieve.top_k=8 </span></span>
 <span><span class="co">#&gt;                        5                        5                        5</span></span></code></pre></div>
-<p>A coding sub-agent is built the same way, as in the section above: a
+<p>You build a coding sub-agent the same way, as in the section above: a
 draft step, a visible check, a revise step, and the held check last.</p>
 </div>
 </div>

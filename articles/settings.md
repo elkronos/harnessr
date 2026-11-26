@@ -1,13 +1,15 @@
 # Settings reference
 
-This page lists every setting harnessr has, stage by stage, and the
-building blocks the settings choose between. The tables are made from
+This page lists every setting in harnessr, stage by stage, and the
+building blocks those settings choose between. harnessr builds the
+tables from
 [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
-and the registries when the page is built, so they say what the
-installed code does. A setting with a walkthrough links to it: the
-section of a guide that says what the setting trades off, the signs that
-point to changing it, where its default came from and how to test a
-change.
+and the registries when the page is built, so they match the installed
+code.
+
+A setting with a walkthrough links to it. The walkthrough is a section
+of a guide that covers what the setting trades off, the signs that you
+should change it, where its default came from and how to test a change.
 
 ``` r
 
@@ -29,48 +31,50 @@ table(settings$stage, settings$tier)[unique(settings$stage), ]
 
 ## Reading the tables
 
-Each row is one setting. `where` is the function that takes it.
-`default` is the value used when you give none: a string without quotes,
-the first of a set of choices, anything else as R code. `tier` is
-`basic` for the few settings most runs change and `advanced` for the
-rest. `status` says where the default came from: `measured` (a
-measurement backs it), `cited` (a published source gives it) or
-`untested` (it was chosen, and nothing has measured it); a blank means
-nothing is declared, which is the case for switches, limits and most
-function arguments.
+Each row is one setting, and these columns describe it:
+
+- `where`: the function that takes the setting.
+- `default`: the value used when you give none. A string appears without
+  quotes, a set of choices shows its first choice, and anything else
+  appears as R code.
+- `tier`: `basic` for the few settings most runs change, `advanced` for
+  the rest.
+- `status`: where the default came from. `measured` means a measurement
+  backs it, `cited` means a published source gives it, and `untested`
+  means it was chosen and nothing has measured it. A blank means nothing
+  is declared, as for switches, limits and most function arguments.
+
 [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
-adds the `source` behind each status, and
+also returns the `source` behind each status. For the full help, see
 [`?gr_read_spec`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
 [`?gr_segment_spec`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md),
 [`?gr_ingest_spec`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md)
 and
-[`?hr_options`](https://elkronos.github.io/harnessr/reference/hr_options.md)
-give the full help.
+[`?hr_options`](https://elkronos.github.io/harnessr/reference/hr_options.md).
 
-A setting is given where its stage takes it. Ingest, segment and read
+You give a setting where its stage takes it. Ingest, segment and read
 settings go in a spec (`gr_read_spec(top_k = 4)`), in a recipe, or by
 name to
 [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
 [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 and
 [`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md),
-which put each on the step it belongs to. The review and evaluation
-settings are arguments of their functions. Options are set for the
-session with
+which put each on the step it belongs to. Review and evaluation settings
+are arguments of their functions. You set options for the session with
 [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md).
 
-To find out whether a value is better for your documents, build one arm
-per value with
+To find out whether a value works better on your documents, build one
+arm per value with
 [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
-and compare them with
+and compare the arms with
 [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
 and
 [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md),
 as
 [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)
-does;
+does.
 [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
-says which values sent the same requests.
+reports which values sent the same requests.
 
 ``` r
 
@@ -90,9 +94,10 @@ show_settings <- function(stage) {
 
 ## Ingest
 
-What comes out of a file: cleaning, OCR, the PDF layout pass, and the
-floor on how much text must survive. The entries of `cleaner_opts` and
-`layout_opts` are listed with their parent’s name.
+These settings control what comes out of a file: cleaning, OCR, the PDF
+layout pass, and the floor on how much text must survive. The entries of
+`cleaner_opts` and `layout_opts` appear under their parent’s name, as
+`cleaner_opts.references_after`.
 [`vignette("ingest")`](https://elkronos.github.io/harnessr/articles/ingest.md)
 covers them.
 
@@ -122,7 +127,7 @@ covers them.
 
 ## Segment
 
-How the text is cut into chunks.
+harnessr cuts the text into chunks with these settings.
 [`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md)
 covers them.
 
@@ -151,7 +156,8 @@ covers them.
 
 ## Read
 
-How the model reads the chunks, and the settings
+With these settings you choose how the model reads the chunks. The stage
+also holds the ones
 [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 adds for a folder.
 [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
@@ -212,16 +218,20 @@ covers them.
 
 ## Screening
 
-The arguments of
-[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md),
-of
-[`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md)
-and
-[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md),
-which measure the screening against a person, and of the sample size and
-stopping tests.
+The arguments of these functions, which
 [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md)
-covers them.
+covers:
+
+- [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md),
+  which decides which documents a review reads.
+- [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md)
+  and
+  [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md),
+  which measure the screening against a person.
+- [`gr_screen_sample_size()`](https://elkronos.github.io/harnessr/reference/gr_screen_sample_size.md)
+  and
+  [`gr_stop_test()`](https://elkronos.github.io/harnessr/reference/gr_stop_test.md),
+  the sample size and stopping tests.
 
 | setting | where | default | tier | status | description |
 |:---|:---|:---|:---|:---|:---|
@@ -263,7 +273,7 @@ covers them.
 
 The arguments of
 [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md).
-Recipe settings passed to it in `...` are the ingest and segment
+The recipe settings you pass to it in `...` are the ingest and segment
 settings above.
 
 | setting | where | default | tier | status | description |
@@ -325,9 +335,11 @@ and
 The arguments of
 [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md),
 [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md),
-[`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md)
+[`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md),
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md),
+[`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md)
 and
-[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md).
+[`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md).
 [`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md)
 and
 [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)
@@ -368,9 +380,9 @@ cover them.
 
 ## Options
 
-Session settings, set with
-[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
-and read when a run starts.
+Session settings. You set them with
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md),
+and a run reads them when it starts.
 [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
 covers the limits.
 
@@ -414,19 +426,19 @@ covers the limits.
 ## Building blocks
 
 Some settings choose a module from a registry: `extractor`, `clean`,
-`method`, `reader`, `hr_options(embedder = )`, and the recipe given to
+`method`, `reader`, `hr_options(embedder = )`, and the recipe you give
 [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md).
-The tables below are the registries as installed, so a module you
+The tables below show the registries as installed, so a module you
 register with
 [`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md)
-and the like
+or another `gr_register_*()` function
 ([`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md))
 appears in them too.
 
 ### Extractors
 
-An extractor turns one kind of file into text. It is chosen by the
-file’s extension unless `extractor` names one.
+An extractor turns one kind of file into text. harnessr picks it by the
+file’s extension unless you name one with `extractor`.
 
 ``` r
 
@@ -444,9 +456,9 @@ knitr::kable(gr_extractors()[, c("name", "extensions", "needs", "description")])
 
 ### Cleaners and presets
 
-A cleaner removes one kind of noise from the text. Those marked
-`default_on` run unless the preset or list you give leaves them out;
-`early` cleaners run before `late` ones whatever order they are named
+A cleaner removes one kind of noise from the text. Cleaners marked
+`default_on` run unless the preset or list you give leaves them out.
+`early` cleaners run before `late` ones, whatever order you name them
 in.
 
 ``` r
@@ -471,8 +483,8 @@ knitr::kable(gr_cleaners()[, c("name", "stage", "default_on", "description")])
 | remove_numbers | late | FALSE | Replace every digit with a space. OFF by default: this makes figures, dates and percentages unanswerable |
 | remove_punctuation | late | FALSE | Replace punctuation with spaces. OFF by default: destroys sentence boundaries |
 
-A preset is a named list of cleaners. The steps each one runs, read from
-what it did to the example report:
+A preset is a named list of cleaners. This table shows the steps each
+preset runs, read from what it did to the example report:
 
 ``` r
 
@@ -495,7 +507,7 @@ knitr::kable(data.frame(preset = presets, cleaners = vapply(presets, function(p)
 ### Segmenters
 
 A segmenter decides where chunks are cut. `cost` says what it spends:
-`free`, one embedding pass, or model requests.
+`free`, `embedding` for one embedding pass, or `llm` for model requests.
 
 ``` r
 
@@ -516,9 +528,9 @@ knitr::kable(gr_segmenters()[, c("name", "cost", "needs_client", "description")]
 
 ### Readers
 
-A reader decides how the chunks reach the model. `signature` is which
-chunks are sent, how many requests, and how information passes between
-them; `cost_calls` is the number of requests.
+A reader decides how the chunks reach the model. `signature` records
+which chunks it sends, how many requests it makes, and how information
+passes between them. `cost_calls` is the number of requests.
 
 ``` r
 
@@ -542,9 +554,9 @@ knitr::kable(gr_readers()[, c("name", "signature", "cost_calls", "description")]
 
 ### Embedders
 
-An embedder turns text into vectors for `retrieve`, `iterative` and the
-`semantic` segmenter. A deterministic one gives the same vectors every
-run, which a replay needs.
+An embedder turns text into vectors for the `retrieve` and `iterative`
+readers and the `semantic` segmenter. A deterministic embedder gives the
+same vectors every run, which a replay needs.
 
 ``` r
 
@@ -558,9 +570,9 @@ knitr::kable(gr_embedders()[, c("name", "deterministic", "description")])
 
 ### Recipes
 
-A recipe names an ingestion, a segmentation and a reader with their
-settings. These are the values each built-in recipe sets; any of them
-can be overridden by name.
+A recipe names an ingestion, a segmentation and a reader, with their
+settings. The table shows the values each built-in recipe sets, and you
+can override any of them by name.
 
 ``` r
 
@@ -589,9 +601,9 @@ knitr::kable(do.call(rbind, lapply(names(gr_recipes()), function(n) {
 ## Next
 
 - [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md):
-  the basic settings of each stage, with when to change each.
+  the basic settings of each stage, and when to change each.
 - [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md):
-  testing a setting on a reference with dev and test splits, and reading
-  the result with intervals.
+  how to test a setting on a reference with dev and test splits, and
+  read the result with intervals.
 - [`?gr_settings_table`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md):
   how the table is built, and its columns.

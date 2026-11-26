@@ -3,10 +3,10 @@
 harnessr asks a large language model questions about your documents (a
 report, a contract, a folder of research papers) and returns the answer
 with a record of how it was reached: which parts of the document the
-model saw, what it was asked, what it said, and what that cost. This
-guide assumes no previous experience with language models. It explains
-the few ideas you need, installs the package, and goes through a first
-question from start to finish.
+model saw, what it was asked, what it said, and what that cost. You need
+no previous experience with language models. This guide covers the few
+ideas you need, then installing the package, then a first question from
+start to finish.
 
 Everything below runs without an account or an internet connection, so
 you can follow along for free.
@@ -18,11 +18,11 @@ such as GPT is a program run by a *provider*: OpenAI, Google, or a model
 on your own computer. harnessr sends it text over the internet and reads
 the reply. Commercial providers charge for each request.
 
-**Text is measured in tokens.** Models do not read characters or words;
-they read *tokens*, pieces of words. In English a token is roughly four
-characters, so a page of text is several hundred tokens. Providers
-charge per token, both for the text you send and, at a higher rate, for
-the text the model writes back.
+**Text is measured in tokens.** Models read text as *tokens*, which are
+pieces of words. In English a token is roughly four characters, so a
+page of text is several hundred tokens. Providers charge per token, both
+for the text you send and, at a higher rate, for the text the model
+writes back.
 
 ``` r
 
@@ -41,8 +41,9 @@ it can work out what a request will cost before sending it.
 **A model can only take in so much at once.** The most text a model
 accepts in a single request is its *context window*. A long report may
 not fit, and even when it does, models tend to overlook details in the
-middle of a very long prompt. So documents are cut into smaller pieces,
-called *chunks*, and the question is put to the chunks in some order.
+middle of a very long prompt. harnessr therefore cuts documents into
+smaller pieces, called *chunks*, and puts the question to the chunks in
+some order.
 
 **That makes three decisions**, and harnessr keeps them separate so you
 can see and change each one:
@@ -50,8 +51,8 @@ can see and change each one:
 1.  **Ingest**: get the text out of the file and tidy it.
 2.  **Segment**: cut the text into chunks.
 3.  **Read**: decide how the model works through the chunks. It can take
-    all of them in one request, each one separately, only the most
-    relevant few, and so on.
+    all of them in one request, each one separately, or only the most
+    relevant few, among other strategies.
 
 A fourth choice, which model answers, is independent of all three.
 [`vignette("ingest")`](https://elkronos.github.io/harnessr/articles/ingest.md),
@@ -62,16 +63,19 @@ cover the three steps in depth.
 
 Each step is a registry you can extend without editing the package
 ([`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md)).
-Ingest has 6 extractors and 14 individually toggleable cleaners, segment
-has 9 segmenters, and read has 12 strategies, each with a distinct
-traversal signature. Any ingest composes with any segmenter and any
-reader.
+The built-in entries:
+
+- Ingest has 6 extractors and 14 individually toggleable cleaners.
+- Segment has 9 segmenters.
+- Read has 12 strategies, each with a distinct traversal signature.
+
+Any ingest composes with any segmenter and any reader.
 [`gr_recipe()`](https://elkronos.github.io/harnessr/reference/gr_recipe.md)
-binds one of each into a named pipeline, and a recipe run alongside
-others in
+binds one of each into a named pipeline. Run a recipe alongside others
+in
 [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
-gives a byte-identical `$answer` and `$chunks_used` to the same recipe
-run alone.
+and it gives the same `$answer` and `$chunks_used`, byte for byte, as
+when you run it alone.
 
 **Models can make things up.** A model may state something the document
 never says, and it can do so fluently. harnessr cannot prevent that. It
@@ -144,7 +148,7 @@ checks that R can see it, and stops with an explanation if it cannot:
 hr_api_key()
 ```
 
-There are three places to give the key. An argument to
+You can give the key in three places. An argument to
 [`hr_client()`](https://elkronos.github.io/harnessr/reference/hr_client.md)
 wins over the `harnessr.api_key` option, which wins over
 `OPENAI_API_KEY`:
@@ -165,11 +169,11 @@ If the key is missing,
 and
 [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 stop before they read your document, with a `gr_auth_error` that gives
-the same explanation. So a missing key does not first cost an OCR pass
-over a long scan.
+the same explanation. A missing key therefore does not cost you an OCR
+pass over a long scan first.
 
-Behind a company gateway, `hr_client(headers = )` sends the headers it
-wants, such as Azure’s `api-key`:
+Behind a company gateway, pass the headers the gateway wants, such as
+Azure’s `api-key`, to `hr_client(headers = )`:
 
 ``` r
 
@@ -192,8 +196,8 @@ package, which covers about twenty providers, local models through
 Ollama among them.
 
 The spending limit is on by default, and it can hold only for a model
-with a registered price. So register the model the ellmer object was
-built with, at your provider’s current prices in US dollars per million
+with a registered price. Register the model you built the ellmer object
+with, at your provider’s current prices in US dollars per million
 tokens. A local model has no price to register, so let it run unpriced:
 
 ``` r
@@ -217,19 +221,20 @@ embeddings).
 
 Anything else, such as a model behind a queue, goes through
 [`hr_backend_client()`](https://elkronos.github.io/harnessr/reference/hr_backend_client.md).
-It makes any function of `messages` and `params` that returns a string
-the transport. Limits, the trace, caching and replay work the same way
-on every client. Register the model’s real context window with
+Give it any function of `messages` and `params` that returns a string,
+and that function becomes the transport. Limits, the trace, caching and
+replay work the same way on every client. Register the model’s real
+context window with
 [`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md),
-since it sizes your chunks.
+because harnessr sizes each prompt from it.
 
 ## Practising without a key
 
-For learning, a real model is unnecessary.
+You do not need a real model to learn.
 [`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
 builds a stand-in that replies with whatever an R function returns, and
-it can be used anywhere a real model can. This one always gives the same
-answer, which is enough to see how everything else works:
+you can use it anywhere a real model goes. This one always gives the
+same answer, which is enough to see how everything else works:
 
 ``` r
 
@@ -242,7 +247,7 @@ it on in your own work while you are learning. In an interactive session
 it also keeps a line up to date with how far a long read has got and
 what it has spent.
 [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
-returns the settings it replaced, so they can be restored later with
+returns the settings it replaced, so you can restore them later with
 `hr_options(old)`.
 
 ## Your first question
@@ -300,11 +305,14 @@ file, the address for a download, `<inline text>` for a string.
 `ans` holds much more than the answer. Look at three things before
 relying on it.
 
-**`partial` says whether anything went wrong.** It is `TRUE` if a
-request failed, if chunks were left out because they did not fit, if a
-limit on requests or spending stopped the run early, if a reading
-strategy fell back to a simpler method, or if pages of the document
-never became text (a scanned page read without OCR, for example):
+**`partial` says whether anything went wrong.** It is `TRUE` if:
+
+- a request failed;
+- chunks were left out because they did not fit;
+- a limit on requests or spending stopped the run early;
+- a reading strategy fell back to a simpler method;
+- pages of the document never became text (a scanned page read without
+  OCR, for example).
 
 ``` r
 
@@ -332,15 +340,15 @@ bad
 ```
 
 The run did not stop with an error. It finished, and the failure is
-recorded on the result, so check `partial` every time. Any warnings
-raised along the way are kept in `ans$warnings` as well as printed, so
-they can still be read after the console has scrolled past them.
+recorded on the result, so check `partial` every time. harnessr also
+keeps any warnings raised along the way in `ans$warnings` as well as
+printing them, so you can read them after the console has scrolled past.
 
 **[`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md)
 says whether the document had the answer at all.** Every reading
 strategy tells the model to reply with a fixed marker when the text it
-was shown does not answer the question, so “the document does not say”
-can be told apart from an answer:
+was shown does not answer the question. That lets you tell “the document
+does not say” apart from an answer:
 
 ``` r
 
@@ -356,14 +364,16 @@ that was a failure rather than a finding.
 A question can also assume something the document contradicts, such as
 “Why did revenue fall?” of a report in which revenue rose. The model
 then either answers as if the assumption were true or replies with the
-marker. Add `premise = TRUE` to the call and the model is told that,
-when the document says the opposite, it should say so in one sentence
-giving what the document states. That sentence is the answer and
-`ans$premise`, and
+marker.
+
+Add `premise = TRUE` to the call and harnessr tells the model that, when
+the document says the opposite, it should say so in one sentence giving
+what the document states. That sentence is the answer and `ans$premise`,
+and
 [`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md)
 is `FALSE` for it. A document that is merely silent still gets the
-marker. It is off by default, and the correction is the model’s reading,
-not a check harnessr makes
+marker. `premise` is off by default. The correction is the model’s own
+reading, and harnessr does not check it
 ([`?gr_read_spec`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)).
 
 **`evidence` shows what the answer rests on.** Each row is a chunk the
@@ -379,8 +389,8 @@ ans$evidence[, c("chunk_id", "page", "section")]
 ```
 
 On a long document there is a row for every chunk used, and `page` and
-`section` tell you where to find the passage. What each row’s `text`
-holds depends on the reading strategy. When the model is asked to quote
+`section` tell you where to find the passage. The contents of each row’s
+`text` depend on the reading strategy. When the model is asked to quote
 the document, harnessr checks every quotation against the text and marks
 the answer `partial` if one is not there.
 [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
@@ -436,13 +446,14 @@ hr_estimate_cost(hr_options("model"), input_tokens = 120000, output_tokens = 400
 ```
 
 Two safety limits are on from the start: \$5 and 400 requests per
-document. Each request is checked before it is sent, against what the
-run has spent plus the most that request could cost, and one that could
-pass a limit is not sent. A run stopped that way is marked partial, and
-printing it says which limit stopped it. A run that could not finish
-inside the limits is refused before the first request: one that would
-need more than 400 requests, or one whose chunks would cost more than
-\$5 to send once:
+document. harnessr checks each request before sending it, against what
+the run has spent plus the most that request could cost, and does not
+send one that could pass a limit. A run stopped that way is marked
+partial, and printing it names the limit that stopped it.
+
+harnessr also refuses, before the first request, a run that could not
+finish inside the limits: one that would need more than 400 requests, or
+one whose chunks would cost more than \$5 to send once:
 
 ``` r
 
@@ -455,14 +466,15 @@ Change them with
 [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md),
 for example `hr_options(max_cost_usd = 20)`.
 [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
-covers the other limits, and how to cache a run so it is paid for once.
+covers the other limits, and how to cache a run so you pay for it once.
 
 The default models also *reason* before they answer: they work through
 the question in text you never see, and it is charged as text the model
 writes back. `effort` sets how much, for example `"low"` or `"high"`.
-Unless you set it, nothing is sent and the provider’s default applies.
-harnessr sends it only to a model it knows reasons. The mock is not one,
-so here it is given the default model’s name to stand in for it:
+Unless you set it, harnessr sends no effort and the provider’s default
+applies. harnessr sends it only to a model it knows reasons. The mock is
+not one, so the example below gives it the default model’s name to stand
+in for that model:
 
 ``` r
 
@@ -476,8 +488,10 @@ as.data.frame(low$trace)[, c("stage", "model", "effort")]
 With a real client on the default model, `effort = "low"` alone is
 enough. The trace records the effort each request carried; the `effort`
 column appears only when a request carried one. Less reasoning costs
-less. `effort` can also differ by stage, low for the many routine
-requests and high for the few that judge;
+less.
+
+You can also set `effort` by stage: low for the many routine requests,
+high for the few that judge.
 [`?gr_read_spec`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
 lists the stages and suggests a starting point.
 
@@ -559,8 +573,8 @@ the questions about one document as a cluster. See
 
 ## What you can change
 
-A recipe is a set of settings, and every one of them can be changed.
-They are grouped by the stage of a run they belong to:
+A recipe is a set of settings, and you can change every one of them. The
+table groups them by the stage of a run they belong to:
 
 ``` r
 
@@ -584,10 +598,10 @@ table(factor(settings$stage, unique(settings$stage)))
 | evaluate | 30 | the arguments of [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md), [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) and [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | [`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md), [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md) |
 | options | 34 | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md), for the whole session | [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md) |
 
-Most runs change a few of them, which
+Most runs change a few of them, and
 [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
-marks `basic`. The ones that matter first, with their defaults and when
-to change each:
+marks those `basic`. Here are the ones that matter first, with their
+defaults and when to change each:
 
 | stage | setting (default) | change it when |
 |----|----|----|
@@ -618,10 +632,11 @@ to change each:
 lists all 227 with their defaults and where each default came from, and
 [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
 returns them in R. The settings page links each important one to a
-walkthrough at the end of one of six guides, which says what it trades
-off, the signs that point to changing it and how to test a change.
+walkthrough at the end of one of six guides. Each walkthrough says what
+the setting trades off, the signs that point to changing it and how to
+test a change. To compare the values of a setting,
 [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
-builds one arm per value of a setting so the values can be compared, as
+builds one arm per value, as
 [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)
 shows.
 

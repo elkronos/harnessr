@@ -1,18 +1,22 @@
 # Extending harnessr
 
-Every axis of harnessr is a registry: extractors and cleaners for
-ingest, segmenters, readers, embedders, and models. You can list each
-one, swap one entry for another, and add your own. An addition behaves
-exactly like a built-in. It gets the same token caps, provenance and
-reporting, it is held to the same call and spending limits, and it can
-be named in a recipe, put in an `ensemble`, and compared against a
-built-in with
+Each axis of harnessr is a registry: extractors and cleaners for ingest,
+segmenters, readers, embedders, and models. You can list each registry,
+swap one entry for another, and add your own.
+
+harnessr treats your addition exactly as it treats a built-in. Your
+module gets the same token caps, provenance and reporting, and it runs
+under the same call and spending limits. You can name it in a recipe,
+put it in an `ensemble`, and compare it against a built-in with
 [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md).
 
-This guide shows how to register each kind of module, how a module that
-calls the model declares its calls and its cost, how a spec states its
-parameters, and how to check a module of your own against the contract
-the built-ins follow.
+This guide covers four tasks:
+
+- registering each kind of module;
+- declaring the calls and the cost of a module that calls the model;
+- stating the parameters of a spec;
+- checking your module against the contract the built-ins follow.
+
 [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
 introduces the package and its ideas.
 
@@ -20,10 +24,10 @@ introduces the package and its ideas.
 
 The examples run offline.
 [`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
-is a client whose handler is an ordinary R function; it goes everywhere
-a real client goes and records every prompt it was sent, which is how
-you check that a module of your own does what you think before you pay
-for it. `embedder = "lexical"` keeps embedding free and offline too.
+returns a client whose handler is an ordinary R function. You can pass
+it anywhere a real client goes, and it records every prompt it receives.
+Use it to check that your module does what you expect before you pay for
+real calls. `embedder = "lexical"` keeps embedding free and offline too.
 
 ``` r
 
@@ -36,9 +40,9 @@ cl <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollar
 
 An extractor turns a file into text blocks. It is a function of
 `(path, opts)` that returns a data frame with a `text` column, and
-optionally `page`, `section` and `kind`.
-[`gr_register_extractor()`](https://elkronos.github.io/harnessr/reference/gr_register_extractor.md)
-names the file extensions it claims.
+optionally `page`, `section` and `kind`. When you register it with
+[`gr_register_extractor()`](https://elkronos.github.io/harnessr/reference/gr_register_extractor.md),
+you name the file extensions it claims.
 
 ``` r
 
@@ -56,16 +60,19 @@ cat(gr_ingest(tsv)$text)
 #> south | 51.8
 ```
 
-Pages an extractor could not turn into text can be listed in
-`attr(result, "gr_unread_pages")`. An answer drawn from the document is
-then marked partial, as it is for a PDF page that needed OCR and did not
-get it.
+If your extractor cannot turn some pages into text, list them in
+`attr(result, "gr_unread_pages")`. harnessr then marks an answer drawn
+from the document as partial, as it does for a PDF page that needed OCR
+and did not get it.
 
 A cleaner is a function of `(text, opts)` that returns cleaned text. Its
-`stage` says when it runs: `"early"` steps preserve structure
-(boilerplate removal), `"late"` steps normalise destructively (digit
-stripping), and early steps always run before late ones whatever order
-you list them in.
+`stage` sets when it runs:
+
+- `"early"` steps preserve structure, as boilerplate removal does.
+- `"late"` steps normalise destructively, as digit stripping does.
+
+Early steps always run before late ones, whatever order you list them
+in.
 
 ``` r
 
@@ -79,12 +86,12 @@ as.character(cleaned)
 #> [1] "The real content of the document."
 ```
 
-A cleaner runs on each text block by default. One that reasons about
-position or repetition across the whole document, such as dropping a
-trailing bibliography or a running head, needs `scope = "document"`;
-applied per block, it would never fire.
+By default a cleaner runs on each text block. A cleaner that looks at
+position or repetition across the whole document, such as one that drops
+a trailing bibliography or a running head, needs `scope = "document"`.
+Run per block, it would never fire.
 [`?gr_register_cleaner`](https://elkronos.github.io/harnessr/reference/gr_register_cleaner.md)
-says how its result is matched back to the blocks.
+explains how harnessr matches its result back to the blocks.
 [`vignette("ingest")`](https://elkronos.github.io/harnessr/articles/ingest.md)
 covers the built-in extractors and cleaners.
 
@@ -92,12 +99,16 @@ covers the built-in extractors and cleaners.
 
 A segmenter is a function of `(doc, spec, client, trace)` that returns a
 `gr_chunks`. Build that object with
-[`new_chunks()`](https://elkronos.github.io/harnessr/reference/new_chunks.md):
+[`new_chunks()`](https://elkronos.github.io/harnessr/reference/new_chunks.md),
+because
 [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
-rejects anything else, and the constructor is what gives your segmenter
-the same invariants as the built-ins (blank units dropped, `chunk_id`
-assigned in order, tokens and characters measured, provenance recycled
-to match).
+rejects anything else. The constructor gives your segmenter the same
+invariants as the built-ins:
+
+- it drops blank units;
+- it assigns `chunk_id` in order;
+- it measures tokens and characters;
+- it recycles provenance to match.
 
 ``` r
 
@@ -115,20 +126,29 @@ subset(gr_segmenters(), name == "by_bullet")
 [`new_chunks()`](https://elkronos.github.io/harnessr/reference/new_chunks.md)
 does not enforce the token cap.
 [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
-checks it after your function returns and splits anything oversized, so
-a segmenter that ignores `spec$max_tokens` still produces chunks that
-fit. The conformance check below reports each chunk it had to split.
-
-Three arguments describe what the segmenter spends. `cost` is `"free"`,
-`"embedding"` or `"llm"`, so a UI can warn before anything is spent.
-`needs_client = TRUE` says it cannot work without a client; without one,
+checks the cap after your function returns and splits anything
+oversized, so the chunks fit even when your segmenter ignores
+`spec$max_tokens`. The conformance check later in this guide reports
+each chunk that
 [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
-warns with class `gr_segment_fallback`, and the segmenter should record
-what it fell back to in its `method` (`"mine->paragraph"`) so the
-downgrade shows in
-[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md).
-`calls` declares the labels of its model calls, as the next sections
-describe for readers; `character(0)` says it makes none.
+had to split.
+
+Three arguments of
+[`gr_register_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_register_segmenter.md)
+describe what the segmenter spends:
+
+- `cost` is `"free"`, `"embedding"` or `"llm"`, so a UI can warn before
+  anything is spent.
+- `needs_client = TRUE` marks a segmenter that cannot work without a
+  client. When there is no client,
+  [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
+  warns with class `gr_segment_fallback`. Your segmenter should then
+  record what it fell back to in its `method` (`"mine->paragraph"`), so
+  the downgrade shows in
+  [`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md).
+- `calls` declares the labels of its model calls, as the next sections
+  describe for readers. `character(0)` declares that it makes none.
+
 [`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md)
 covers the built-in segmenters.
 
@@ -163,28 +183,38 @@ gr_read(ch, "What was revenue?", cl, "longest")$answer
 
 Inside the function, `chunks$chunks` is the data frame of chunks
 (`chunk_id`, `text`, `tokens`, `chars`, `page`, `section`, `block_id`).
-Send every request through
-[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
-with the client you were given, never one you construct, and pass it the
-`trace`: that is what counts, prices and limits your calls. A request
-that would pass `max_calls` or `max_cost_usd` is not sent and comes back
-with `refused = TRUE`, so stop or degrade when one does. Honour at least
-`spec$model`, `spec$max_answer_tokens`, `spec$temperature` and
-`spec$effort`, and budget the prompt with
-[`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md)
-rather than assuming the document fits.
+When you write the function:
 
-The `signature`, `"select|calls|state"`, says how the reader traverses
-the chunks. Two readers with the same signature are the same method
-under two names:
+- Send every request through
+  [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
+  with the client you were given, never one you construct, and pass it
+  the `trace`. Through the trace,
+  [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
+  counts, prices and limits your calls.
+- Expect refusals. harnessr does not send a request that would pass
+  `max_calls` or `max_cost_usd`, and
+  [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
+  returns a result with `refused = TRUE` instead. Stop or degrade when
+  that happens.
+- Honour at least `spec$model`, `spec$max_answer_tokens`,
+  `spec$temperature` and `spec$effort`.
+- Budget the prompt with
+  [`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md)
+  instead of assuming the document fits.
+
+The `signature`, `"select|calls|state"`, describes how the reader
+traverses the chunks. Two readers with the same signature are the same
+method under two names.
 [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
-uses it to decide whether two recipes are the same experiment, and
-`ensemble` refuses members that share one. A `select` of `"all"` says
-the reader sends every chunk, so a run whose chunks alone would cost
-more than `max_cost_usd` is refused before its first request.
+uses the signature to decide whether two recipes are the same
+experiment, and `ensemble` refuses members that share one.
+
+A `select` of `"all"` declares that the reader sends every chunk.
+harnessr then refuses a run whose chunks alone would cost more than
+`max_cost_usd` before its first request.
 [`gr_reader_signature()`](https://elkronos.github.io/harnessr/reference/gr_reader_signature.md)
-reports a reader’s signature, so two readers claiming to differ can be
-checked rather than believed. `cost_calls` is a description for people,
+reports a reader’s signature, so you can check whether two readers that
+claim to differ do differ. `cost_calls` is a description for people,
 shown by
 [`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md);
 the pre-flight check never reads it.
@@ -199,17 +229,18 @@ covers the built-in readers.
 
 Every
 [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
-carries a `label`, and the label is the `stage` column of the trace. A
-module declares the stems of its labels in `calls`. A label is covered
-by a stem it equals, or one it starts with followed by a dot. Leave
-`calls` out and the module declares its own name, which covers labels
+carries a `label`, and the trace records it in its `stage` column. A
+module declares the stems of its labels in `calls`. A stem covers a
+label that equals it or that starts with it followed by a dot. If you
+leave `calls` out, the module declares its own name, which covers labels
 such as `"longest.answer"` for a reader called `"longest"`.
 
-The declaration is what an `effort` map is checked against. Each name in
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
+checks an `effort` map against these declarations. Each name in
 `gr_read_spec(effort =)` must be a declared stem, a part of one up to a
-dot, or a label under one. Anything else is an error of class
-`hr_unknown_effort_key` that lists the stems, rather than a setting that
-silently reaches no request:
+dot, or a label under one. Any other name raises an error of class
+`hr_unknown_effort_key` that lists the stems. Without the check, that
+setting would silently reach no request:
 
 ``` r
 
@@ -223,14 +254,14 @@ tryCatch(gr_read_spec("longest", effort = c(longst = "low")),
 #> [1] "refused: no call is labelled 'longst'"
 ```
 
-An effort map that names the calls of your own module needs the module
-registered first, with its labels in `calls`.
+To name the calls of your own module in an effort map, register the
+module first, with its labels in `calls`. The `calls` column of
 [`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md)
 and
 [`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md)
-list every module’s stems in their `calls` column.
+lists every module’s stems.
 [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
-says what effort does and which models it is sent to.
+explains what effort does and which models it is sent to.
 
 ## Declaring cost
 
@@ -240,11 +271,13 @@ is a function of `(input_stats, params)` that returns
 [`hr_cost()`](https://elkronos.github.io/harnessr/reference/hr_cost.md):
 how many requests one run makes, expected and at worst. `params` is the
 [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md).
-`input_stats` has `n_chunks`, `tokens` (of all chunks), `texts`,
-`question`, `out_cap` (the largest reply cap a request to `params$model`
-is sent) and `embed_api` (whether embeddings go to the endpoint at all),
-with helpers `reply_cap(model, cap)`, `room(system, restate)` and
-`embed_requests(texts)`.
+`input_stats` holds:
+
+- `n_chunks`, `tokens` (of all chunks), `texts` and `question`;
+- `out_cap`, the largest reply cap a request to `params$model` is sent;
+- `embed_api`, whether embeddings go to the endpoint at all;
+- the helpers `reply_cap(model, cap)`, `room(system, restate)` and
+  `embed_requests(texts)`.
 
 This reader asks every chunk and then merges the notes, so it makes one
 request per chunk plus one:
@@ -278,11 +311,11 @@ table(as.data.frame(a$trace)$stage)
 #>          6          1
 ```
 
+Before the first request,
 [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
-adds up the cost functions of a run before the first request, and the
-governor decides from the sum whether the run fits its limits. Under a
-cap of three calls, the six chunks above are refused before anything is
-sent:
+adds up the cost functions of a run, and the governor checks the sum
+against its limits. Under a cap of three calls, the governor refuses the
+six chunks above before anything is sent:
 
 ``` r
 
@@ -293,19 +326,24 @@ tryCatch(gr_read(ch, "What was revenue?", cl, "each"),
 hr_options(capped)
 ```
 
-A reader registered without `cost` is counted as one request per chunk
-and, for a signature whose `select` is `"all"`, every chunk sent once.
-Declare `cost` for any reader that makes a different number of requests.
+For a reader registered without `cost`, the pre-flight check counts one
+request per chunk and, for a signature whose `select` is `"all"`, every
+chunk sent once. Declare `cost` for any reader that makes a different
+number of requests.
 
 [`hr_cost()`](https://elkronos.github.io/harnessr/reference/hr_cost.md)
-has more fields than `calls`. `calls_max` is the worst case, never taken
-as less than `calls`. `tokens_in_max` counts prompt tokens sent beyond
-the input itself, such as replies handed on to a merge. `tokens_out_max`
-is for a reader whose replies can be billed beyond the reply cap;
-otherwise the check prices every request at `input_stats$out_cap`.
-`embed_max` counts requests to the embeddings endpoint, and `sends`
-lists input every run must send, as `list(tokens =, model =)`, so a run
-that cannot finish under the spending limit is refused before it starts.
+has more fields than `calls`:
+
+- `calls_max` is the worst case, never taken as less than `calls`.
+- `tokens_in_max` counts prompt tokens sent beyond the input itself,
+  such as replies handed on to a merge.
+- `tokens_out_max` is for a reader whose replies can be billed beyond
+  the reply cap. Without it, the check prices every request at
+  `input_stats$out_cap`.
+- `embed_max` counts requests to the embeddings endpoint.
+- `sends` lists input every run must send, as `list(tokens =, model =)`,
+  so the pre-flight check refuses a run that cannot finish under the
+  spending limit before it starts.
 
 ``` r
 
@@ -318,8 +356,8 @@ covers the governor, its limits and the pre-flight step in the trace.
 
 ## Embedders
 
-Embedders are a registry too. They make `retrieve` and the `semantic`
-segmenter work offline, for free, and reproducibly:
+Embedders are a registry too. With a local embedder, `retrieve` and the
+`semantic` segmenter work offline, for free, and reproducibly:
 
 ``` r
 
@@ -333,14 +371,18 @@ gr_embedders()
 ```
 
 `hr_options(embedder = "lexical")` switches every part of the package
-that embeds. An embedder is a function of `(texts, params)` that returns
-a numeric matrix with one row per text, rows L2-normalised, since
-everything downstream treats the cross-product as cosine similarity.
+that embeds.
+
+An embedder is a function of `(texts, params)` that returns a numeric
+matrix with one row per text. L2-normalise each row, because harnessr
+treats the cross-product as cosine similarity everywhere downstream.
 `params` carries `client`, `model`, `batch_size`, `cache` and `trace`.
-Signal failure by raising an error; the caller applies its own fallback.
-Register your own (a local model, a company service) and the `semantic`
-segmenter and the `retrieve` and `iterative` readers all use it, with no
-change to any of them.
+To signal failure, raise an error; the caller applies its own fallback.
+
+Register your own embedder (a local model, a company service) and select
+it with `hr_options(embedder =)`. The `semantic` segmenter and the
+`retrieve` and `iterative` readers then all use it, with no change to
+any of them.
 
 ``` r
 
@@ -362,18 +404,20 @@ hr_options(toy)
 ```
 
 Set `deterministic = TRUE` only if the same text always gives the same
-vector, in any session on any machine. A trace records model calls, not
-vectors, and that flag is what lets
+vector, in any session on any machine. A trace records model calls but
+not vectors. The flag lets
 [`hr_replay_client()`](https://elkronos.github.io/harnessr/reference/hr_replay_client.md)
 recompute a run’s chunk ranking instead of degrading to lexical vectors.
-Claiming it wrongly makes a replay rank chunks from vectors the original
-run never saw, while reporting an exact match.
+If you set it wrongly, a replay ranks chunks from vectors the original
+run never saw and still reports an exact match.
 
 ## Models
 
 The model registry holds each model’s context window, output limit and
-prices. Register a model the package does not know, or override a
-built-in entry whose prices have gone stale:
+prices. Use
+[`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md)
+to add a model the package does not know, or to override a built-in
+entry whose prices have gone stale:
 
 ``` r
 
@@ -389,8 +433,8 @@ hr_model_info("my-local-llama")[c("context_window", "source", "certain")]
 #> [1] TRUE
 ```
 
-Without prices, a cost cannot be estimated, and harnessr says so rather
-than assuming the run is free:
+Without prices, harnessr cannot estimate a cost. It returns `NA` instead
+of assuming the run is free:
 
 ``` r
 
@@ -398,20 +442,24 @@ is.na(hr_estimate_cost("my-local-llama", 1000, 500))
 #> [1] TRUE
 ```
 
-While a spending limit is set, a request to a language model with no
-registered price is refused before it is sent (embedding models and
+While a spending limit is set, harnessr refuses a request to a language
+model with no registered price before sending it. Embedding models and
 [`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
-are exempt). Give `input_usd` and `output_usd` in US dollars per million
-tokens, or let a local model run unpriced with
-`hr_options(allow_unpriced = TRUE)`. `reasoning = TRUE` marks a model
-that takes an effort setting. The section on connecting to a model in
+are exempt. You have two ways forward:
+
+- give `input_usd` and `output_usd` in US dollars per million tokens;
+- let a local model run unpriced with
+  `hr_options(allow_unpriced = TRUE)`.
+
+The section on connecting to a model in
 [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
-shows both for a model reached through ellmer.
+shows both for a model reached through ellmer. `reasoning = TRUE` marks
+a model that takes an effort setting.
 
 ## Using what you registered
 
-A registered module is named like a built-in. A recipe binds one choice
-from each axis, and
+You name a registered module as you name a built-in. A recipe binds one
+choice from each axis, and
 [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
 runs it:
 
@@ -427,7 +475,7 @@ answer_document(gr_example(), "What was revenue?", recipe = mine,
 
 [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 runs several recipes on one document and question, sharing one trace, so
-your addition can be measured against a built-in on calls, tokens and
+you can measure your addition against a built-in on calls, tokens and
 cost:
 
 ``` r
@@ -443,9 +491,9 @@ cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "calls")]
 ## Registering any kind with hr_register()
 
 [`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md)
-registers a module of any kind through one function. Name the kind
-first; the other arguments are those of that kind’s own function, so
-`hr_register("reader", ...)` takes what
+registers a module of any kind. Name the kind first. The other arguments
+are those of that kind’s own function, so `hr_register("reader", ...)`
+takes what
 [`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md)
 takes and runs the same checks. This reader answers from the shortest
 chunk:
@@ -467,9 +515,10 @@ hr_register("reader", "shortest", signature = "one|1|none", cost_calls = "1",
 ```
 
 The kinds are `"extractor"`, `"cleaner"`, `"segmenter"`, `"reader"`,
-`"embedder"`, `"protocol"` and `"step"`. Any other kind is an error of
-class `hr_unknown_kind`, and a module the kind’s own function would
-refuse is refused here too:
+`"embedder"`, `"protocol"` and `"step"`. For any other kind,
+[`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md)
+raises an error of class `hr_unknown_kind`. It also refuses a module
+that the kind’s own function would refuse:
 
 ``` r
 
@@ -478,7 +527,7 @@ tryCatch(hr_register("reader", "auto", fn = identity, signature = "one|1|none"),
 #> [1] "'auto' is reserved: answer_document() uses it to choose a recipe. Register the reader under another name."
 ```
 
-Every kind keeps its modules in the registry.
+The registry holds the modules of every kind.
 [`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md)
 stores an entry with its version and contract, and a lookup such as
 [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
@@ -512,17 +561,20 @@ r[r$name %in% c("longest", "shortest"), c("name", "signature", "calls")]
 #> 13 shortest one|1|none shortest.answer
 ```
 
-The listings such as
+Listings such as
 [`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md)
-keep their own columns, and a module you register with
+keep their own columns. A module you register with
 [`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md)
 appears in them as one registered with the kind’s own function does.
-Each listing ends with two more columns: `version`, the version you gave
-[`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md),
-and `contract`, the module contract it was registered under. A module
-registered with a `gr_register_*()` function has `NA` in both. Pass
-`version` when you register, and the listings show which version of your
-module is in place:
+Each listing ends with two more columns:
+
+- `version`, the version you gave
+  [`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md);
+- `contract`, the module contract it was registered under.
+
+A module registered with a `gr_register_*()` function has `NA` in both.
+Pass `version` when you register, and the listings show which version of
+your module is in place:
 
 ``` r
 
@@ -551,14 +603,15 @@ hr_modules("step")[, c("name", "input", "output", "version", "contract")]
 #> 1 shout answer  state   0.2.0      0.2
 ```
 
-A segmenter that calls a model can also take `effort_label` through
-[`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md):
-a function of the segment spec that returns the label its requests
-carry, or `""` when the spec sends none. A run’s `effort` map then
-reaches your segmenter as the effort for that label alone, as it reaches
-the built-in `contextual` and `proposition` segmenters. Without
-`effort_label`, your segmenter gets the whole map and picks its own
-labels from it.
+Through
+[`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md),
+a segmenter that calls a model can also take `effort_label`. It is a
+function of the segment spec that returns the label the segmenter’s
+requests carry, or `""` when the spec sends none. With it, your
+segmenter receives only the effort for that label from a run’s `effort`
+map, as the built-in `contextual` and `proposition` segmenters do.
+Without `effort_label`, your segmenter gets the whole map and picks its
+own labels from it.
 
 ## Parameter schemas
 
@@ -568,14 +621,15 @@ default, range and choices.
 [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md)
 and
 [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md)
-check their arguments this way, and the same three functions are there
-for a module of your own.
-[`hr_param()`](https://elkronos.github.io/harnessr/reference/hr_param.md)
-declares one parameter,
-[`hr_schema()`](https://elkronos.github.io/harnessr/reference/hr_schema.md)
-collects them, and
-[`hr_validate()`](https://elkronos.github.io/harnessr/reference/hr_validate.md)
-applies the rules.
+check their arguments against a schema. You can use the same three
+schema functions for a module of your own:
+
+- [`hr_param()`](https://elkronos.github.io/harnessr/reference/hr_param.md)
+  declares one parameter;
+- [`hr_schema()`](https://elkronos.github.io/harnessr/reference/hr_schema.md)
+  collects them;
+- [`hr_validate()`](https://elkronos.github.io/harnessr/reference/hr_validate.md)
+  applies the rules.
 
 ``` r
 
@@ -594,12 +648,13 @@ s
 #>   order                      enum          basic     -         relevance|document
 ```
 
-The parameters resolve in schema order, so a bound that depends on
-another parameter, such as `overlap_tokens` above, comes after it. A
-number out of range is moved to the nearest bound and warned about with
-class `gr_clamped` (and `hr_param_clamped`). An `enum` is matched as
-[`match.arg()`](https://rdrr.io/r/base/match.arg.html) matches, so an
-unambiguous abbreviation is accepted:
+[`hr_validate()`](https://elkronos.github.io/harnessr/reference/hr_validate.md)
+resolves the parameters in schema order, so a parameter whose bound
+depends on another, such as `overlap_tokens` above, comes after it. It
+moves a number out of range to the nearest bound and warns with class
+`gr_clamped` (and `hr_param_clamped`). It matches an `enum` as
+[`match.arg()`](https://rdrr.io/r/base/match.arg.html) does, so it
+accepts an unambiguous abbreviation:
 
 ``` r
 
@@ -616,8 +671,9 @@ withCallingHandlers(
 #>  $ order         : chr "document"
 ```
 
-A name the schema does not have is an error of class `hr_unknown_param`,
-and a value outside an `enum`’s choices is an error naming them:
+A name the schema does not have raises an error of class
+`hr_unknown_param`. A value outside an `enum`’s choices raises an error
+that names the choices:
 
 ``` r
 
@@ -629,15 +685,20 @@ tryCatch(hr_validate(s, list(top_k = 3)),
 The types are `integer`, `number`, `string`, `boolean`, `enum`,
 `string_vector`, `named_map`, `module_ref` and `file`;
 [`?hr_param`](https://elkronos.github.io/harnessr/reference/hr_param.md)
-gives the rule for each. A `resolve` function replaces the type’s rule
-for a parameter that needs its own. The other fields describe the
-parameter rather than check it: `help` (one plain sentence),
-`cost_class` (how it moves the cost of a run: `"none"`, `"local"`,
-`"per_call_constant"`, `"per_unit"`, `"per_sample"` or `"per_round"`),
-`affects_output` (whether it belongs in cache and store keys), `tier`
-(`"basic"` or `"advanced"`, for grouping in a user interface),
-`evidence`, `depends_on` and `since`. They are there so a later UI or
-command line can be built from the same list.
+gives the rule for each. For a parameter that needs a rule of its own, a
+`resolve` function replaces the type’s rule.
+
+The other fields describe the parameter and do not check it:
+
+- `help`: one plain sentence.
+- `cost_class`: how it moves the cost of a run, one of `"none"`,
+  `"local"`, `"per_call_constant"`, `"per_unit"`, `"per_sample"` or
+  `"per_round"`.
+- `affects_output`: whether it belongs in cache and store keys.
+- `tier`: `"basic"` or `"advanced"`, for grouping in a user interface.
+- `evidence`, `depends_on` and `since`.
+
+These fields let a later UI or command line be built from the same list.
 
 ## Checking a module against the contract
 
@@ -646,7 +707,7 @@ and
 [`gr_check_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_check_segmenter.md)
 run one registered module on the bundled example document, through an
 offline client, and report which rules of its contract it breaks. In
-this release they are reports only: registering a module does not run
+this release the checks only report. Registering a module does not run
 them, and a module that breaks a rule stays registered and runs as
 before. Every built-in reader and segmenter passes.
 
@@ -698,20 +759,24 @@ gr_check_reader("loose")
 #>   ok    evidence: no evidence
 ```
 
-The broken rules print first, each with what was found. The reader rules
-are `is_function` and `runs` (it finishes without an error),
-`answer_class` and `answer_fields` (a `gr_answer` with every documented
-field), `answer_text` (a single string), `evidence` and `chunks_used`
-(they name only chunks of the input), `calls_declared` (every label is
-under a declared stem) and `calls_within_cost` (no more requests than
-the cost function’s worst case; `NA` for a reader registered without
-`cost`).
+The broken rules print first, each with what the check found. The nine
+reader rules are:
+
+- `is_function`;
+- `runs`: it finishes without an error;
+- `answer_class` and `answer_fields`: a `gr_answer` with every
+  documented field;
+- `answer_text`: a single string;
+- `evidence` and `chunks_used`: they name only chunks of the input;
+- `calls_declared`: every label is under a declared stem;
+- `calls_within_cost`: no more requests than the cost function’s worst
+  case, or `NA` for a reader registered without `cost`.
 
 The `by_bullet` segmenter from earlier fails one rule. The example
-document has no bullets, so it comes back as a single chunk over the
-150-token cap the check cuts with, and
+document has no bullets, so `by_bullet` returns it as a single chunk
+over the 150-token cap the check cuts with, and
 [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
-had to split it:
+has to split it:
 
 ``` r
 
@@ -754,13 +819,13 @@ gr_check_segmenter("by_bullet")
 
 The segmenter rules are `is_function`, `runs`, `chunks_class`,
 `chunk_columns` (the documented columns), `chunk_text` (no blank chunk),
-`chunk_ids` (unique, not `NA`), `within_cap` and `calls_declared`. A
-segmenter that needs a client, or declares calls, is given the offline
-one; pass `client =` to check it against another.
+`chunk_ids` (unique, not `NA`), `within_cap` and `calls_declared`. The
+check gives the offline client to a segmenter that needs a client or
+declares calls. Pass `client =` to check it against another client.
 
 Both checks return an `hr_conformance` data frame with `rule`, `ok` and
-`detail` columns, so a package of modules can assert on it in its own
-tests:
+`detail` columns. If you maintain a package of modules, its tests can
+assert on that data frame:
 
 ``` r
 
@@ -770,12 +835,17 @@ res$rule[!is.na(res$ok) & !res$ok]
 ```
 
 To check a module against a provider that misbehaves, give the check a
-mock client with a `mode`. `"bad_json"` sends JSON cut off part way,
-`"refuse"` sends empty replies, `"at_cap"` marks every reply as cut off
-at the output cap, and a vector of HTTP status codes gives call `i` the
-`i`-th status, so `c(429, 500, 200)` fails the first two calls and
-answers every one after. The `longest` reader still finishes, and stays
-within its cost, when every request is rate limited:
+mock client with a `mode`:
+
+- `"bad_json"` sends JSON cut off part way.
+- `"refuse"` sends empty replies.
+- `"at_cap"` marks every reply as cut off at the output cap.
+- A vector of HTTP status codes gives call `i` the `i`-th status, so
+  `c(429, 500, 200)` fails the first two calls and answers every one
+  after.
+
+The `longest` reader still finishes, and stays within its cost, when
+every request is rate limited:
 
 ``` r
 
@@ -795,12 +865,19 @@ gr_check_reader("longest", client = hr_mock_client(mode = 429))
 
 [`hr_check_module()`](https://elkronos.github.io/harnessr/reference/hr_check_module.md)
 is the core helper both checks use, and it works for a module of any
-kind. Give it the module’s function, a closure of no arguments that runs
-the module once, and a named list of rules, each a function of the value
-the closure returned. A rule returns `TRUE`, `FALSE`, `NA` (could not be
-checked), or a list with `ok` and a `detail` string. The closure runs in
-a temporary working directory that is removed afterwards, and an error
-it raises is reported by the `runs` rule.
+kind. Give it three things:
+
+- the module’s function;
+- a closure of no arguments that runs the module once;
+- a named list of rules, each a function of the value the closure
+  returned.
+
+A rule returns `TRUE`, `FALSE`, `NA` (could not be checked), or a list
+with `ok` and a `detail` string. The closure runs in a temporary working
+directory that
+[`hr_check_module()`](https://elkronos.github.io/harnessr/reference/hr_check_module.md)
+removes afterwards, and the `runs` rule reports any error the closure
+raises.
 
 ``` r
 

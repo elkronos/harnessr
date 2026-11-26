@@ -89,13 +89,14 @@
 
     
     
-<p>This page lists every setting harnessr has, stage by stage, and the
-building blocks the settings choose between. The tables are made from
-<code><a href="../reference/gr_settings_table.html">gr_settings_table()</a></code> and the registries when the page is
-built, so they say what the installed code does. A setting with a
-walkthrough links to it: the section of a guide that says what the
-setting trades off, the signs that point to changing it, where its
-default came from and how to test a change.</p>
+<p>This page lists every setting in harnessr, stage by stage, and the
+building blocks those settings choose between. harnessr builds the
+tables from <code><a href="../reference/gr_settings_table.html">gr_settings_table()</a></code> and the registries when the
+page is built, so they match the installed code.</p>
+<p>A setting with a walkthrough links to it. The walkthrough is a
+section of a guide that covers what the setting trades off, the signs
+that you should change it, where its default came from and how to test a
+change.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/harnessr" class="external-link">harnessr</a></span><span class="op">)</span></span>
 <span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span>
@@ -114,31 +115,40 @@ default came from and how to test a change.</p>
 <div class="section level2">
 <h2 id="reading-the-tables">Reading the tables<a class="anchor" aria-label="anchor" href="#reading-the-tables"></a>
 </h2>
-<p>Each row is one setting. <code>where</code> is the function that
-takes it. <code>default</code> is the value used when you give none: a
-string without quotes, the first of a set of choices, anything else as R
-code. <code>tier</code> is <code>basic</code> for the few settings most
-runs change and <code>advanced</code> for the rest. <code>status</code>
-says where the default came from: <code>measured</code> (a measurement
-backs it), <code>cited</code> (a published source gives it) or
-<code>untested</code> (it was chosen, and nothing has measured it); a
-blank means nothing is declared, which is the case for switches, limits
-and most function arguments. <code><a href="../reference/gr_settings_table.html">gr_settings_table()</a></code> adds the
-<code>source</code> behind each status, and <code><a href="../reference/gr_read_spec.html">?gr_read_spec</a></code>,
+<p>Each row is one setting, and these columns describe it:</p>
+<ul>
+<li>
+<code>where</code>: the function that takes the setting.</li>
+<li>
+<code>default</code>: the value used when you give none. A string
+appears without quotes, a set of choices shows its first choice, and
+anything else appears as R code.</li>
+<li>
+<code>tier</code>: <code>basic</code> for the few settings most runs
+change, <code>advanced</code> for the rest.</li>
+<li>
+<code>status</code>: where the default came from.
+<code>measured</code> means a measurement backs it, <code>cited</code>
+means a published source gives it, and <code>untested</code> means it
+was chosen and nothing has measured it. A blank means nothing is
+declared, as for switches, limits and most function arguments.</li>
+</ul>
+<p><code><a href="../reference/gr_settings_table.html">gr_settings_table()</a></code> also returns the <code>source</code>
+behind each status. For the full help, see <code><a href="../reference/gr_read_spec.html">?gr_read_spec</a></code>,
 <code><a href="../reference/gr_segment_spec.html">?gr_segment_spec</a></code>, <code><a href="../reference/gr_ingest_spec.html">?gr_ingest_spec</a></code> and
-<code><a href="../reference/hr_options.html">?hr_options</a></code> give the full help.</p>
-<p>A setting is given where its stage takes it. Ingest, segment and read
+<code><a href="../reference/hr_options.html">?hr_options</a></code>.</p>
+<p>You give a setting where its stage takes it. Ingest, segment and read
 settings go in a spec (<code>gr_read_spec(top_k = 4)</code>), in a
 recipe, or by name to <code><a href="../reference/answer_document.html">answer_document()</a></code>,
 <code><a href="../reference/gr_read_many.html">gr_read_many()</a></code> and <code><a href="../reference/gr_arm.html">gr_arm()</a></code>, which put each on
-the step it belongs to. The review and evaluation settings are arguments
-of their functions. Options are set for the session with
+the step it belongs to. Review and evaluation settings are arguments of
+their functions. You set options for the session with
 <code><a href="../reference/hr_options.html">hr_options()</a></code>.</p>
-<p>To find out whether a value is better for your documents, build one
-arm per value with <code><a href="../reference/hr_sweep.html">hr_sweep()</a></code> and compare them with
+<p>To find out whether a value works better on your documents, build one
+arm per value with <code><a href="../reference/hr_sweep.html">hr_sweep()</a></code> and compare the arms with
 <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> and <code><a href="../reference/hr_report.html">hr_report()</a></code>, as
-<code><a href="../articles/compare.html">vignette("compare")</a></code> does; <code><a href="../reference/hr_sweep_check.html">hr_sweep_check()</a></code>
-says which values sent the same requests.</p>
+<code><a href="../articles/compare.html">vignette("compare")</a></code> does. <code><a href="../reference/hr_sweep_check.html">hr_sweep_check()</a></code>
+reports which values sent the same requests.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">show_settings</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">stage</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">s</span> <span class="op">&lt;-</span> <span class="va">settings</span><span class="op">[</span><span class="va">settings</span><span class="op">$</span><span class="va">stage</span> <span class="op">==</span> <span class="va">stage</span>, <span class="op">]</span></span>
@@ -156,10 +166,12 @@ says which values sent the same requests.</p>
 <div class="section level2">
 <h2 id="ingest">Ingest<a class="anchor" aria-label="anchor" href="#ingest"></a>
 </h2>
-<p>What comes out of a file: cleaning, OCR, the PDF layout pass, and the
-floor on how much text must survive. The entries of
-<code>cleaner_opts</code> and <code>layout_opts</code> are listed with
-their parent’s name. <code><a href="../articles/ingest.html">vignette("ingest")</a></code> covers them.</p>
+<p>These settings control what comes out of a file: cleaning, OCR, the
+PDF layout pass, and the floor on how much text must survive. The
+entries of <code>cleaner_opts</code> and <code>layout_opts</code> appear
+under their parent’s name, as
+<code>cleaner_opts.references_after</code>.
+<code><a href="../articles/ingest.html">vignette("ingest")</a></code> covers them.</p>
 <table class="table">
 <colgroup>
 <col width="17%">
@@ -367,8 +379,8 @@ number where a page number is set.</td>
 <div class="section level2">
 <h2 id="segment">Segment<a class="anchor" aria-label="anchor" href="#segment"></a>
 </h2>
-<p>How the text is cut into chunks. <code><a href="../articles/segment.html">vignette("segment")</a></code>
-covers them.</p>
+<p>harnessr cuts the text into chunks with these settings.
+<code><a href="../articles/segment.html">vignette("segment")</a></code> covers them.</p>
 <table class="table">
 <colgroup>
 <col width="18%">
@@ -564,8 +576,8 @@ batch’s request carries.</td>
 <div class="section level2">
 <h2 id="read">Read<a class="anchor" aria-label="anchor" href="#read"></a>
 </h2>
-<p>How the model reads the chunks, and the settings
-<code><a href="../reference/gr_read_many.html">gr_read_many()</a></code> adds for a folder.
+<p>With these settings you choose how the model reads the chunks. The
+stage also holds the ones <code><a href="../reference/gr_read_many.html">gr_read_many()</a></code> adds for a folder.
 <code><a href="../articles/readers.html">vignette("readers")</a></code> covers them.</p>
 <table class="table">
 <colgroup>
@@ -1027,10 +1039,19 @@ directory.</td>
 <div class="section level2">
 <h2 id="screening">Screening<a class="anchor" aria-label="anchor" href="#screening"></a>
 </h2>
-<p>The arguments of <code><a href="../reference/gr_screen.html">gr_screen()</a></code>, of
+<p>The arguments of these functions, which
+<code><a href="../articles/review.html">vignette("review")</a></code> covers:</p>
+<ul>
+<li>
+<code><a href="../reference/gr_screen.html">gr_screen()</a></code>, which decides which documents a review
+reads.</li>
+<li>
 <code><a href="../reference/gr_reference.html">gr_reference()</a></code> and <code><a href="../reference/gr_calibrate.html">gr_calibrate()</a></code>, which
-measure the screening against a person, and of the sample size and
-stopping tests. <code><a href="../articles/review.html">vignette("review")</a></code> covers them.</p>
+measure the screening against a person.</li>
+<li>
+<code><a href="../reference/gr_screen_sample_size.html">gr_screen_sample_size()</a></code> and
+<code><a href="../reference/gr_stop_test.html">gr_stop_test()</a></code>, the sample size and stopping tests.</li>
+</ul>
 <table class="table">
 <colgroup>
 <col width="6%">
@@ -1347,8 +1368,9 @@ where with prevalence it caps the draw at the whole frame.</td>
 <div class="section level2">
 <h2 id="extraction">Extraction<a class="anchor" aria-label="anchor" href="#extraction"></a>
 </h2>
-<p>The arguments of <code><a href="../reference/gr_extract.html">gr_extract()</a></code>. Recipe settings passed to
-it in <code>...</code> are the ingest and segment settings above.</p>
+<p>The arguments of <code><a href="../reference/gr_extract.html">gr_extract()</a></code>. The recipe settings you
+pass to it in <code>...</code> are the ingest and segment settings
+above.</p>
 <table class="table">
 <colgroup>
 <col width="6%">
@@ -1759,8 +1781,9 @@ figure and length checks.</td>
 <h2 id="evaluation">Evaluation<a class="anchor" aria-label="anchor" href="#evaluation"></a>
 </h2>
 <p>The arguments of <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code>,
-<code><a href="../reference/hr_report.html">hr_report()</a></code>, <code><a href="../reference/hr_judge.html">hr_judge()</a></code> and
-<code><a href="../reference/gr_compare.html">gr_compare()</a></code>. <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code> and
+<code><a href="../reference/hr_report.html">hr_report()</a></code>, <code><a href="../reference/hr_judge.html">hr_judge()</a></code>,
+<code><a href="../reference/gr_compare.html">gr_compare()</a></code>, <code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code> and
+<code><a href="../reference/hr_step_command.html">hr_step_command()</a></code>. <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code> and
 <code><a href="../articles/compare.html">vignette("compare")</a></code> cover them.</p>
 <table class="table">
 <colgroup>
@@ -2048,8 +2071,9 @@ one and left for the scorer.</td>
 <div class="section level2">
 <h2 id="options">Options<a class="anchor" aria-label="anchor" href="#options"></a>
 </h2>
-<p>Session settings, set with <code><a href="../reference/hr_options.html">hr_options()</a></code> and read when a
-run starts. <code><a href="../articles/runs.html">vignette("runs")</a></code> covers the limits.</p>
+<p>Session settings. You set them with <code><a href="../reference/hr_options.html">hr_options()</a></code>, and a
+run reads them when it starts. <code><a href="../articles/runs.html">vignette("runs")</a></code> covers the
+limits.</p>
 <table class="table">
 <colgroup>
 <col width="9%">
@@ -2382,15 +2406,17 @@ near_verbatim (see gr_verify_evidence()).</td>
 <p>Some settings choose a module from a registry:
 <code>extractor</code>, <code>clean</code>, <code>method</code>,
 <code>reader</code>, <code>hr_options(embedder = )</code>, and the
-recipe given to <code><a href="../reference/answer_document.html">answer_document()</a></code>. The tables below are the
-registries as installed, so a module you register with
-<code><a href="../reference/gr_register_reader.html">gr_register_reader()</a></code> and the like
+recipe you give <code><a href="../reference/answer_document.html">answer_document()</a></code>. The tables below show
+the registries as installed, so a module you register with
+<code><a href="../reference/gr_register_reader.html">gr_register_reader()</a></code> or another
+<code>gr_register_*()</code> function
 (<code><a href="../articles/extending.html">vignette("extending")</a></code>) appears in them too.</p>
 <div class="section level3">
 <h3 id="extractors">Extractors<a class="anchor" aria-label="anchor" href="#extractors"></a>
 </h3>
-<p>An extractor turns one kind of file into text. It is chosen by the
-file’s extension unless <code>extractor</code> names one.</p>
+<p>An extractor turns one kind of file into text. harnessr picks it by
+the file’s extension unless you name one with
+<code>extractor</code>.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_extractors.html">gr_extractors</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"extensions"</span>, <span class="st">"needs"</span>, <span class="st">"description"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
@@ -2458,10 +2484,10 @@ OCRs embedded images</td>
 <div class="section level3">
 <h3 id="cleaners-and-presets">Cleaners and presets<a class="anchor" aria-label="anchor" href="#cleaners-and-presets"></a>
 </h3>
-<p>A cleaner removes one kind of noise from the text. Those marked
+<p>A cleaner removes one kind of noise from the text. Cleaners marked
 <code>default_on</code> run unless the preset or list you give leaves
-them out; <code>early</code> cleaners run before <code>late</code> ones
-whatever order they are named in.</p>
+them out. <code>early</code> cleaners run before <code>late</code> ones,
+whatever order you name them in.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_cleaners.html">gr_cleaners</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"stage"</span>, <span class="st">"default_on"</span>, <span class="st">"description"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
@@ -2584,8 +2610,8 @@ destroys sentence boundaries</td>
 </tr>
 </tbody>
 </table>
-<p>A preset is a named list of cleaners. The steps each one runs, read
-from what it did to the example report:</p>
+<p>A preset is a named list of cleaners. This table shows the steps each
+preset runs, read from what it did to the example report:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">presets</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"none"</span>, <span class="st">"minimal"</span>, <span class="st">"standard"</span>, <span class="st">"academic"</span>, <span class="st">"scan"</span>, <span class="st">"legacy"</span><span class="op">)</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>preset <span class="op">=</span> <span class="va">presets</span>, cleaners <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">presets</span>, <span class="kw">function</span><span class="op">(</span><span class="va">p</span><span class="op">)</span> <span class="op">{</span></span>
@@ -2637,7 +2663,8 @@ remove_numbers, collapse_whitespace</td>
 <h3 id="segmenters">Segmenters<a class="anchor" aria-label="anchor" href="#segmenters"></a>
 </h3>
 <p>A segmenter decides where chunks are cut. <code>cost</code> says what
-it spends: <code>free</code>, one embedding pass, or model requests.</p>
+it spends: <code>free</code>, <code>embedding</code> for one embedding
+pass, or <code>llm</code> for model requests.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_segmenters.html">gr_segmenters</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"cost"</span>, <span class="st">"needs_client"</span>, <span class="st">"description"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
@@ -2725,9 +2752,9 @@ section title.</td>
 <h3 id="readers">Readers<a class="anchor" aria-label="anchor" href="#readers"></a>
 </h3>
 <p>A reader decides how the chunks reach the model.
-<code>signature</code> is which chunks are sent, how many requests, and
-how information passes between them; <code>cost_calls</code> is the
-number of requests.</p>
+<code>signature</code> records which chunks it sends, how many requests
+it makes, and how information passes between them.
+<code>cost_calls</code> is the number of requests.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_readers.html">gr_readers</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"signature"</span>, <span class="st">"cost_calls"</span>, <span class="st">"description"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
@@ -2834,10 +2861,10 @@ truncates if it does not fit.</td>
 <div class="section level3">
 <h3 id="embedders">Embedders<a class="anchor" aria-label="anchor" href="#embedders"></a>
 </h3>
-<p>An embedder turns text into vectors for <code>retrieve</code>,
-<code>iterative</code> and the <code>semantic</code> segmenter. A
-deterministic one gives the same vectors every run, which a replay
-needs.</p>
+<p>An embedder turns text into vectors for the <code>retrieve</code> and
+<code>iterative</code> readers and the <code>semantic</code> segmenter.
+A deterministic embedder gives the same vectors every run, which a
+replay needs.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_embedders.html">gr_embedders</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"deterministic"</span>, <span class="st">"description"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
@@ -2869,9 +2896,9 @@ meaning</td>
 <div class="section level3">
 <h3 id="recipes">Recipes<a class="anchor" aria-label="anchor" href="#recipes"></a>
 </h3>
-<p>A recipe names an ingestion, a segmentation and a reader with their
-settings. These are the values each built-in recipe sets; any of them
-can be overridden by name.</p>
+<p>A recipe names an ingestion, a segmentation and a reader, with their
+settings. The table shows the values each built-in recipe sets, and you
+can override any of them by name.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_recipes.html">gr_recipes</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_recipes.html">gr_recipes</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
@@ -3000,10 +3027,11 @@ can be overridden by name.</p>
 <ul>
 <li>
 <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code>: the basic settings of each stage,
-with when to change each.</li>
+and when to change each.</li>
 <li>
-<code><a href="../articles/compare.html">vignette("compare")</a></code>: testing a setting on a reference
-with dev and test splits, and reading the result with intervals.</li>
+<code><a href="../articles/compare.html">vignette("compare")</a></code>: how to test a setting on a
+reference with dev and test splits, and read the result with
+intervals.</li>
 <li>
 <code><a href="../reference/gr_settings_table.html">?gr_settings_table</a></code>: how the table is built, and its
 columns.</li>

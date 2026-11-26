@@ -89,27 +89,33 @@
 
     
     
-<p>Every axis of harnessr is a registry: extractors and cleaners for
+<p>Each axis of harnessr is a registry: extractors and cleaners for
 ingest, segmenters, readers, embedders, and models. You can list each
-one, swap one entry for another, and add your own. An addition behaves
-exactly like a built-in. It gets the same token caps, provenance and
-reporting, it is held to the same call and spending limits, and it can
-be named in a recipe, put in an <code>ensemble</code>, and compared
-against a built-in with <code><a href="../reference/gr_compare.html">gr_compare()</a></code>.</p>
-<p>This guide shows how to register each kind of module, how a module
-that calls the model declares its calls and its cost, how a spec states
-its parameters, and how to check a module of your own against the
-contract the built-ins follow. <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code>
-introduces the package and its ideas.</p>
+registry, swap one entry for another, and add your own.</p>
+<p>harnessr treats your addition exactly as it treats a built-in. Your
+module gets the same token caps, provenance and reporting, and it runs
+under the same call and spending limits. You can name it in a recipe,
+put it in an <code>ensemble</code>, and compare it against a built-in
+with <code><a href="../reference/gr_compare.html">gr_compare()</a></code>.</p>
+<p>This guide covers four tasks:</p>
+<ul>
+<li>registering each kind of module;</li>
+<li>declaring the calls and the cost of a module that calls the
+model;</li>
+<li>stating the parameters of a spec;</li>
+<li>checking your module against the contract the built-ins follow.</li>
+</ul>
+<p><code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> introduces the package and its
+ideas.</p>
 <div class="section level2">
 <h2 id="setting-up">Setting up<a class="anchor" aria-label="anchor" href="#setting-up"></a>
 </h2>
-<p>The examples run offline. <code><a href="../reference/hr_mock_client.html">hr_mock_client()</a></code> is a client
-whose handler is an ordinary R function; it goes everywhere a real
-client goes and records every prompt it was sent, which is how you check
-that a module of your own does what you think before you pay for it.
-<code>embedder = "lexical"</code> keeps embedding free and offline
-too.</p>
+<p>The examples run offline. <code><a href="../reference/hr_mock_client.html">hr_mock_client()</a></code> returns a
+client whose handler is an ordinary R function. You can pass it anywhere
+a real client goes, and it records every prompt it receives. Use it to
+check that your module does what you expect before you pay for real
+calls. <code>embedder = "lexical"</code> keeps embedding free and
+offline too.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/harnessr" class="external-link">harnessr</a></span><span class="op">)</span></span>
 <span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span>
@@ -121,8 +127,8 @@ too.</p>
 <p>An extractor turns a file into text blocks. It is a function of
 <code>(path, opts)</code> that returns a data frame with a
 <code>text</code> column, and optionally <code>page</code>,
-<code>section</code> and <code>kind</code>.
-<code><a href="../reference/gr_register_extractor.html">gr_register_extractor()</a></code> names the file extensions it
+<code>section</code> and <code>kind</code>. When you register it with
+<code><a href="../reference/gr_register_extractor.html">gr_register_extractor()</a></code>, you name the file extensions it
 claims.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_register_extractor.html">gr_register_extractor</a></span><span class="op">(</span><span class="st">"tsv"</span>, <span class="st">"tsv"</span>, description <span class="op">=</span> <span class="st">"TSV, one block per row"</span>,</span>
@@ -137,15 +143,21 @@ claims.</p>
 <span><span class="co">#&gt; north | 45.2</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; south | 51.8</span></span></code></pre></div>
-<p>Pages an extractor could not turn into text can be listed in
-<code>attr(result, "gr_unread_pages")</code>. An answer drawn from the
-document is then marked partial, as it is for a PDF page that needed OCR
-and did not get it.</p>
+<p>If your extractor cannot turn some pages into text, list them in
+<code>attr(result, "gr_unread_pages")</code>. harnessr then marks an
+answer drawn from the document as partial, as it does for a PDF page
+that needed OCR and did not get it.</p>
 <p>A cleaner is a function of <code>(text, opts)</code> that returns
-cleaned text. Its <code>stage</code> says when it runs:
-<code>"early"</code> steps preserve structure (boilerplate removal),
-<code>"late"</code> steps normalise destructively (digit stripping), and
-early steps always run before late ones whatever order you list them
+cleaned text. Its <code>stage</code> sets when it runs:</p>
+<ul>
+<li>
+<code>"early"</code> steps preserve structure, as boilerplate
+removal does.</li>
+<li>
+<code>"late"</code> steps normalise destructively, as digit
+stripping does.</li>
+</ul>
+<p>Early steps always run before late ones, whatever order you list them
 in.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_register_cleaner.html">gr_register_cleaner</a></span><span class="op">(</span><span class="st">"drop_confidential"</span>, stage <span class="op">=</span> <span class="st">"early"</span>,</span>
@@ -156,24 +168,28 @@ in.</p>
 <span>                    steps <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"drop_confidential"</span>, <span class="st">"collapse_whitespace"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">cleaned</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "The real content of the document."</span></span></code></pre></div>
-<p>A cleaner runs on each text block by default. One that reasons about
-position or repetition across the whole document, such as dropping a
-trailing bibliography or a running head, needs
-<code>scope = "document"</code>; applied per block, it would never fire.
-<code><a href="../reference/gr_register_cleaner.html">?gr_register_cleaner</a></code> says how its result is matched back to
-the blocks. <code><a href="../articles/ingest.html">vignette("ingest")</a></code> covers the built-in
-extractors and cleaners.</p>
+<p>By default a cleaner runs on each text block. A cleaner that looks at
+position or repetition across the whole document, such as one that drops
+a trailing bibliography or a running head, needs
+<code>scope = "document"</code>. Run per block, it would never fire.
+<code><a href="../reference/gr_register_cleaner.html">?gr_register_cleaner</a></code> explains how harnessr matches its
+result back to the blocks. <code><a href="../articles/ingest.html">vignette("ingest")</a></code> covers the
+built-in extractors and cleaners.</p>
 </div>
 <div class="section level2">
 <h2 id="cutting-text-up-segmenters">Cutting text up: segmenters<a class="anchor" aria-label="anchor" href="#cutting-text-up-segmenters"></a>
 </h2>
 <p>A segmenter is a function of <code>(doc, spec, client, trace)</code>
 that returns a <code>gr_chunks</code>. Build that object with
-<code><a href="../reference/new_chunks.html">new_chunks()</a></code>: <code><a href="../reference/gr_segment.html">gr_segment()</a></code> rejects anything
-else, and the constructor is what gives your segmenter the same
-invariants as the built-ins (blank units dropped, <code>chunk_id</code>
-assigned in order, tokens and characters measured, provenance recycled
-to match).</p>
+<code><a href="../reference/new_chunks.html">new_chunks()</a></code>, because <code><a href="../reference/gr_segment.html">gr_segment()</a></code> rejects
+anything else. The constructor gives your segmenter the same invariants
+as the built-ins:</p>
+<ul>
+<li>it drops blank units;</li>
+<li>it assigns <code>chunk_id</code> in order;</li>
+<li>it measures tokens and characters;</li>
+<li>it recycles provenance to match.</li>
+</ul>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_register_segmenter.html">gr_register_segmenter</a></span><span class="op">(</span><span class="st">"by_bullet"</span>, description <span class="op">=</span> <span class="st">"one chunk per bullet"</span>,</span>
 <span>  fn <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">doc</span>, <span class="va">spec</span>, <span class="va">client</span>, <span class="va">trace</span><span class="op">)</span> <span class="op">{</span></span>
@@ -185,22 +201,30 @@ to match).</p>
 <span><span class="co">#&gt;        name cost needs_client          description     calls version contract</span></span>
 <span><span class="co">#&gt; 1 by_bullet free        FALSE one chunk per bullet by_bullet    &lt;NA&gt;     &lt;NA&gt;</span></span></code></pre></div>
 <p><code><a href="../reference/new_chunks.html">new_chunks()</a></code> does not enforce the token cap.
-<code><a href="../reference/gr_segment.html">gr_segment()</a></code> checks it after your function returns and
-splits anything oversized, so a segmenter that ignores
-<code>spec$max_tokens</code> still produces chunks that fit. The
-conformance check below reports each chunk it had to split.</p>
-<p>Three arguments describe what the segmenter spends. <code>cost</code>
-is <code>"free"</code>, <code>"embedding"</code> or <code>"llm"</code>,
-so a UI can warn before anything is spent.
-<code>needs_client = TRUE</code> says it cannot work without a client;
-without one, <code><a href="../reference/gr_segment.html">gr_segment()</a></code> warns with class
-<code>gr_segment_fallback</code>, and the segmenter should record what
-it fell back to in its <code>method</code>
-(<code>"mine-&gt;paragraph"</code>) so the downgrade shows in
-<code><a href="../reference/gr_chunk_stats.html">gr_chunk_stats()</a></code>. <code>calls</code> declares the labels of
-its model calls, as the next sections describe for readers;
-<code>character(0)</code> says it makes none.
-<code><a href="../articles/segment.html">vignette("segment")</a></code> covers the built-in segmenters.</p>
+<code><a href="../reference/gr_segment.html">gr_segment()</a></code> checks the cap after your function returns and
+splits anything oversized, so the chunks fit even when your segmenter
+ignores <code>spec$max_tokens</code>. The conformance check later in
+this guide reports each chunk that <code><a href="../reference/gr_segment.html">gr_segment()</a></code> had to
+split.</p>
+<p>Three arguments of <code><a href="../reference/gr_register_segmenter.html">gr_register_segmenter()</a></code> describe what
+the segmenter spends:</p>
+<ul>
+<li>
+<code>cost</code> is <code>"free"</code>, <code>"embedding"</code>
+or <code>"llm"</code>, so a UI can warn before anything is spent.</li>
+<li>
+<code>needs_client = TRUE</code> marks a segmenter that cannot work
+without a client. When there is no client, <code><a href="../reference/gr_segment.html">gr_segment()</a></code>
+warns with class <code>gr_segment_fallback</code>. Your segmenter should
+then record what it fell back to in its <code>method</code>
+(<code>"mine-&gt;paragraph"</code>), so the downgrade shows in
+<code><a href="../reference/gr_chunk_stats.html">gr_chunk_stats()</a></code>.</li>
+<li>
+<code>calls</code> declares the labels of its model calls, as the
+next sections describe for readers. <code>character(0)</code> declares
+that it makes none.</li>
+</ul>
+<p><code><a href="../articles/segment.html">vignette("segment")</a></code> covers the built-in segmenters.</p>
 </div>
 <div class="section level2">
 <h2 id="reading-readers">Reading: readers<a class="anchor" aria-label="anchor" href="#reading-readers"></a>
@@ -231,26 +255,33 @@ answers from the longest chunk only:</p>
 <p>Inside the function, <code>chunks$chunks</code> is the data frame of
 chunks (<code>chunk_id</code>, <code>text</code>, <code>tokens</code>,
 <code>chars</code>, <code>page</code>, <code>section</code>,
-<code>block_id</code>). Send every request through
-<code><a href="../reference/hr_call.html">hr_call()</a></code> with the client you were given, never one you
-construct, and pass it the <code>trace</code>: that is what counts,
-prices and limits your calls. A request that would pass
-<code>max_calls</code> or <code>max_cost_usd</code> is not sent and
-comes back with <code>refused = TRUE</code>, so stop or degrade when one
-does. Honour at least <code>spec$model</code>,
+<code>block_id</code>). When you write the function:</p>
+<ul>
+<li>Send every request through <code><a href="../reference/hr_call.html">hr_call()</a></code> with the client
+you were given, never one you construct, and pass it the
+<code>trace</code>. Through the trace, <code><a href="../reference/hr_call.html">hr_call()</a></code> counts,
+prices and limits your calls.</li>
+<li>Expect refusals. harnessr does not send a request that would pass
+<code>max_calls</code> or <code>max_cost_usd</code>, and
+<code><a href="../reference/hr_call.html">hr_call()</a></code> returns a result with <code>refused = TRUE</code>
+instead. Stop or degrade when that happens.</li>
+<li>Honour at least <code>spec$model</code>,
 <code>spec$max_answer_tokens</code>, <code>spec$temperature</code> and
-<code>spec$effort</code>, and budget the prompt with
-<code><a href="../reference/hr_budget.html">hr_budget()</a></code> rather than assuming the document fits.</p>
-<p>The <code>signature</code>, <code>"select|calls|state"</code>, says
-how the reader traverses the chunks. Two readers with the same signature
-are the same method under two names: <code><a href="../reference/gr_compare.html">gr_compare()</a></code> uses it
-to decide whether two recipes are the same experiment, and
-<code>ensemble</code> refuses members that share one. A
-<code>select</code> of <code>"all"</code> says the reader sends every
-chunk, so a run whose chunks alone would cost more than
-<code>max_cost_usd</code> is refused before its first request.
-<code><a href="../reference/gr_reader_signature.html">gr_reader_signature()</a></code> reports a reader’s signature, so two
-readers claiming to differ can be checked rather than believed.
+<code>spec$effort</code>.</li>
+<li>Budget the prompt with <code><a href="../reference/hr_budget.html">hr_budget()</a></code> instead of assuming
+the document fits.</li>
+</ul>
+<p>The <code>signature</code>, <code>"select|calls|state"</code>,
+describes how the reader traverses the chunks. Two readers with the same
+signature are the same method under two names. <code><a href="../reference/gr_compare.html">gr_compare()</a></code>
+uses the signature to decide whether two recipes are the same
+experiment, and <code>ensemble</code> refuses members that share
+one.</p>
+<p>A <code>select</code> of <code>"all"</code> declares that the reader
+sends every chunk. harnessr then refuses a run whose chunks alone would
+cost more than <code>max_cost_usd</code> before its first request.
+<code><a href="../reference/gr_reader_signature.html">gr_reader_signature()</a></code> reports a reader’s signature, so you
+can check whether two readers that claim to differ do differ.
 <code>cost_calls</code> is a description for people, shown by
 <code><a href="../reference/gr_readers.html">gr_readers()</a></code>; the pre-flight check never reads it.</p>
 <p>The name <code>"auto"</code> is reserved, because
@@ -261,17 +292,18 @@ readers claiming to differ can be checked rather than believed.
 <h2 id="declaring-calls">Declaring calls<a class="anchor" aria-label="anchor" href="#declaring-calls"></a>
 </h2>
 <p>Every <code><a href="../reference/hr_call.html">hr_call()</a></code> carries a <code>label</code>, and the
-label is the <code>stage</code> column of the trace. A module declares
-the stems of its labels in <code>calls</code>. A label is covered by a
-stem it equals, or one it starts with followed by a dot. Leave
-<code>calls</code> out and the module declares its own name, which
-covers labels such as <code>"longest.answer"</code> for a reader called
+trace records it in its <code>stage</code> column. A module declares the
+stems of its labels in <code>calls</code>. A stem covers a label that
+equals it or that starts with it followed by a dot. If you leave
+<code>calls</code> out, the module declares its own name, which covers
+labels such as <code>"longest.answer"</code> for a reader called
 <code>"longest"</code>.</p>
-<p>The declaration is what an <code>effort</code> map is checked
-against. Each name in <code>gr_read_spec(effort =)</code> must be a
-declared stem, a part of one up to a dot, or a label under one. Anything
-else is an error of class <code>hr_unknown_effort_key</code> that lists
-the stems, rather than a setting that silently reaches no request:</p>
+<p><code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code> checks an <code>effort</code> map against
+these declarations. Each name in <code>gr_read_spec(effort =)</code>
+must be a declared stem, a part of one up to a dot, or a label under
+one. Any other name raises an error of class
+<code>hr_unknown_effort_key</code> that lists the stems. Without the
+check, that setting would silently reach no request:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">spec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read_spec.html">gr_read_spec</a></span><span class="op">(</span><span class="st">"longest"</span>, effort <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>longest <span class="op">=</span> <span class="st">"low"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">spec</span><span class="op">$</span><span class="va">effort</span></span>
@@ -281,12 +313,12 @@ the stems, rather than a setting that silently reaches no request:</p>
 <span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_read_spec.html">gr_read_spec</a></span><span class="op">(</span><span class="st">"longest"</span>, effort <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>longst <span class="op">=</span> <span class="st">"low"</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>         hr_unknown_effort_key <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="st">"refused: no call is labelled 'longst'"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "refused: no call is labelled 'longst'"</span></span></code></pre></div>
-<p>An effort map that names the calls of your own module needs the
-module registered first, with its labels in <code>calls</code>.
-<code><a href="../reference/gr_readers.html">gr_readers()</a></code> and <code><a href="../reference/gr_segmenters.html">gr_segmenters()</a></code> list every
-module’s stems in their <code>calls</code> column.
-<code><a href="../articles/runs.html">vignette("runs")</a></code> says what effort does and which models it
-is sent to.</p>
+<p>To name the calls of your own module in an effort map, register the
+module first, with its labels in <code>calls</code>. The
+<code>calls</code> column of <code><a href="../reference/gr_readers.html">gr_readers()</a></code> and
+<code><a href="../reference/gr_segmenters.html">gr_segmenters()</a></code> lists every module’s stems.
+<code><a href="../articles/runs.html">vignette("runs")</a></code> explains what effort does and which models
+it is sent to.</p>
 </div>
 <div class="section level2">
 <h2 id="declaring-cost">Declaring cost<a class="anchor" aria-label="anchor" href="#declaring-cost"></a>
@@ -295,13 +327,21 @@ is sent to.</p>
 is a function of <code>(input_stats, params)</code> that returns
 <code><a href="../reference/hr_cost.html">hr_cost()</a></code>: how many requests one run makes, expected and at
 worst. <code>params</code> is the <code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code>.
-<code>input_stats</code> has <code>n_chunks</code>, <code>tokens</code>
-(of all chunks), <code>texts</code>, <code>question</code>,
-<code>out_cap</code> (the largest reply cap a request to
-<code>params$model</code> is sent) and <code>embed_api</code> (whether
-embeddings go to the endpoint at all), with helpers
-<code>reply_cap(model, cap)</code>, <code>room(system, restate)</code>
-and <code>embed_requests(texts)</code>.</p>
+<code>input_stats</code> holds:</p>
+<ul>
+<li>
+<code>n_chunks</code>, <code>tokens</code> (of all chunks),
+<code>texts</code> and <code>question</code>;</li>
+<li>
+<code>out_cap</code>, the largest reply cap a request to
+<code>params$model</code> is sent;</li>
+<li>
+<code>embed_api</code>, whether embeddings go to the endpoint at
+all;</li>
+<li>the helpers <code>reply_cap(model, cap)</code>,
+<code>room(system, restate)</code> and
+<code>embed_requests(texts)</code>.</li>
+</ul>
 <p>This reader asks every chunk and then merges the notes, so it makes
 one request per chunk plus one:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
@@ -330,30 +370,41 @@ one request per chunk plus one:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; each.chunk each.merge </span></span>
 <span><span class="co">#&gt;          6          1</span></span></code></pre></div>
-<p><code><a href="../reference/gr_read.html">gr_read()</a></code> adds up the cost functions of a run before the
-first request, and the governor decides from the sum whether the run
-fits its limits. Under a cap of three calls, the six chunks above are
-refused before anything is sent:</p>
+<p>Before the first request, <code><a href="../reference/gr_read.html">gr_read()</a></code> adds up the cost
+functions of a run, and the governor checks the sum against its limits.
+Under a cap of three calls, the governor refuses the six chunks above
+before anything is sent:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">capped</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>max_calls <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">ch</span>, <span class="st">"What was revenue?"</span>, <span class="va">cl</span>, <span class="st">"each"</span><span class="op">)</span>,</span>
 <span>         gr_call_cap <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "Reader 'each' over 6 chunks would need about 7 more model calls (0 already made this run), above the 3-call cap. Use a larger `max_tokens` when segmenting (fewer chunks), pick a top-k reader, or raise hr_options(max_calls = ...)."</span></span>
 <span><span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span><span class="va">capped</span><span class="op">)</span></span></code></pre></div>
-<p>A reader registered without <code>cost</code> is counted as one
-request per chunk and, for a signature whose <code>select</code> is
-<code>"all"</code>, every chunk sent once. Declare <code>cost</code> for
-any reader that makes a different number of requests.</p>
-<p><code><a href="../reference/hr_cost.html">hr_cost()</a></code> has more fields than <code>calls</code>.
+<p>For a reader registered without <code>cost</code>, the pre-flight
+check counts one request per chunk and, for a signature whose
+<code>select</code> is <code>"all"</code>, every chunk sent once.
+Declare <code>cost</code> for any reader that makes a different number
+of requests.</p>
+<p><code><a href="../reference/hr_cost.html">hr_cost()</a></code> has more fields than <code>calls</code>:</p>
+<ul>
+<li>
 <code>calls_max</code> is the worst case, never taken as less than
-<code>calls</code>. <code>tokens_in_max</code> counts prompt tokens sent
-beyond the input itself, such as replies handed on to a merge.
-<code>tokens_out_max</code> is for a reader whose replies can be billed
-beyond the reply cap; otherwise the check prices every request at
-<code>input_stats$out_cap</code>. <code>embed_max</code> counts requests
-to the embeddings endpoint, and <code>sends</code> lists input every run
-must send, as <code>list(tokens =, model =)</code>, so a run that cannot
-finish under the spending limit is refused before it starts.</p>
+<code>calls</code>.</li>
+<li>
+<code>tokens_in_max</code> counts prompt tokens sent beyond the
+input itself, such as replies handed on to a merge.</li>
+<li>
+<code>tokens_out_max</code> is for a reader whose replies can be
+billed beyond the reply cap. Without it, the check prices every request
+at <code>input_stats$out_cap</code>.</li>
+<li>
+<code>embed_max</code> counts requests to the embeddings
+endpoint.</li>
+<li>
+<code>sends</code> lists input every run must send, as
+<code>list(tokens =, model =)</code>, so the pre-flight check refuses a
+run that cannot finish under the spending limit before it starts.</li>
+</ul>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_cost.html">hr_cost</a></span><span class="op">(</span>calls <span class="op">=</span> <span class="fl">4</span>, calls_max <span class="op">=</span> <span class="fl">6</span><span class="op">)</span><span class="op">$</span><span class="va">calls_max</span></span>
 <span><span class="co">#&gt; [1] 6</span></span></code></pre></div>
@@ -363,9 +414,9 @@ pre-flight step in the trace.</p>
 <div class="section level2">
 <h2 id="embedders">Embedders<a class="anchor" aria-label="anchor" href="#embedders"></a>
 </h2>
-<p>Embedders are a registry too. They make <code>retrieve</code> and the
-<code>semantic</code> segmenter work offline, for free, and
-reproducibly:</p>
+<p>Embedders are a registry too. With a local embedder,
+<code>retrieve</code> and the <code>semantic</code> segmenter work
+offline, for free, and reproducibly:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_embedders.html">gr_embedders</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt;      name deterministic</span></span>
@@ -375,16 +426,19 @@ reproducibly:</p>
 <span><span class="co">#&gt; 1                 Embeddings endpoint on the client's base URL    &lt;NA&gt;     &lt;NA&gt;</span></span>
 <span><span class="co">#&gt; 2 Hashed bag-of-words; free, offline, word overlap not meaning    &lt;NA&gt;     &lt;NA&gt;</span></span></code></pre></div>
 <p><code>hr_options(embedder = "lexical")</code> switches every part of
-the package that embeds. An embedder is a function of
-<code>(texts, params)</code> that returns a numeric matrix with one row
-per text, rows L2-normalised, since everything downstream treats the
-cross-product as cosine similarity. <code>params</code> carries
-<code>client</code>, <code>model</code>, <code>batch_size</code>,
-<code>cache</code> and <code>trace</code>. Signal failure by raising an
-error; the caller applies its own fallback. Register your own (a local
-model, a company service) and the <code>semantic</code> segmenter and
-the <code>retrieve</code> and <code>iterative</code> readers all use it,
-with no change to any of them.</p>
+the package that embeds.</p>
+<p>An embedder is a function of <code>(texts, params)</code> that
+returns a numeric matrix with one row per text. L2-normalise each row,
+because harnessr treats the cross-product as cosine similarity
+everywhere downstream. <code>params</code> carries <code>client</code>,
+<code>model</code>, <code>batch_size</code>, <code>cache</code> and
+<code>trace</code>. To signal failure, raise an error; the caller
+applies its own fallback.</p>
+<p>Register your own embedder (a local model, a company service) and
+select it with <code>hr_options(embedder =)</code>. The
+<code>semantic</code> segmenter and the <code>retrieve</code> and
+<code>iterative</code> readers then all use it, with no change to any of
+them.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_register_embedder.html">gr_register_embedder</a></span><span class="op">(</span><span class="st">"first-letters"</span>, description <span class="op">=</span> <span class="st">"Toy: letter counts"</span>,</span>
 <span>  deterministic <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -403,18 +457,19 @@ with no change to any of them.</p>
 <span><span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span><span class="va">toy</span><span class="op">)</span></span></code></pre></div>
 <p>Set <code>deterministic = TRUE</code> only if the same text always
 gives the same vector, in any session on any machine. A trace records
-model calls, not vectors, and that flag is what lets
+model calls but not vectors. The flag lets
 <code><a href="../reference/hr_replay_client.html">hr_replay_client()</a></code> recompute a run’s chunk ranking instead
-of degrading to lexical vectors. Claiming it wrongly makes a replay rank
-chunks from vectors the original run never saw, while reporting an exact
-match.</p>
+of degrading to lexical vectors. If you set it wrongly, a replay ranks
+chunks from vectors the original run never saw and still reports an
+exact match.</p>
 </div>
 <div class="section level2">
 <h2 id="models">Models<a class="anchor" aria-label="anchor" href="#models"></a>
 </h2>
 <p>The model registry holds each model’s context window, output limit
-and prices. Register a model the package does not know, or override a
-built-in entry whose prices have gone stale:</p>
+and prices. Use <code><a href="../reference/hr_register_model.html">hr_register_model()</a></code> to add a model the
+package does not know, or to override a built-in entry whose prices have
+gone stale:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"my-local-llama"</span>, context_window <span class="op">=</span> <span class="fl">32768</span>, max_output <span class="op">=</span> <span class="fl">4096</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/hr_model_info.html">hr_model_info</a></span><span class="op">(</span><span class="st">"my-local-llama"</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"context_window"</span>, <span class="st">"source"</span>, <span class="st">"certain"</span><span class="op">)</span><span class="op">]</span></span>
@@ -426,27 +481,32 @@ built-in entry whose prices have gone stale:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $certain</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<p>Without prices, a cost cannot be estimated, and harnessr says so
-rather than assuming the run is free:</p>
+<p>Without prices, harnessr cannot estimate a cost. It returns
+<code>NA</code> instead of assuming the run is free:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_estimate_cost.html">hr_estimate_cost</a></span><span class="op">(</span><span class="st">"my-local-llama"</span>, <span class="fl">1000</span>, <span class="fl">500</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<p>While a spending limit is set, a request to a language model with no
-registered price is refused before it is sent (embedding models and
-<code><a href="../reference/hr_mock_client.html">hr_mock_client()</a></code> are exempt). Give <code>input_usd</code>
-and <code>output_usd</code> in US dollars per million tokens, or let a
-local model run unpriced with
-<code>hr_options(allow_unpriced = TRUE)</code>.
-<code>reasoning = TRUE</code> marks a model that takes an effort
-setting. The section on connecting to a model in
+<p>While a spending limit is set, harnessr refuses a request to a
+language model with no registered price before sending it. Embedding
+models and <code><a href="../reference/hr_mock_client.html">hr_mock_client()</a></code> are exempt. You have two ways
+forward:</p>
+<ul>
+<li>give <code>input_usd</code> and <code>output_usd</code> in US
+dollars per million tokens;</li>
+<li>let a local model run unpriced with
+<code>hr_options(allow_unpriced = TRUE)</code>.</li>
+</ul>
+<p>The section on connecting to a model in
 <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> shows both for a model reached through
-ellmer.</p>
+ellmer. <code>reasoning = TRUE</code> marks a model that takes an effort
+setting.</p>
 </div>
 <div class="section level2">
 <h2 id="using-what-you-registered">Using what you registered<a class="anchor" aria-label="anchor" href="#using-what-you-registered"></a>
 </h2>
-<p>A registered module is named like a built-in. A recipe binds one
-choice from each axis, and <code><a href="../reference/answer_document.html">answer_document()</a></code> runs it:</p>
+<p>You name a registered module as you name a built-in. A recipe binds
+one choice from each axis, and <code><a href="../reference/answer_document.html">answer_document()</a></code> runs
+it:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mine</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_recipe.html">gr_recipe</a></span><span class="op">(</span><span class="st">"bullets_longest"</span>,</span>
 <span>                  segment <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"by_bullet"</span>, max_tokens <span class="op">=</span> <span class="fl">400</span><span class="op">)</span>,</span>
@@ -455,7 +515,7 @@ choice from each axis, and <code><a href="../reference/answer_document.html">ans
 <span>                client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span><span class="op">$</span><span class="va">answer</span></span>
 <span><span class="co">#&gt; [1] "Revenue was 45.2 million dollars."</span></span></code></pre></div>
 <p><code><a href="../reference/gr_compare.html">gr_compare()</a></code> runs several recipes on one document and
-question, sharing one trace, so your addition can be measured against a
+question, sharing one trace, so you can measure your addition against a
 built-in on calls, tokens and cost:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_compare.html">gr_compare</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>,</span>
@@ -468,11 +528,11 @@ built-in on calls, tokens and cost:</p>
 <div class="section level2">
 <h2 id="registering-any-kind-with-hr_register">Registering any kind with hr_register()<a class="anchor" aria-label="anchor" href="#registering-any-kind-with-hr_register"></a>
 </h2>
-<p><code><a href="../reference/hr_register.html">hr_register()</a></code> registers a module of any kind through one
-function. Name the kind first; the other arguments are those of that
-kind’s own function, so <code>hr_register("reader", ...)</code> takes
-what <code><a href="../reference/gr_register_reader.html">gr_register_reader()</a></code> takes and runs the same checks.
-This reader answers from the shortest chunk:</p>
+<p><code><a href="../reference/hr_register.html">hr_register()</a></code> registers a module of any kind. Name the
+kind first. The other arguments are those of that kind’s own function,
+so <code>hr_register("reader", ...)</code> takes what
+<code><a href="../reference/gr_register_reader.html">gr_register_reader()</a></code> takes and runs the same checks. This
+reader answers from the shortest chunk:</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">shortest</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">chunks</span>, <span class="va">question</span>, <span class="va">client</span>, <span class="va">spec</span>, <span class="va">trace</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">d</span> <span class="op">&lt;-</span> <span class="va">chunks</span><span class="op">$</span><span class="va">chunks</span></span>
@@ -489,14 +549,14 @@ This reader answers from the shortest chunk:</p>
 <p>The kinds are <code>"extractor"</code>, <code>"cleaner"</code>,
 <code>"segmenter"</code>, <code>"reader"</code>,
 <code>"embedder"</code>, <code>"protocol"</code> and
-<code>"step"</code>. Any other kind is an error of class
-<code>hr_unknown_kind</code>, and a module the kind’s own function would
-refuse is refused here too:</p>
+<code>"step"</code>. For any other kind, <code><a href="../reference/hr_register.html">hr_register()</a></code>
+raises an error of class <code>hr_unknown_kind</code>. It also refuses a
+module that the kind’s own function would refuse:</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_register.html">hr_register</a></span><span class="op">(</span><span class="st">"reader"</span>, <span class="st">"auto"</span>, fn <span class="op">=</span> <span class="va">identity</span>, signature <span class="op">=</span> <span class="st">"one|1|none"</span><span class="op">)</span>,</span>
 <span>         gr_reserved_name <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "'auto' is reserved: answer_document() uses it to choose a recipe. Register the reader under another name."</span></span></code></pre></div>
-<p>Every kind keeps its modules in the registry.
+<p>The registry holds the modules of every kind.
 <code><a href="../reference/hr_register.html">hr_register()</a></code> stores an entry with its version and
 contract, and a lookup such as <code><a href="../reference/gr_read.html">gr_read()</a></code> finds the entry by
 name and calls its function:</p>
@@ -515,15 +575,21 @@ kind to add that kind’s own columns:</p>
 <span><span class="co">#&gt;        name  signature           calls</span></span>
 <span><span class="co">#&gt; 6   longest one|1|none  longest.answer</span></span>
 <span><span class="co">#&gt; 13 shortest one|1|none shortest.answer</span></span></code></pre></div>
-<p>The listings such as <code><a href="../reference/gr_readers.html">gr_readers()</a></code> keep their own
-columns, and a module you register with <code><a href="../reference/hr_register.html">hr_register()</a></code>
-appears in them as one registered with the kind’s own function does.
-Each listing ends with two more columns: <code>version</code>, the
-version you gave <code><a href="../reference/hr_register.html">hr_register()</a></code>, and <code>contract</code>,
-the module contract it was registered under. A module registered with a
-<code>gr_register_*()</code> function has <code>NA</code> in both. Pass
-<code>version</code> when you register, and the listings show which
-version of your module is in place:</p>
+<p>Listings such as <code><a href="../reference/gr_readers.html">gr_readers()</a></code> keep their own columns. A
+module you register with <code><a href="../reference/hr_register.html">hr_register()</a></code> appears in them as
+one registered with the kind’s own function does. Each listing ends with
+two more columns:</p>
+<ul>
+<li>
+<code>version</code>, the version you gave
+<code><a href="../reference/hr_register.html">hr_register()</a></code>;</li>
+<li>
+<code>contract</code>, the module contract it was registered
+under.</li>
+</ul>
+<p>A module registered with a <code>gr_register_*()</code> function has
+<code>NA</code> in both. Pass <code>version</code> when you register,
+and the listings show which version of your module is in place:</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_register.html">hr_register</a></span><span class="op">(</span><span class="st">"reader"</span>, <span class="st">"shortest"</span>, signature <span class="op">=</span> <span class="st">"one|1|none"</span>, cost_calls <span class="op">=</span> <span class="st">"1"</span>,</span>
 <span>  description <span class="op">=</span> <span class="st">"answer from the shortest chunk only"</span>, calls <span class="op">=</span> <span class="st">"shortest.answer"</span>,</span>
@@ -543,14 +609,15 @@ another:</p>
 <span><span class="fu"><a href="../reference/hr_modules.html">hr_modules</a></span><span class="op">(</span><span class="st">"step"</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"input"</span>, <span class="st">"output"</span>, <span class="st">"version"</span>, <span class="st">"contract"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;    name  input output version contract</span></span>
 <span><span class="co">#&gt; 1 shout answer  state   0.2.0      0.2</span></span></code></pre></div>
-<p>A segmenter that calls a model can also take
-<code>effort_label</code> through <code><a href="../reference/hr_register.html">hr_register()</a></code>: a function
-of the segment spec that returns the label its requests carry, or
-<code>""</code> when the spec sends none. A run’s <code>effort</code>
-map then reaches your segmenter as the effort for that label alone, as
-it reaches the built-in <code>contextual</code> and
-<code>proposition</code> segmenters. Without <code>effort_label</code>,
-your segmenter gets the whole map and picks its own labels from it.</p>
+<p>Through <code><a href="../reference/hr_register.html">hr_register()</a></code>, a segmenter that calls a model
+can also take <code>effort_label</code>. It is a function of the segment
+spec that returns the label the segmenter’s requests carry, or
+<code>""</code> when the spec sends none. With it, your segmenter
+receives only the effort for that label from a run’s <code>effort</code>
+map, as the built-in <code>contextual</code> and
+<code>proposition</code> segmenters do. Without
+<code>effort_label</code>, your segmenter gets the whole map and picks
+its own labels from it.</p>
 </div>
 <div class="section level2">
 <h2 id="parameter-schemas">Parameter schemas<a class="anchor" aria-label="anchor" href="#parameter-schemas"></a>
@@ -558,10 +625,16 @@ your segmenter gets the whole map and picks its own labels from it.</p>
 <p>Each spec constructor states its parameters once, as a schema: type,
 default, range and choices. <code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code>,
 <code><a href="../reference/gr_segment_spec.html">gr_segment_spec()</a></code> and <code><a href="../reference/gr_ingest_spec.html">gr_ingest_spec()</a></code> check
-their arguments this way, and the same three functions are there for a
-module of your own. <code><a href="../reference/hr_param.html">hr_param()</a></code> declares one parameter,
-<code><a href="../reference/hr_schema.html">hr_schema()</a></code> collects them, and <code><a href="../reference/hr_validate.html">hr_validate()</a></code>
-applies the rules.</p>
+their arguments against a schema. You can use the same three schema
+functions for a module of your own:</p>
+<ul>
+<li>
+<code><a href="../reference/hr_param.html">hr_param()</a></code> declares one parameter;</li>
+<li>
+<code><a href="../reference/hr_schema.html">hr_schema()</a></code> collects them;</li>
+<li>
+<code><a href="../reference/hr_validate.html">hr_validate()</a></code> applies the rules.</li>
+</ul>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_schema.html">hr_schema</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/hr_param.html">hr_param</a></span><span class="op">(</span><span class="st">"max_tokens"</span>, <span class="st">"integer"</span>, default <span class="op">=</span> <span class="fl">1200L</span>, min <span class="op">=</span> <span class="fl">32</span>, max <span class="op">=</span> <span class="fl">1e6</span>,</span>
@@ -576,13 +649,13 @@ applies the rules.</p>
 <span><span class="co">#&gt;   max_tokens                 integer       basic     -         [32, 1e+06]</span></span>
 <span><span class="co">#&gt;   overlap_tokens             integer       basic     -         [0, f()]</span></span>
 <span><span class="co">#&gt;   order                      enum          basic     -         relevance|document</span></span></code></pre></div>
-<p>The parameters resolve in schema order, so a bound that depends on
-another parameter, such as <code>overlap_tokens</code> above, comes
-after it. A number out of range is moved to the nearest bound and warned
-about with class <code>gr_clamped</code> (and
-<code>hr_param_clamped</code>). An <code>enum</code> is matched as
-<code><a href="https://rdrr.io/r/base/match.arg.html" class="external-link">match.arg()</a></code> matches, so an unambiguous abbreviation is
-accepted:</p>
+<p><code><a href="../reference/hr_validate.html">hr_validate()</a></code> resolves the parameters in schema order,
+so a parameter whose bound depends on another, such as
+<code>overlap_tokens</code> above, comes after it. It moves a number out
+of range to the nearest bound and warns with class
+<code>gr_clamped</code> (and <code>hr_param_clamped</code>). It matches
+an <code>enum</code> as <code><a href="https://rdrr.io/r/base/match.arg.html" class="external-link">match.arg()</a></code> does, so it accepts an
+unambiguous abbreviation:</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">withCallingHandlers</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_validate.html">hr_validate</a></span><span class="op">(</span><span class="va">s</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>max_tokens <span class="op">=</span> <span class="fl">100</span>, overlap_tokens <span class="op">=</span> <span class="fl">500</span>, order <span class="op">=</span> <span class="st">"doc"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -595,9 +668,9 @@ accepted:</p>
 <span><span class="co">#&gt;  $ max_tokens    : int 100</span></span>
 <span><span class="co">#&gt;  $ overlap_tokens: int 99</span></span>
 <span><span class="co">#&gt;  $ order         : chr "document"</span></span></code></pre></div>
-<p>A name the schema does not have is an error of class
-<code>hr_unknown_param</code>, and a value outside an
-<code>enum</code>’s choices is an error naming them:</p>
+<p>A name the schema does not have raises an error of class
+<code>hr_unknown_param</code>. A value outside an <code>enum</code>’s
+choices raises an error that names the choices:</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_validate.html">hr_validate</a></span><span class="op">(</span><span class="va">s</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>top_k <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>         hr_unknown_param <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
@@ -606,18 +679,28 @@ accepted:</p>
 <code>string</code>, <code>boolean</code>, <code>enum</code>,
 <code>string_vector</code>, <code>named_map</code>,
 <code>module_ref</code> and <code>file</code>; <code><a href="../reference/hr_param.html">?hr_param</a></code>
-gives the rule for each. A <code>resolve</code> function replaces the
-type’s rule for a parameter that needs its own. The other fields
-describe the parameter rather than check it: <code>help</code> (one
-plain sentence), <code>cost_class</code> (how it moves the cost of a
-run: <code>"none"</code>, <code>"local"</code>,
+gives the rule for each. For a parameter that needs a rule of its own, a
+<code>resolve</code> function replaces the type’s rule.</p>
+<p>The other fields describe the parameter and do not check it:</p>
+<ul>
+<li>
+<code>help</code>: one plain sentence.</li>
+<li>
+<code>cost_class</code>: how it moves the cost of a run, one of
+<code>"none"</code>, <code>"local"</code>,
 <code>"per_call_constant"</code>, <code>"per_unit"</code>,
-<code>"per_sample"</code> or <code>"per_round"</code>),
-<code>affects_output</code> (whether it belongs in cache and store
-keys), <code>tier</code> (<code>"basic"</code> or
-<code>"advanced"</code>, for grouping in a user interface),
-<code>evidence</code>, <code>depends_on</code> and <code>since</code>.
-They are there so a later UI or command line can be built from the same
+<code>"per_sample"</code> or <code>"per_round"</code>.</li>
+<li>
+<code>affects_output</code>: whether it belongs in cache and store
+keys.</li>
+<li>
+<code>tier</code>: <code>"basic"</code> or <code>"advanced"</code>,
+for grouping in a user interface.</li>
+<li>
+<code>evidence</code>, <code>depends_on</code> and
+<code>since</code>.</li>
+</ul>
+<p>These fields let a later UI or command line be built from the same
 list.</p>
 </div>
 <div class="section level2">
@@ -626,7 +709,7 @@ list.</p>
 <p><code><a href="../reference/gr_check_reader.html">gr_check_reader()</a></code> and <code><a href="../reference/gr_check_segmenter.html">gr_check_segmenter()</a></code>
 run one registered module on the bundled example document, through an
 offline client, and report which rules of its contract it breaks. In
-this release they are reports only: registering a module does not run
+this release the checks only report. Registering a module does not run
 them, and a module that breaks a rule stays registered and runs as
 before. Every built-in reader and segmenter passes.</p>
 <p>The <code>longest</code> reader above passes all nine reader
@@ -670,20 +753,33 @@ chunk that does not exist:</p>
 <span><span class="co">#&gt;   ok    answer_fields</span></span>
 <span><span class="co">#&gt;   ok    answer_text</span></span>
 <span><span class="co">#&gt;   ok    evidence: no evidence</span></span></code></pre></div>
-<p>The broken rules print first, each with what was found. The reader
-rules are <code>is_function</code> and <code>runs</code> (it finishes
-without an error), <code>answer_class</code> and
-<code>answer_fields</code> (a <code>gr_answer</code> with every
-documented field), <code>answer_text</code> (a single string),
-<code>evidence</code> and <code>chunks_used</code> (they name only
-chunks of the input), <code>calls_declared</code> (every label is under
-a declared stem) and <code>calls_within_cost</code> (no more requests
-than the cost function’s worst case; <code>NA</code> for a reader
-registered without <code>cost</code>).</p>
+<p>The broken rules print first, each with what the check found. The
+nine reader rules are:</p>
+<ul>
+<li>
+<code>is_function</code>;</li>
+<li>
+<code>runs</code>: it finishes without an error;</li>
+<li>
+<code>answer_class</code> and <code>answer_fields</code>: a
+<code>gr_answer</code> with every documented field;</li>
+<li>
+<code>answer_text</code>: a single string;</li>
+<li>
+<code>evidence</code> and <code>chunks_used</code>: they name only
+chunks of the input;</li>
+<li>
+<code>calls_declared</code>: every label is under a declared
+stem;</li>
+<li>
+<code>calls_within_cost</code>: no more requests than the cost
+function’s worst case, or <code>NA</code> for a reader registered
+without <code>cost</code>.</li>
+</ul>
 <p>The <code>by_bullet</code> segmenter from earlier fails one rule. The
-example document has no bullets, so it comes back as a single chunk over
-the 150-token cap the check cuts with, and <code><a href="../reference/gr_segment.html">gr_segment()</a></code> had
-to split it:</p>
+example document has no bullets, so <code>by_bullet</code> returns it as
+a single chunk over the 150-token cap the check cuts with, and
+<code><a href="../reference/gr_segment.html">gr_segment()</a></code> has to split it:</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_check_segmenter.html">gr_check_segmenter</a></span><span class="op">(</span><span class="st">"by_bullet"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;hr_conformance&gt; segmenter 'by_bullet', contract 0.2</span></span>
@@ -720,25 +816,33 @@ the cap:</p>
 <code>chunks_class</code>, <code>chunk_columns</code> (the documented
 columns), <code>chunk_text</code> (no blank chunk),
 <code>chunk_ids</code> (unique, not <code>NA</code>),
-<code>within_cap</code> and <code>calls_declared</code>. A segmenter
-that needs a client, or declares calls, is given the offline one; pass
-<code>client =</code> to check it against another.</p>
+<code>within_cap</code> and <code>calls_declared</code>. The check gives
+the offline client to a segmenter that needs a client or declares calls.
+Pass <code>client =</code> to check it against another client.</p>
 <p>Both checks return an <code>hr_conformance</code> data frame with
-<code>rule</code>, <code>ok</code> and <code>detail</code> columns, so a
-package of modules can assert on it in its own tests:</p>
+<code>rule</code>, <code>ok</code> and <code>detail</code> columns. If
+you maintain a package of modules, its tests can assert on that data
+frame:</p>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_check_reader.html">gr_check_reader</a></span><span class="op">(</span><span class="st">"loose"</span><span class="op">)</span></span>
 <span><span class="va">res</span><span class="op">$</span><span class="va">rule</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">ok</span><span class="op">)</span> <span class="op">&amp;</span> <span class="op">!</span><span class="va">res</span><span class="op">$</span><span class="va">ok</span><span class="op">]</span></span>
 <span><span class="co">#&gt; [1] "chunks_used"       "calls_declared"    "calls_within_cost"</span></span></code></pre></div>
 <p>To check a module against a provider that misbehaves, give the check
-a mock client with a <code>mode</code>. <code>"bad_json"</code> sends
-JSON cut off part way, <code>"refuse"</code> sends empty replies,
-<code>"at_cap"</code> marks every reply as cut off at the output cap,
-and a vector of HTTP status codes gives call <code>i</code> the
+a mock client with a <code>mode</code>:</p>
+<ul>
+<li>
+<code>"bad_json"</code> sends JSON cut off part way.</li>
+<li>
+<code>"refuse"</code> sends empty replies.</li>
+<li>
+<code>"at_cap"</code> marks every reply as cut off at the output
+cap.</li>
+<li>A vector of HTTP status codes gives call <code>i</code> the
 <code>i</code>-th status, so <code>c(429, 500, 200)</code> fails the
-first two calls and answers every one after. The <code>longest</code>
-reader still finishes, and stays within its cost, when every request is
-rate limited:</p>
+first two calls and answers every one after.</li>
+</ul>
+<p>The <code>longest</code> reader still finishes, and stays within its
+cost, when every request is rate limited:</p>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_check_reader.html">gr_check_reader</a></span><span class="op">(</span><span class="st">"longest"</span>, client <span class="op">=</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span>mode <span class="op">=</span> <span class="fl">429</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;hr_conformance&gt; reader 'longest', contract 0.2</span></span>
@@ -753,14 +857,18 @@ rate limited:</p>
 <span><span class="co">#&gt;   ok    calls_declared: 1 call(s), all under declared stems</span></span>
 <span><span class="co">#&gt;   ok    calls_within_cost: 1 request(s) made, at most 1 expected</span></span></code></pre></div>
 <p><code><a href="../reference/hr_check_module.html">hr_check_module()</a></code> is the core helper both checks use,
-and it works for a module of any kind. Give it the module’s function, a
-closure of no arguments that runs the module once, and a named list of
-rules, each a function of the value the closure returned. A rule returns
-<code>TRUE</code>, <code>FALSE</code>, <code>NA</code> (could not be
-checked), or a list with <code>ok</code> and a <code>detail</code>
-string. The closure runs in a temporary working directory that is
-removed afterwards, and an error it raises is reported by the
-<code>runs</code> rule.</p>
+and it works for a module of any kind. Give it three things:</p>
+<ul>
+<li>the module’s function;</li>
+<li>a closure of no arguments that runs the module once;</li>
+<li>a named list of rules, each a function of the value the closure
+returned.</li>
+</ul>
+<p>A rule returns <code>TRUE</code>, <code>FALSE</code>, <code>NA</code>
+(could not be checked), or a list with <code>ok</code> and a
+<code>detail</code> string. The closure runs in a temporary working
+directory that <code><a href="../reference/hr_check_module.html">hr_check_module()</a></code> removes afterwards, and
+the <code>runs</code> rule reports any error the closure raises.</p>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">double_it</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span> <span class="op">*</span> <span class="fl">2</span></span>
 <span><span class="fu"><a href="../reference/hr_check_module.html">hr_check_module</a></span><span class="op">(</span><span class="va">double_it</span>, <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="fu">double_it</span><span class="op">(</span><span class="fl">2</span><span class="op">)</span>,</span>

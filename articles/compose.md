@@ -1,10 +1,10 @@
 # Composing steps into chains
 
-A recipe such as `needle` is a fixed sequence of stages: segment the
-document, rank the chunks, read the best. When you want a sequence of
-your own, with a check after the answer or a step that rewrites the
-question, you build it from steps and run the steps in order as one arm.
-The arm is an ordinary
+A recipe such as `needle` runs a fixed sequence of stages: segment the
+document, rank the chunks, read the best. For a sequence of your own,
+such as one with a check after the answer or a step that rewrites the
+question, you build it from steps and run them in order as one arm. That
+arm is an ordinary
 [`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md),
 so
 [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
@@ -14,9 +14,9 @@ questions, as
 does for recipes.
 
 [`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
-passes each step’s output to the next step, a step’s settings come from
-its schema and reach it as `ctx$step_params`, and no step that is not
-held may follow a held command step:
+passes each step’s output to the next step. A step’s settings come from
+its schema and reach it as `ctx$step_params`. No step that is not held
+may follow a held command step:
 
 ![hr_chain() runs ingest (document in, doc out), segment (doc in, chunks
 out), retrieve (chunks in, chunks out) and read (chunks in, answer out),
@@ -48,11 +48,11 @@ ref <- gr_qa_reference(
 
 A step is a function of `(input, ctx)` that does one part of a run.
 [`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
-builds the document stages, `"ingest"`, `"segment"` and `"read"`, and
+builds a step for a document stage: `"ingest"`, `"segment"` or `"read"`.
 [`gr_step_retrieve()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
 builds a step that ranks the chunks and keeps the best without asking
-for an answer. Their settings are the ones the stage’s spec takes, and
-they are checked when the step is built:
+for an answer. Both take the settings the stage’s spec takes, and both
+check them when they build the step:
 
 ``` r
 
@@ -64,12 +64,12 @@ try(gr_step("read", reader = "no_such_reader"))
 ```
 
 [`hr_step()`](https://elkronos.github.io/harnessr/reference/hr_step.md)
-builds a step of your own. Inside a chain, `ctx` is the context
+builds a step of your own. Inside a chain, `ctx` is the context that
 [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
-gives an arm (its client, trace, `judge` and `note` shortcuts, and
-`params`), with the step’s name in `ctx$step` and its settings in
-`ctx$step_params`. This one grades the answer with a model and records
-the verdict as a signal of the run:
+gives an arm: its client, its trace, the `judge` and `note` shortcuts,
+and `params`. `ctx$step` holds the step’s name and `ctx$step_params` its
+settings. The step below grades the answer with a model and records the
+verdict as a signal of the run:
 
 ``` r
 
@@ -81,18 +81,18 @@ judge <- hr_step("judge", function(a, ctx) {
 }, input = "answer", output = "answer")
 ```
 
-`input` and `output` declare what a step takes and returns:
-`"document"`, `"doc"`, `"chunks"`, `"answer"` or `"state"`. They are
-optional, and
+The optional `input` and `output` arguments declare what a step takes
+and returns: `"document"`, `"doc"`, `"chunks"`, `"answer"` or `"state"`.
 [`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
 uses them to check the order of the steps.
 
 ## Chains
 
 [`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
-runs its steps in order: the first gets the item, each later step gets
-what the step before returned, and the chain returns what the last step
-returns. An argument’s name is the step’s name in the chain.
+runs its steps in order. The first step gets the item, each later step
+gets what the step before it returned, and the chain returns what the
+last step returns. The name you give each argument is that step’s name
+in the chain.
 
 ``` r
 
@@ -107,10 +107,12 @@ checked
 ```
 
 The arm records each step’s settings as `"step.setting"`, so a benchmark
-gets a `param.retrieve.top_k` column for it. A chain is derived from
-another by naming steps: `NULL` drops one, a step under an existing name
-replaces it where it stands, and a step under a new name is added at the
-end.
+of `checked` has a `param.retrieve.top_k` column. To derive one chain
+from another, pass the old chain and name the steps to change:
+
+- `NULL` drops a step.
+- A step under an existing name replaces that step where it stands.
+- A step under a new name goes at the end.
 
 ``` r
 
@@ -120,8 +122,9 @@ names(attr(wider, "hr_steps"))
 #> [1] "segment"  "retrieve" "read"     "judge"
 ```
 
-The three run side by side like any arms. Each run sends its requests at
-its own draw, so a cache does not hand one run’s reply to the next:
+The three chains run side by side like any other arms. Each run sends
+its requests at its own draw, so a cache does not hand one run’s reply
+to the next:
 
 ``` r
 
@@ -141,13 +144,15 @@ head(hr_signals(bench, "judged")[, c("arm", "run", "item", "value")], 3)
 
 ### What a chain checks when it is built
 
-A step that takes chunks when no step before it returns chunks warns
-with class `hr_chain_gap`: a read step would cut the document at the
-default settings without saying so. A segment step first in a chain does
-not warn, though it reads the document at the default ingest settings;
-put an ingest step before it to choose them. After a step that returns
-the answer, only steps that take `"answer"` or `"state"`, or declare
-nothing, can follow.
+[`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
+warns with class `hr_chain_gap` when a step takes chunks and no step
+before it returns them. Without the warning, a read step would cut the
+document at the default settings without saying so. A segment step first
+in a chain does not warn, though it reads the document at the default
+ingest settings; put an ingest step before it to choose them.
+
+After a step that returns the answer, only steps that take `"answer"` or
+`"state"`, or declare nothing, can follow.
 
 ``` r
 
@@ -160,8 +165,8 @@ try(hr_chain(segment = gr_step("segment"), read = gr_step("read", reader = "stuf
 #>   Chain 'late': step 'retrieve' takes "chunks", but it comes after step 'read', which returns the answer. After an answer only steps that take "answer" or "state" can follow.
 ```
 
-Step names cannot contain a dot, since settings are named
-`"step.setting"`, and cannot repeat.
+Step names cannot repeat, and they cannot contain a dot, because
+settings are named `"step.setting"`.
 
 ### When two chains are the same
 
@@ -169,8 +174,9 @@ A chain’s configuration is a hash of its steps’ code, the values that
 code reads, and their resolved settings. Two chains with the same
 configuration send the same requests, and
 [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
-warns (`hr_same_config`) when asked to compare them. A setting given at
-its default gives the same configuration as the setting left out:
+warns with class `hr_same_config` when you ask it to compare them. A
+setting given at its default gives the same configuration as the setting
+left out:
 
 ``` r
 
@@ -184,15 +190,20 @@ identical(attr(a, "hr_config"), attr(b, "hr_config"))
 ## Settings and sweeps
 
 Every step built with a schema has settings:
-[`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md)’s
-are the ones the stage’s spec takes,
-[`gr_step_retrieve()`](https://elkronos.github.io/harnessr/reference/gr_step.md)’s
-are the ranking settings, and a step of your own has the ones its
-`schema` declares. In a chain each setting is named by its path,
-`"step.setting"`.
+
+- a
+  [`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
+  step has the settings the stage’s spec takes;
+- a
+  [`gr_step_retrieve()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
+  step has the ranking settings;
+- a step of your own has the settings its `schema` declares.
+
+In a chain, each setting is named by its path, `"step.setting"`.
 [`hr_settings()`](https://elkronos.github.io/harnessr/reference/hr_settings.md)
-lists them all, with the value each step resolved, whether it was given,
-and the default, range and evidence the schema declares:
+lists them all. For each one it gives the value the step resolved,
+whether you gave it, and the default, range and evidence the schema
+declares:
 
 ``` r
 
@@ -217,9 +228,9 @@ s[s$step == "retrieve", c("param", "value", "range", "status")]
 
 [`hr_set()`](https://elkronos.github.io/harnessr/reference/hr_set.md)
 builds the chain again with some settings changed and the rest as they
-were. Each changed step is built again from its settings, so they are
-checked as when the step was first built, and the chain’s configuration
-is that of the new settings:
+were. It builds each changed step again from its settings, so the new
+values go through the same checks as when the step was first built. The
+new chain has the configuration of its new settings:
 
 ``` r
 
@@ -237,14 +248,17 @@ identical(attr(wide, "hr_config"), attr(checked, "hr_config"))
 #> [1] FALSE
 ```
 
-A number outside its range is moved to the nearest bound with a warning
-(`hr_param_clamped`), and a path that is not a setting of a step’s
-schema is an error (`hr_unknown_setting`) that lists the step’s
-settings. A setting a step keeps fixed, such as `max_answer_tokens`
-given to
+A number outside its range moves to the nearest bound with a warning of
+class `hr_param_clamped`. A path that is not a setting of a step’s
+schema is an error of class `hr_unknown_setting`, and its message lists
+the step’s settings.
+
+[`hr_set()`](https://elkronos.github.io/harnessr/reference/hr_set.md)
+cannot change a setting that a step keeps fixed either.
 [`gr_step_retrieve()`](https://elkronos.github.io/harnessr/reference/gr_step.md),
-which passes it to the read spec without ranking by it, cannot be set
-here either; build the step again and replace it with
+for example, keeps a `max_answer_tokens` you give it fixed: it passes
+the value to the read spec and does not rank by it. To change a fixed
+setting, build the step again and replace it with
 [`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md).
 
 ``` r
@@ -257,17 +271,18 @@ try(hr_set(checked, retrieve.topk = 8))
 #>   'retrieve.topk' is not a setting of chain 'checked'. Settings of 'retrieve': retrieve.top_k, retrieve.min_score, retrieve.mmr, retrieve.bm25_k1, retrieve.bm25_b, retrieve.lexical_blend, retrieve.fusion, retrieve.rrf_k.
 ```
 
-For a single step the setting’s own name is enough, as in
+For a single step, the setting’s own name is enough:
 `hr_set(gr_step_retrieve(), top_k = 2)`.
 
 [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
 takes a chain and a grid whose columns are paths, and builds one chain
 per row with
 [`hr_set()`](https://elkronos.github.io/harnessr/reference/hr_set.md).
-Each arm records its settings, so the benchmark has a
-`param.retrieve.top_k` column to group by. A row that builds the
-configuration of an earlier row is dropped with a message
-(`hr_sweep_collapsed`).
+Each arm records its settings, so you can group the benchmark by its
+`param.retrieve.top_k` column. When a row builds the configuration of an
+earlier row,
+[`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
+drops it with a message of class `hr_sweep_collapsed`.
 
 ``` r
 
@@ -283,11 +298,11 @@ aggregate(correct ~ param.retrieve.top_k, bench, mean)
 #> 3                    8       1
 ```
 
-A setting the chain’s steps never use changes nothing that is sent, and
-a sweep over it compares the chain with itself.
+Changing a setting the chain’s steps never use changes nothing that is
+sent, so a sweep over it compares the chain with itself.
 [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
 finds such settings from the requests each arm sent. Here the read step
-sends every chunk it is given, so its own `top_k` does nothing:
+sends every chunk it gets, so its own `top_k` does nothing:
 
 ``` r
 
@@ -300,30 +315,39 @@ hr_sweep_check(bench)
 #> 1 stuffed:read.top_k=8 stuffed:read.top_k=2    5        5 read.top_k: 2 vs 8
 ```
 
-A swept chain is a chain like any other:
+A swept chain is a chain like any other: you can derive a chain from it
+with
 [`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
-derives a chain from it and
-[`hr_set()`](https://elkronos.github.io/harnessr/reference/hr_set.md)
-changes it further. A replay of a recorded benchmark matches each run’s
-sampled requests by the arm’s name, so a renamed or swept chain does not
-replay a recording made under another name: record the benchmark again
-under the new names.
+and change it further with
+[`hr_set()`](https://elkronos.github.io/harnessr/reference/hr_set.md).
+
+A replay of a recorded benchmark matches each run’s sampled requests by
+the arm’s name. A renamed or swept chain therefore does not replay a
+recording made under another name; record the benchmark again under the
+new names.
 
 ## Skills
 
-A skill is a folder of instructions for one step: a `SKILL.md` file with
-a short header and the instructions, optional text files under
-`references/`, and optional scripts under `scripts/`.
-[`hr_skill()`](https://elkronos.github.io/harnessr/reference/hr_skill.md)
-reads a folder you choose. The package never looks for skills on its own
-and a model never chooses one: a person picks the skill and the step it
-goes to.
+A skill is a folder of instructions for one step. It holds:
 
-The header sits between two `---` lines and is read without a YAML
-parser, so each line is a plain `key: value`. `name` is required, and
-`description` and `version` are kept. Any other key warns
-(`hr_skill_unknown_key`), and a nested or multi-line value is an error
-(`hr_bad_skill`). This skill is written into a temporary folder:
+- a `SKILL.md` file with a short header and the instructions;
+- optional text files under `references/`;
+- optional scripts under `scripts/`.
+
+[`hr_skill()`](https://elkronos.github.io/harnessr/reference/hr_skill.md)
+reads a folder you choose. harnessr never looks for skills on its own,
+and a model never chooses one: you pick the skill and the step it goes
+to.
+
+The header sits between two `---` lines.
+[`hr_skill()`](https://elkronos.github.io/harnessr/reference/hr_skill.md)
+reads it without a YAML parser, so each line is a plain `key: value`.
+`name` is required, and
+[`hr_skill()`](https://elkronos.github.io/harnessr/reference/hr_skill.md)
+keeps `description` and `version`. Any other key warns with class
+`hr_skill_unknown_key`, and a nested or multi-line value is an error of
+class `hr_bad_skill`. The example writes this skill into a temporary
+folder:
 
 ``` r
 
@@ -347,10 +371,11 @@ units
 #>   references: style.md
 ```
 
-The skill’s text goes into the prompt as it is written. A skill from
-someone else can carry instructions you did not mean to send (prompt
-injection), so read a skill before you use it. Scripts are listed and
-never run; to run one, wrap it yourself in a command step, as in
+harnessr puts the skill’s text into the prompt as it is written. A skill
+from someone else can carry instructions you did not mean to send
+(prompt injection), so read a skill before you use it. harnessr lists
+the scripts and never runs them. To run one, wrap it in a command step
+yourself, as in
 `hr_step_command("lint", c(rscript, units$scripts[["check.R"]]))`.
 
 Give a skill to a step of your own with `hr_step(skill = )`. Inside a
@@ -360,8 +385,8 @@ own messages, and `ctx$skill` holds the skill. The built-in steps of
 [`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
 and
 [`gr_step_retrieve()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
-build their requests in the stage they run, so they refuse a skill. The
-stand-in model here answers with the unit only when the skill’s
+refuse a skill, because they build their requests in the stage they run.
+The stand-in model below answers with the unit only when the skill’s
 instructions reach it:
 
 ``` r
@@ -385,14 +410,15 @@ identical(attr(baseline, "hr_config"), attr(skilled, "hr_config"))
 ```
 
 The skill’s hash covers its header, instructions, references and every
-byte of its scripts. It is part of the step’s fingerprint, so the two
-chains have different configurations, and the chain records it as the
-setting `answer.skill`, which a benchmark shows as `param.answer.skill`.
-A skill with a version gives the step that version.
+byte of its scripts. The hash is part of the step’s fingerprint, so the
+two chains have different configurations. The chain records the skill as
+the setting `answer.skill`, and a benchmark shows it as
+`param.answer.skill`. When the skill has a version, the step takes that
+version.
 
-To see whether the skill does what it says, compare the chain with and
-without it on the same questions, with a scorer that checks the rule the
-skill sets. This one checks that the answer names the currency:
+To test whether a skill does what it says, compare the chain with and
+without it on the same questions, using a scorer that checks the skill’s
+rule. The scorer here checks that the answer names the currency:
 
 ``` r
 
@@ -418,10 +444,11 @@ units_report$contrasts[, c("arm1", "arm2", "estimate", "lower", "upper")]
 #> 1 no-skill units-skill       -1    -1 0.04821512
 ```
 
-A skill is not a setting of a step’s schema, so
+A skill is not a setting of a step’s schema, so neither
 [`hr_set()`](https://elkronos.github.io/harnessr/reference/hr_set.md)
-cannot change it and a sweep by path cannot swap it. Sweep it with a
-function that builds the chain from a grid column instead:
+nor a sweep by path can swap it. To sweep a skill, give
+[`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
+a function that builds the chain from a grid column:
 
 ``` r
 
@@ -434,8 +461,8 @@ names(arms)
 
 ## A coding sub-agent
 
-Steps need not read documents. A coding sub-agent drafts code with a
-model, runs the tests on the draft, and asks the model to fix a draft
+Steps do not have to read documents. A coding sub-agent drafts code with
+a model, runs the tests on the draft, and asks the model to fix a draft
 that failed.
 [`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md)
 (see
@@ -443,19 +470,23 @@ that failed.
 runs the tests: it runs one program you name and reads its result as
 `"passed"` or `"failed"`.
 
-The loop has two checks. A visible check runs after the draft, and the
-revise step reads its result in `input$check`. A held check runs last,
-and only the scorer sees it, in `attr(output, "hr_held")`. A revise step
-that saw the scoring check could fit the code to that check, so a held
-step must come last:
-[`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
-refuses a step that is not held after one that is (`hr_held_not_last`).
-Here the visible and the held check run the same tests; a held check can
-also run tests the loop never sees.
+The loop has two checks:
 
-The tests and the drafts go in a temporary folder. The stand-in model
-drafts a `clamp()` with a bug, and sends the fixed version when told the
-draft failed:
+- A visible check runs after the draft. The revise step reads its result
+  in `input$check`.
+- A held check runs last. Only the scorer sees it, in
+  `attr(output, "hr_held")`.
+
+A revise step that saw the scoring check could fit the code to that
+check, so a held step must come last.
+[`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
+refuses a step that is not held after one that is, with an error of
+class `hr_held_not_last`. Here the visible and the held check run the
+same tests; a held check can also run tests the loop never sees.
+
+The example puts the tests and the drafts in a temporary folder. The
+stand-in model drafts a `clamp()` with a bug, and sends the fixed
+version when told the draft failed:
 
 ``` r
 
@@ -504,9 +535,9 @@ coding <- hr_chain(draft = draft,
                    name = "coding")
 ```
 
-The scorer reads the held check. Compared with the same chain without
-the visible check and the revise step, which scores the first draft, the
-loop passes on every run:
+The scorer reads the held check. The second arm is the same chain
+without the visible check and the revise step, so it scores the first
+draft. The loop passes on every run:
 
 ``` r
 
@@ -535,29 +566,29 @@ For a testthat file, give the check `parse = "testthat"`. It reads the
 last `[ FAIL n | WARN n | SKIP n | PASS n ]` line the run printed, and a
 run with a failed test is `"failed"` whatever its exit code. Run the
 file with a reporter that prints that line, such as the default,
-`"progress"` or `"check"`: a run that prints no such line, as under
-`"summary"`, is read as `"error"`. Giving
+`"progress"` or `"check"`. A run that prints no such line, as under
+`"summary"`, reads as `"error"`. Pass `stop_on_failure = TRUE` to
 [`testthat::test_file()`](https://testthat.r-lib.org/reference/test_file.html)
-`stop_on_failure = TRUE` as well makes the exit code agree with the
-result.
+as well if you want the exit code to agree with the result.
 
 A stand-in model’s handler must be stateless: its reply should depend
-only on the messages and settings it is given, as `coder`’s does. A
-handler that counts its calls, or remembers the last request, answers by
-the order the requests come in. That order changes when runs go to
-parallel workers, when a cache or a recording answers some of them, and
-when arms are added, so the same benchmark would score differently from
-one run to the next.
+only on the messages and settings it gets, as `coder`’s does. A handler
+that counts its calls, or remembers the last request, answers by the
+order the requests come in. That order changes when runs go to parallel
+workers, when a cache or a recording answers some requests, and when you
+add arms. The same benchmark would then score differently from one run
+to the next.
 
 ## Two goals, start to finish
 
 ### Run your own tests on the recipes
 
-This goal sweeps a recipe over a grid of its settings and runs your own
-arm beside it, on the same questions and under one spending limit.
+Here you sweep a recipe over a grid of its settings and run your own arm
+beside it, on the same questions and under one spending limit. Given a
+function,
 [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
-given a function builds one arm per row of the grid, and each arm
-records its settings as `param.*` columns:
+builds one arm per row of the grid, and each arm records its settings as
+`param.*` columns:
 
 ``` r
 
@@ -597,22 +628,21 @@ hr_sweep_check(bench)
 #> 3 top_k: 2 vs 8
 ```
 
-The first table covers only the swept arms: your arm has no `param.*`
+The first table covers only the swept arms. Your arm has no `param.*`
 settings, so [`aggregate()`](https://rdrr.io/r/stats/aggregate.html)
-leaves its rows out. The second has one row per arm, yours included, so
-it compares the grid with your arm.
+leaves its rows out. The second table has one row per arm, yours
+included, so it compares the grid with your arm.
 
-The example document is short. Cut into chunks of 200 tokens, a `top_k`
-of 4 keeps every chunk, and cut into chunks of 500 tokens, a `top_k` of
-2 does.
+The example document is short. In chunks of 200 tokens, a `top_k` of 4
+keeps every chunk; in chunks of 500 tokens, a `top_k` of 2 does.
 [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
-finds the arms that sent the same requests as another. Those rows
-compare a configuration with itself.
+finds the arms that sent the same requests as another arm, and those
+rows compare a configuration with itself.
 
 ### Chain steps into a sub-agent of your own
 
-This goal compares a chain that has a judge step with the same chain
-without it, and sweeps the chain over `top_k`. A cache answers any
+Here you compare a chain that has a judge step with the same chain
+without it, and sweep the chain over `top_k`. A cache answers any
 request sent twice. The judge step grades the answer against a rubric
 with `ctx$judge()` and records the verdict with `ctx$note()`:
 
@@ -643,7 +673,7 @@ table(hr_signals(bench, "ok")$arm)
 #>                        5                        5                        5
 ```
 
-A coding sub-agent is built the same way, as in the section above: a
+You build a coding sub-agent the same way, as in the section above: a
 draft step, a visible check, a revise step, and the held check last.
 
 ## Next
