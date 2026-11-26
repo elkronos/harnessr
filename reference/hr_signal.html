@@ -28,17 +28,28 @@ hr_calibrate_signal(), hr_gate_threshold() and hr_apply_signal())."></head><body
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Review many documents</h6></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Measure and compare</h6></li>
     <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
     <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
-    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Control cost and settings</h6></li>
     <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
     <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Build your own</h6></li>
+    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Upgrade</h6></li>
+    <li><a class="dropdown-item" href="../articles/migrate.html">Upgrading from older versions</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
   </ul></li>
@@ -175,9 +186,9 @@ members: <code>"model"</code> when the adjudication request answered,
 <span class="r-in"><span><span class="fu">hr_signal</span><span class="op">(</span><span class="st">"demo.confident"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.9</span>, <span class="fl">0.2</span><span class="op">)</span>, <span class="va">tr</span>, item_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"q2"</span>, <span class="st">"q3"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">hr_signals</span><span class="op">(</span><span class="va">tr</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                          run_id step source recipe         signal    type</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 run_20261125141711.480_3a2aad    1   &lt;NA&gt;   &lt;NA&gt; demo.confident logical</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 run_20261125141711.480_3a2aad    2   &lt;NA&gt;   &lt;NA&gt; demo.confident numeric</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 run_20261125141711.480_3a2aad    2   &lt;NA&gt;   &lt;NA&gt; demo.confident numeric</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 run_20261126000105.040_765c7d    1   &lt;NA&gt;   &lt;NA&gt; demo.confident logical</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 run_20261126000105.040_765c7d    2   &lt;NA&gt;   &lt;NA&gt; demo.confident numeric</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 run_20261126000105.040_765c7d    2   &lt;NA&gt;   &lt;NA&gt; demo.confident numeric</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   item_id index value score refs</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1      q1     1  TRUE   1.0 &lt;NA&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2      q2     1   0.9   0.9 &lt;NA&gt;</span>
@@ -194,7 +205,7 @@ members: <code>"model"</code> when the adjudication request answered,
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'iterative' (topk|rounds*2|forward) over 5 chunk(s).</span>
 <span class="r-in"><span><span class="fu">hr_signals</span><span class="op">(</span><span class="va">ans</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                          run_id step source recipe                  signal</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 run_20261125141711.533_e2757c    5   &lt;NA&gt;   &lt;NA&gt; gr.iterative.can_answer</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 run_20261126000105.083_c846fb    5   &lt;NA&gt;   &lt;NA&gt; gr.iterative.can_answer</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      type item_id index value score        refs</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 logical    &lt;NA&gt;     1  TRUE     1 {"round":1}</span>
 <span class="r-in"><span></span></span>

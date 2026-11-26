@@ -404,7 +404,8 @@ registered price is refused before it is sent (embedding models and
 are exempt). Give `input_usd` and `output_usd` in US dollars per million
 tokens, or let a local model run unpriced with
 `hr_options(allow_unpriced = TRUE)`. `reasoning = TRUE` marks a model
-that takes an effort setting. The README’s section on connecting a model
+that takes an effort setting. The section on connecting to a model in
+[`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
 shows both for a model reached through ellmer.
 
 ## Using what you registered

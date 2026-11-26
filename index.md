@@ -33,10 +33,10 @@ provider, and the core never calls the document layer.
 Your code can call either layer: the document functions (`gr_`) build on
 the core functions (`hr_`), and the core never calls the document layer.
 
-harnessr was called readgpt up to version 0.6.0, and so was its GitHub
-repository. Requests, cache keys and recordings are unchanged by the
-rename, and caches and recordings made under the old name still answer.
-The old function and option names are removed (see `NEWS.md`).
+harnessr was called readgpt up to version 0.6.0. If you have code
+written for readgpt,
+[`vignette("migrate")`](https://elkronos.github.io/harnessr/articles/migrate.md)
+lists the old names and what replaced them.
 
 The [guides](#guides) explain each part in depth and all run offline,
 without a key. Start with
@@ -80,10 +80,10 @@ ans$answer
 ans$partial
 ```
 
-Every console block below is real output from the bundled example
+The console block below is real output from the bundled example
 document, with
 [`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
-standing in for the API, so you can reproduce all of it without a key.
+standing in for the API, so you can reproduce it without a key.
 [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 runs several recipes over one document and extracts it only once, so you
 can choose a pipeline before committing to it:
@@ -126,359 +126,98 @@ ans <- answer_document("thesis.pdf", "How was the sample recruited?", rec)
 
 ## Connecting a model
 
+Put your OpenAI key in `.Renviron` as `OPENAI_API_KEY=sk-...`, or set it
+for the session:
+
 ``` r
 
-Sys.setenv(OPENAI_API_KEY = "sk-...")   # or
-options(harnessr.api_key = "sk-...")     # or
-cl <- hr_client(api_key = "sk-...")     # per client, for multi-user Shiny
+Sys.setenv(OPENAI_API_KEY = "sk-...")
 ```
 
-An explicit argument wins over the `harnessr.api_key` option, which wins
-over `OPENAI_API_KEY`. Keep the key out of the repository: `.Renviron`
-is the usual home for it, and both `.Renviron` and `.Rprofile` are
-gitignored here. Without a key,
-[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
-[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
-and
-[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
-stop before reading the document, with a `gr_auth_error` that says how
-to set one, so a missing key does not first cost an OCR pass over a long
-scan.
-
-Behind a company gateway, `hr_client(headers = )` sends the headers it
-wants, such as Azure’s `api-key`;
+Then the quick start above runs against the real model.
 [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
-shows how.
-
-The built-in client speaks to OpenAI-compatible `/responses` and
-`/chat/completions` endpoints.
-[`hr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/hr_ellmer_client.md)
-hands the transport to [ellmer](https://ellmer.tidyverse.org/), which
-covers roughly twenty providers, local models through Ollama among them.
-The spending limit is on by default and can hold only for a model with a
-registered price, so register the model the ellmer object was built
-with, at your provider’s current prices in US dollars per million
-tokens:
-
-``` r
-
-library(ellmer)
-
-hr_register_model("claude-sonnet-4-5", context_window = 200000, max_output = 64000,
-                  input_usd = 3, output_usd = 15)
-cl <- hr_ellmer_client(chat_anthropic(model = "claude-sonnet-4-5"))
-answer_document("report.pdf", "What was revenue?", "thorough", client = cl)
-
-# A local model has no price to register, so let it run unpriced:
-hr_options(allow_unpriced = TRUE)
-hr_ellmer_client(chat_ollama(model = "llama3.1"))
-```
-
-Without a registered price, a run under `max_cost_usd` stops before its
-first request with an `hr_unpriced_model` error.
-[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
-covers unpriced models and what changes through ellmer (temperature and
-embeddings).
-
-Anything else, such as a model behind a queue, goes through
-[`hr_backend_client()`](https://elkronos.github.io/harnessr/reference/hr_backend_client.md),
-which makes any function of `messages` and `params` that returns a
-string the transport. Limits, the trace, caching and replay work the
-same way on every client. Register the model’s real context window with
-[`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md),
-since it is what sizes your chunks.
-
-## How it works
-
-How you break a document up and how you make the model read it are
-separate decisions worth experimenting with, so the package keeps them
-separate. There are three independent axes, each a registry you can
-extend without editing the package:
-
-      source  ──▶  INGEST  ──▶  SEGMENT  ──▶  READ  ──▶  answer + trace
-                   │             │             │
-                   │             │             └─ 12 strategies, each with a
-                   │             │                distinct traversal signature
-                   │             └─ 9 segmenters + overlap / min-size / context
-                   └─ 6 extractors + 14 individually toggleable cleaners
-
-Any ingest composes with any segmenter and any reader.
-[`gr_recipe()`](https://elkronos.github.io/harnessr/reference/gr_recipe.md)
-binds one of each into a named pipeline, and a recipe run alongside
-others gives a byte-identical `$answer` and `$chunks_used` to running it
-alone. Which model answers is a fourth, independent choice.
-
-[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
-turns a file into cleaned text blocks that keep their page and section.
-The extractors cover plain text and delimited files, Markdown, HTML,
-Word, PDF (with OCR for scanned pages) and images, and a web address is
-downloaded and read as whatever it serves. Each cleaner can be turned on
-or off by name, and `remove_numbers` is off by default, because it would
-make every figure, date and percentage unanswerable. See
-[`vignette("ingest")`](https://elkronos.github.io/harnessr/articles/ingest.md).
-
-[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
-cuts the document into chunks: on a ruler, by paragraph, sentence,
-heading or page, where embeddings diverge, or by rewriting it into
-standalone statements. `max_tokens` is enforced on every segmenter, and
-[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md)
-compares chunkings for nothing before you spend anything on reading. See
-[`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md).
-
-[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
-answers the question with one of the strategies, from `stuff` (one
-request carrying the whole document) through `map_reduce` (one per
-chunk, then a merge) to `iterative` (multi-hop). Each has a traversal
-signature, `select|calls|state`, which is how the package tells two
-methods apart from two names for the same thing. Recipes such as `fast`,
-`needle`, `thorough` and `survey` bundle a segmenter with a reader.
-[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
-defaults to `"auto"`, which reads a document of up to 50,000 tokens
-(less on a model with a small context window) with `fast` and a longer
-one with `thorough`. See
-[`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md),
-which also covers what to check when the answer is not what you
-expected.
-
-To choose a recipe or a model on more than one document,
-[`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
-runs each configuration several times over a labelled set of questions
-under one spending limit, and
-[`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)
-gives accuracy, paired differences and cost with intervals that treat
-the questions about one document as a cluster. See
-[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md).
-
-## What you can change
-
-Every setting has a default, and six guides end with walkthroughs of the
-important ones: what each trades off, the signs in your results that
-point to changing it, where its default came from and how to test a
-change with
-[`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md).
-The [settings
-reference](https://elkronos.github.io/harnessr/articles/settings.html)
-lists all 227 with their defaults, and
-[`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
-returns them in R.
-
-| stage | settings | most used | walkthroughs |
-|----|----|----|----|
-| ingest | 21 | `clean`, `ocr`, `min_chars` | [cleaning](https://elkronos.github.io/harnessr/articles/ingest.html#set-clean), [OCR](https://elkronos.github.io/harnessr/articles/ingest.html#set-ocr) |
-| segment | 20 | `method`, `max_tokens`, `overlap_tokens` | [segmenter](https://elkronos.github.io/harnessr/articles/segment.html#set-method), [size](https://elkronos.github.io/harnessr/articles/segment.html#set-max-tokens), [overlap](https://elkronos.github.io/harnessr/articles/segment.html#set-overlap), [context lines](https://elkronos.github.io/harnessr/articles/segment.html#set-contextual) |
-| read | 50 | `reader`, `model`, `top_k`, `cite`, `verify` | [reader](https://elkronos.github.io/harnessr/articles/readers.html#set-reader), [`top_k`](https://elkronos.github.io/harnessr/articles/readers.html#set-top-k), [`mmr`](https://elkronos.github.io/harnessr/articles/readers.html#set-mmr), [checks](https://elkronos.github.io/harnessr/articles/readers.html#set-verify), [effort](https://elkronos.github.io/harnessr/articles/readers.html#set-effort) |
-| screen | 33 | `screen_tokens`, `recall_target`, `conf` | [calibration](https://elkronos.github.io/harnessr/articles/review.html#set-calibration) |
-| extract | 10 | `resolve`, `require_quote` | [extraction](https://elkronos.github.io/harnessr/articles/review.html#set-extract) |
-| synthesise | 29 | `coherence`, `cite_style` | [synthesis](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) |
-| evaluate | 30 | `runs`, `governor`, `scorer` | [governor](https://elkronos.github.io/harnessr/articles/runs.html#set-governor), [comparing](https://elkronos.github.io/harnessr/articles/compare.html), [command checks](https://elkronos.github.io/harnessr/articles/evaluate.html#set-command-timeout) |
-| options | 34 | `model`, `max_cost_usd`, `max_calls` | [limits](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) |
-
-## What an answer gives back
-
-`print(ans)` sums up the cost, where the evidence came from and, when
-the answer is partial, why:
-
-``` r
-
-ans$answer
-ans$partial                 # TRUE means something degraded; check this first
-ans$notes                   # why: dropped_chunks, failed_calls, unread_pages, ...
-ans$evidence                # the passages the answer rests on, with page and section
-gr_verify_evidence(ans)     # whether each quoted passage is in its chunk
-as.data.frame(ans$trace)    # one row per request: stage, tokens, usd, seconds, prompt, reply
-```
-
-A quotation that is not in the chunk it is attributed to marks the
-answer partial, and a citation of a chunk that was never sent is
-recorded in `ans$notes$cited_unknown`. Both checks are local string
-operations, so they cost nothing and always run.
-
-[`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md)
-prices a run by each step’s own model and counts only the calls that
-were issued;
-[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
-shows a bill.
-
-[`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md)
-puts the question, the answer, whether it is partial and why, the cost,
-and the passages in document order on one HTML page:
-
-``` r
-
-gr_audit_report("answer.html", answer = ans)
-```
-
-## Many documents and reviews
-
-[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
-runs one recipe over a folder and returns one row per document. An
-unreadable file costs one row rather than the run, each document gets
-its own budget, `max_total_calls` and `max_total_usd` bound the run, and
-`store =` makes a long run resumable.
-
-A review fixes its protocol before reading anything, then runs
-[`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md)
-→
-[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
-→
-[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
-→
-[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md).
-Screening gives every document a decision and a reason, and sends
-`"unclear"` ones to a person instead of guessing. Extraction gives a
-typed table, and its `n_unverified` column counts the values in a row
-that cannot be pointed at in the document. Where a document contradicts
-itself, `conflicts` names the field and the earliest chunk’s value is
-kept; `resolve = "model"` spends one call per disagreeing field to have
-the model choose instead. The write-up cites `[study n]` for each row it
-rests on, and every marker is checked against the rows that exist. The
-audit report writes the whole chain out for the co-author or reviewer
-who asks “how do you know?”:
-
-``` r
-
-gr_audit_report("audit.html", extraction = x, synthesis = review, claims = cm,
-                protocol = protocol)
-```
-
-[`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md)
-covers the rest: surveying a folder with
-[`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md),
-starting from a reference manager’s export with
-[`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md),
-measuring the screener against a hand-screened sample with
-[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md),
-author-year citations, claims, outlines and gaps, and the checks on
-revision passes.
-
-## Limits and records
-
-Two limits are on by default, `max_cost_usd = 5` and `max_calls = 400`
-per run, set with
-[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
-or held together by
-[`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md).
-Every request is checked before it is sent, against what the run has
-spent plus the most that request could cost, and a request that could
-pass a limit is not sent. The answer comes back partial, and the trace
-names the limit in `stop_reason`.
-
-[`hr_cache()`](https://elkronos.github.io/harnessr/reference/hr_cache.md)
-stores each successful response, keyed on everything that can change the
-reply, and
-[`hr_cache_client()`](https://elkronos.github.io/harnessr/reference/hr_cache_client.md)
-attaches it to a client, so a repeat is free and identical. A trace
-records every prompt and response, so
-[`hr_trace_save()`](https://elkronos.github.io/harnessr/reference/hr_trace_save.md)
-and
-[`hr_replay_client()`](https://elkronos.github.io/harnessr/reference/hr_replay_client.md)
-reproduce a run from the saved trace and the source document, with no
-key and no spend.
-
-[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
-covers the other limits (tokens, output caps, allowed models), reasoning
-effort per stage, what each trace step records, cache keys, replaying a
-run that used embeddings, and the classed errors and warnings.
-
-## Shiny app
-
-``` r
-
-shiny::runApp(system.file("shiny", package = "harnessr"))
-```
-
-Every axis is a control, and a free “Preview chunking” button shows the
-chunks before you spend anything. Set `GPTREAD_DOC_ROOTS` before
-exposing the app to anyone else: unset, it reads `~/Documents`, or your
-whole home directory when there is none.
-[`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md)
-has the details.
+covers the other ways to give a key, company gateways, other providers
+and local models through ellmer, and any other backend.
 
 ## Guides
 
-Each guide is on the website and, once installed, in R as
-`vignette("name")`.
+Each guide is on the website, under the same groups as here, and once
+installed in R as `vignette("name")`.
 
-| guide | what it covers |
-|----|----|
-| [Get started](https://elkronos.github.io/harnessr/articles/harnessr.html) (`harnessr`) | The ideas, installing, connecting, a first question checked from start to finish, cost, a glossary |
-| [Getting text out of files](https://elkronos.github.io/harnessr/articles/ingest.html) (`ingest`) | PDFs, Word files, web pages and scans, every cleaner, and surveying a folder |
-| [Cutting documents into chunks](https://elkronos.github.io/harnessr/articles/segment.html) (`segment`) | The segmenters, overlap, minimum size, context, and comparing chunkings |
-| [Choosing how the model reads](https://elkronos.github.io/harnessr/articles/readers.html) (`readers`) | The reading strategies, recipes, what each costs, and how to choose |
-| [Many documents and literature reviews](https://elkronos.github.io/harnessr/articles/review.html) (`review`) | Search, screening, calibration and recall, several reviewers, extraction, claims, synthesis, the audit report |
-| [Measuring and comparing configurations](https://elkronos.github.io/harnessr/articles/evaluate.html) (`evaluate`) | Reference sets and label sheets, benchmarks and their intervals, non-inferiority, judges, baselines, drift, signals |
-| [Comparing methods and settings](https://elkronos.github.io/harnessr/articles/compare.html) (`compare`) | Worked comparisons of readers, segmenters and chunk sizes, one setting over its values, screening settings and a judge against labels, and how to read each report |
-| [Composing steps into chains](https://elkronos.github.io/harnessr/articles/compose.html) (`compose`) | Steps of your own and the built-in ones, chains run as one arm, deriving a chain by dropping or replacing a step, and what a chain checks |
-| [Cost, limits and reproducible runs](https://elkronos.github.io/harnessr/articles/runs.html) (`runs`) | The governor, effort, traces, caching, replay |
-| [Settings reference](https://elkronos.github.io/harnessr/articles/settings.html) (`settings`) | Every setting of every stage with its default and where it came from, and the extractors, cleaners, segmenters, readers, embedders and recipes |
-| [Extending harnessr](https://elkronos.github.io/harnessr/articles/extending.html) (`extending`) | Registering your own extractors, cleaners, segmenters, readers and embedders, and checking them |
+### Get started
 
-## Development
+- [Get
+  started](https://elkronos.github.io/harnessr/articles/harnessr.html)
+  (`harnessr`): the ideas, installing, connecting, a first question
+  checked from start to finish, cost, a glossary.
 
-``` bash
-bash run-tests.sh   # install deps if needed, install, run the suite; --help lists the options
-```
+### Read a document
 
-The suite needs `testthat` and `withr`, plus `future` and
-`future.apply`, without which the tests of a parallel run’s call and
-cost counts are skipped. Every test uses an offline mock client, so no
-key is needed and no requests are made; `--check` runs a full
-`R CMD check`.
+- [Getting text out of
+  files](https://elkronos.github.io/harnessr/articles/ingest.html)
+  (`ingest`): PDFs, Word files, web pages and scans, every cleaner, and
+  surveying a folder.
+- [Cutting documents into
+  chunks](https://elkronos.github.io/harnessr/articles/segment.html)
+  (`segment`): the segmenters, overlap, minimum size, context, and
+  comparing chunkings.
+- [Choosing how the model
+  reads](https://elkronos.github.io/harnessr/articles/readers.html)
+  (`readers`): the reading strategies, recipes, what each costs, and how
+  to choose.
 
-| workflow | what it does |
-|----|----|
-| `tests.yaml` | installs, runs the suite, runs the README’s code blocks and diffs their documented output against real output, knits every guide with no key and no network, and checks the documented counts against the registries and that no two readers share a traversal signature |
-| `R-CMD-check.yaml` | full `R CMD check` on macOS and Ubuntu, current R and the previous release |
-| `pkgdown.yaml` | builds the website on pushes to the main branch and publishes it; on a pull request that changes the site’s sources, builds it without publishing |
-| `pr-checks.yaml` | fails a pull request that drops an `expect_*()` call, adds a `skip()` or adds a row to a list that may only shrink without the label `tests-reviewed`, adds a dependency without the label `deps-reviewed` (an added package must be on CRAN either way), or removes an export without the label `exports-reviewed`; fails any commit message with a `Co-Authored-By` trailer, a chat or session link or a “Generated with” line. One job, one step per check, rerun when a label changes |
-| `pr-lint.yaml` | lints the changed files under `R/` on each push to a pull request |
-| `ellmer-devel.yaml` | runs weekly and by hand, never on pull requests: installs ellmer from its GitHub repository and runs every test file that exercises [`hr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/hr_ellmer_client.md) |
-| `validation.yaml` | runs nightly and by hand, never on pull requests: simulates clustered benchmarks to check the coverage of [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)’s intervals (`dev/sim-coverage.R`) and [`hr_mdd()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md) against a power simulation (`dev/sim-power.R`), 2000 replicates each, and keeps the tables as an artifact |
+### Review many documents
 
-`Rscript dev/ci/pr-checks.R tests origin/main HEAD` runs the
-pull-request checks locally. No workflow needs a secret:
-`OPENAI_API_KEY` is empty, or a dummy value for the README blocks, so a
-real key can never change a result.
+- [Many documents and literature
+  reviews](https://elkronos.github.io/harnessr/articles/review.html)
+  (`review`): search, screening, calibration and recall, several
+  reviewers, extraction, claims, synthesis, the audit report.
 
-## Migrating from v1
+### Measure and compare
 
-The v1 entry points are removed. Each one has a replacement:
+- [Measuring and comparing
+  configurations](https://elkronos.github.io/harnessr/articles/evaluate.html)
+  (`evaluate`): reference sets and label sheets, benchmarks and their
+  intervals, non-inferiority, judges, baselines, drift, signals.
+- [Comparing methods and
+  settings](https://elkronos.github.io/harnessr/articles/compare.html)
+  (`compare`): worked comparisons of readers, segmenters and chunk
+  sizes, one setting over its values, screening settings and a judge
+  against labels, and how to read each report.
 
-| v1 | now |
-|----|----|
-| `answer_question(f, q, mode = "Chunked")` | `answer_document(f, q, "thorough")` |
-| `parse_text(f, chunk_method = "semantic")` | `gr_ingest(f)` → `gr_segment(doc, "semantic")` |
-| `gpt_read_chunked()` | `gr_read(ch, q, cl, "map_reduce")` |
-| `gpt_read_retrieval()` | `gr_read(ch, q, cl, "skim")` |
-| `gpt_read_hierarchical()` | `gr_read(ch, q, cl, "hierarchical")` |
-| `gpt_read_multipass()` | `gr_read(ch, q, cl, "ensemble")` |
-| `readgpt_example()` | [`gr_example()`](https://elkronos.github.io/harnessr/reference/gr_example.md) |
-| `options(readgpt.api_key =)` | `options(harnessr.api_key =)` |
-| `options(readgpt.allow_local_urls =)` | `options(harnessr.allow_local_urls =)` |
+### Control cost and settings
 
-Three behaviour changes from v1 are deliberate and will alter your
-results:
+- [Cost, limits and reproducible
+  runs](https://elkronos.github.io/harnessr/articles/runs.html)
+  (`runs`): the governor, effort, traces, caching, replay.
+- [Settings
+  reference](https://elkronos.github.io/harnessr/articles/settings.html)
+  (`settings`): every setting of every stage with its default and where
+  it came from, and the extractors, cleaners, segmenters, readers,
+  embedders and recipes.
 
-1.  **`mode` no longer defaults to all five modes.**
-    `answer_question(f, q)` in v1 ran every mode: 41 API calls on an
-    8-paragraph document, where one was expected.
-2.  **Modes no longer contaminate each other.** In v1,
-    `mode = c("Chunked", "Semantic")` changed Chunked’s chunking, its
-    cost, and its answer relative to `mode = "Chunked"` alone.
-3.  **Digits are no longer stripped by default.** v1’s
-    `remove_numbers = TRUE` default was unreachable from
-    `answer_question()`, so every figure, date and percentage was
-    deleted before the model saw the document.
+### Build your own
 
-For v1’s `refine = TRUE`, ask for citations with `cite = TRUE` in
-[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md).
-Its verification pass has no replacement because it could never run: it
-called a `search_text()` function that was never defined anywhere in the
-repository.
+- [Composing steps into
+  chains](https://elkronos.github.io/harnessr/articles/compose.html)
+  (`compose`): steps of your own and the built-in ones, chains run as
+  one arm, deriving a chain by dropping or replacing a step, and what a
+  chain checks.
+- [Extending
+  harnessr](https://elkronos.github.io/harnessr/articles/extending.html)
+  (`extending`): registering your own extractors, cleaners, segmenters,
+  readers and embedders, and checking them.
 
-The v1 source is kept under `legacy/` for reference and A/B comparison.
-It is not loaded by the package. To reproduce its ingestion and chunking
-under the current code, use the `legacy` recipe, which reproduces its
-digit stripping, 3000-token paragraph chunks and lack of overlap. The
-regression suite in `tests/testthat/` reproduces each of these defects
-against the current code.
+### Upgrade
+
+- [Upgrading from older
+  versions](https://elkronos.github.io/harnessr/articles/migrate.html)
+  (`migrate`): the old names from readgpt and v1, their replacements and
+  the behaviour that changed.
+
+## Getting help
+
+Ask questions and report bugs at
+<https://github.com/elkronos/harnessr/issues>.
+[CONTRIBUTING.md](https://github.com/elkronos/harnessr/blob/main/CONTRIBUTING.md)
+says how to run the tests and what a pull request must keep true.

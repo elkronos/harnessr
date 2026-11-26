@@ -36,17 +36,28 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
     <li><a class="dropdown-item" href="articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="articles/readers.html">Choosing how the model reads</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Review many documents</h6></li>
     <li><a class="dropdown-item" href="articles/review.html">Many documents and literature reviews</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Measure and compare</h6></li>
     <li><a class="dropdown-item" href="articles/evaluate.html">Measuring and comparing configurations</a></li>
     <li><a class="dropdown-item" href="articles/compare.html">Comparing methods and settings</a></li>
-    <li><a class="dropdown-item" href="articles/compose.html">Composing steps into chains</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Control cost and settings</h6></li>
     <li><a class="dropdown-item" href="articles/runs.html">Cost, limits and reproducible runs</a></li>
     <li><a class="dropdown-item" href="articles/settings.html">Settings reference</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Build your own</h6></li>
+    <li><a class="dropdown-item" href="articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="articles/extending.html">Extending harnessr</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Upgrade</h6></li>
+    <li><a class="dropdown-item" href="articles/migrate.html">Upgrading from older versions</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="articles/index.html">More articles...</a></li>
   </ul>
@@ -74,7 +85,7 @@
 <img src="reference/figures/layers.svg" alt="Two stacked layers. Your code calls the document layer (gr_ functions for ingest, segment, read, screen, extract, claims, synthesis and review) or the core (hr_ functions for the client, calls, cache, trace and ledger, budget and governor, registry and modules, and composition). The document layer calls the core, the core sends requests to a model provider, and the core never calls the document layer."><div class="figcaption">Two stacked layers. Your code calls the document layer (gr_ functions for ingest, segment, read, screen, extract, claims, synthesis and review) or the core (hr_ functions for the client, calls, cache, trace and ledger, budget and governor, registry and modules, and composition). The document layer calls the core, the core sends requests to a model provider, and the core never calls the document layer.</div>
 </div>
 <p>Your code can call either layer: the document functions (<code>gr_</code>) build on the core functions (<code>hr_</code>), and the core never calls the document layer.</p>
-<p>harnessr was called readgpt up to version 0.6.0, and so was its GitHub repository. Requests, cache keys and recordings are unchanged by the rename, and caches and recordings made under the old name still answer. The old function and option names are removed (see <code>NEWS.md</code>).</p>
+<p>harnessr was called readgpt up to version 0.6.0. If you have code written for readgpt, <code><a href="articles/migrate.html">vignette("migrate")</a></code> lists the old names and what replaced them.</p>
 <p>The <a href="#guides">guides</a> explain each part in depth and all run offline, without a key. Start with <code><a href="articles/harnessr.html">vignette("harnessr")</a></code>. They are also on the website, <a href="https://elkronos.github.io/harnessr/" class="uri">https://elkronos.github.io/harnessr/</a>, with the reference for every function.</p>
 <div class="section level2">
 <h2 id="install">Install<a class="anchor" aria-label="anchor" href="#install"></a>
@@ -95,7 +106,7 @@
 <span><span class="va">ans</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="st">"report.pdf"</span>, <span class="st">"What was Q3 revenue?"</span>, recipe <span class="op">=</span> <span class="st">"needle"</span><span class="op">)</span></span>
 <span><span class="va">ans</span><span class="op">$</span><span class="va">answer</span></span>
 <span><span class="va">ans</span><span class="op">$</span><span class="va">partial</span></span></code></pre></div>
-<p>Every console block below is real output from the bundled example document, with <code><a href="reference/hr_mock_client.html">hr_mock_client()</a></code> standing in for the API, so you can reproduce all of it without a key. <code><a href="reference/gr_compare.html">gr_compare()</a></code> runs several recipes over one document and extracts it only once, so you can choose a pipeline before committing to it:</p>
+<p>The console block below is real output from the bundled example document, with <code><a href="reference/hr_mock_client.html">hr_mock_client()</a></code> standing in for the API, so you can reproduce it without a key. <code><a href="reference/gr_compare.html">gr_compare()</a></code> runs several recipes over one document and extracts it only once, so you can choose a pipeline before committing to it:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cl</span>  <span class="op">&lt;-</span> <span class="fu"><a href="reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span>
 <span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/gr_compare.html">gr_compare</a></span><span class="op">(</span><span class="fu"><a href="reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue in fiscal 2024?"</span>,</span>
@@ -124,362 +135,86 @@
 <div class="section level2">
 <h2 id="connecting-a-model">Connecting a model<a class="anchor" aria-label="anchor" href="#connecting-a-model"></a>
 </h2>
+<p>Put your OpenAI key in <code>.Renviron</code> as <code>OPENAI_API_KEY=sk-...</code>, or set it for the session:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>OPENAI_API_KEY <span class="op">=</span> <span class="st">"sk-..."</span><span class="op">)</span>   <span class="co"># or</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>harnessr.api_key <span class="op">=</span> <span class="st">"sk-..."</span><span class="op">)</span>     <span class="co"># or</span></span>
-<span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/hr_client.html">hr_client</a></span><span class="op">(</span>api_key <span class="op">=</span> <span class="st">"sk-..."</span><span class="op">)</span>     <span class="co"># per client, for multi-user Shiny</span></span></code></pre></div>
-<p>An explicit argument wins over the <code>harnessr.api_key</code> option, which wins over <code>OPENAI_API_KEY</code>. Keep the key out of the repository: <code>.Renviron</code> is the usual home for it, and both <code>.Renviron</code> and <code>.Rprofile</code> are gitignored here. Without a key, <code><a href="reference/answer_document.html">answer_document()</a></code>, <code><a href="reference/gr_read_many.html">gr_read_many()</a></code> and <code><a href="reference/gr_compare.html">gr_compare()</a></code> stop before reading the document, with a <code>gr_auth_error</code> that says how to set one, so a missing key does not first cost an OCR pass over a long scan.</p>
-<p>Behind a company gateway, <code>hr_client(headers = )</code> sends the headers it wants, such as Azure’s <code>api-key</code>; <code><a href="articles/harnessr.html">vignette("harnessr")</a></code> shows how.</p>
-<p>The built-in client speaks to OpenAI-compatible <code>/responses</code> and <code>/chat/completions</code> endpoints. <code><a href="reference/hr_ellmer_client.html">hr_ellmer_client()</a></code> hands the transport to <a href="https://ellmer.tidyverse.org/" class="external-link">ellmer</a>, which covers roughly twenty providers, local models through Ollama among them. The spending limit is on by default and can hold only for a model with a registered price, so register the model the ellmer object was built with, at your provider’s current prices in US dollars per million tokens:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ellmer.tidyverse.org" class="external-link">ellmer</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"claude-sonnet-4-5"</span>, context_window <span class="op">=</span> <span class="fl">200000</span>, max_output <span class="op">=</span> <span class="fl">64000</span>,</span>
-<span>                  input_usd <span class="op">=</span> <span class="fl">3</span>, output_usd <span class="op">=</span> <span class="fl">15</span><span class="op">)</span></span>
-<span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/hr_ellmer_client.html">hr_ellmer_client</a></span><span class="op">(</span><span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-sonnet-4-5"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="st">"report.pdf"</span>, <span class="st">"What was revenue?"</span>, <span class="st">"thorough"</span>, client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># A local model has no price to register, so let it run unpriced:</span></span>
-<span><span class="fu"><a href="reference/hr_options.html">hr_options</a></span><span class="op">(</span>allow_unpriced <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/hr_ellmer_client.html">hr_ellmer_client</a></span><span class="op">(</span><span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_ollama.html" class="external-link">chat_ollama</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"llama3.1"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>Without a registered price, a run under <code>max_cost_usd</code> stops before its first request with an <code>hr_unpriced_model</code> error. <code><a href="articles/runs.html">vignette("runs")</a></code> covers unpriced models and what changes through ellmer (temperature and embeddings).</p>
-<p>Anything else, such as a model behind a queue, goes through <code><a href="reference/hr_backend_client.html">hr_backend_client()</a></code>, which makes any function of <code>messages</code> and <code>params</code> that returns a string the transport. Limits, the trace, caching and replay work the same way on every client. Register the model’s real context window with <code><a href="reference/hr_register_model.html">hr_register_model()</a></code>, since it is what sizes your chunks.</p>
-</div>
-<div class="section level2">
-<h2 id="how-it-works">How it works<a class="anchor" aria-label="anchor" href="#how-it-works"></a>
-</h2>
-<p>How you break a document up and how you make the model read it are separate decisions worth experimenting with, so the package keeps them separate. There are three independent axes, each a registry you can extend without editing the package:</p>
-<pre><code>  source  ──▶  INGEST  ──▶  SEGMENT  ──▶  READ  ──▶  answer + trace
-               │             │             │
-               │             │             └─ 12 strategies, each with a
-               │             │                distinct traversal signature
-               │             └─ 9 segmenters + overlap / min-size / context
-               └─ 6 extractors + 14 individually toggleable cleaners</code></pre>
-<p>Any ingest composes with any segmenter and any reader. <code><a href="reference/gr_recipe.html">gr_recipe()</a></code> binds one of each into a named pipeline, and a recipe run alongside others gives a byte-identical <code>$answer</code> and <code>$chunks_used</code> to running it alone. Which model answers is a fourth, independent choice.</p>
-<p><code><a href="reference/gr_ingest.html">gr_ingest()</a></code> turns a file into cleaned text blocks that keep their page and section. The extractors cover plain text and delimited files, Markdown, HTML, Word, PDF (with OCR for scanned pages) and images, and a web address is downloaded and read as whatever it serves. Each cleaner can be turned on or off by name, and <code>remove_numbers</code> is off by default, because it would make every figure, date and percentage unanswerable. See <code><a href="articles/ingest.html">vignette("ingest")</a></code>.</p>
-<p><code><a href="reference/gr_segment.html">gr_segment()</a></code> cuts the document into chunks: on a ruler, by paragraph, sentence, heading or page, where embeddings diverge, or by rewriting it into standalone statements. <code>max_tokens</code> is enforced on every segmenter, and <code><a href="reference/gr_chunk_stats.html">gr_chunk_stats()</a></code> compares chunkings for nothing before you spend anything on reading. See <code><a href="articles/segment.html">vignette("segment")</a></code>.</p>
-<p><code><a href="reference/gr_read.html">gr_read()</a></code> answers the question with one of the strategies, from <code>stuff</code> (one request carrying the whole document) through <code>map_reduce</code> (one per chunk, then a merge) to <code>iterative</code> (multi-hop). Each has a traversal signature, <code>select|calls|state</code>, which is how the package tells two methods apart from two names for the same thing. Recipes such as <code>fast</code>, <code>needle</code>, <code>thorough</code> and <code>survey</code> bundle a segmenter with a reader. <code><a href="reference/answer_document.html">answer_document()</a></code> defaults to <code>"auto"</code>, which reads a document of up to 50,000 tokens (less on a model with a small context window) with <code>fast</code> and a longer one with <code>thorough</code>. See <code><a href="articles/readers.html">vignette("readers")</a></code>, which also covers what to check when the answer is not what you expected.</p>
-<p>To choose a recipe or a model on more than one document, <code><a href="reference/hr_benchmark.html">hr_benchmark()</a></code> runs each configuration several times over a labelled set of questions under one spending limit, and <code><a href="reference/hr_report.html">hr_report()</a></code> gives accuracy, paired differences and cost with intervals that treat the questions about one document as a cluster. See <code><a href="articles/evaluate.html">vignette("evaluate")</a></code>.</p>
-</div>
-<div class="section level2">
-<h2 id="what-you-can-change">What you can change<a class="anchor" aria-label="anchor" href="#what-you-can-change"></a>
-</h2>
-<p>Every setting has a default, and six guides end with walkthroughs of the important ones: what each trades off, the signs in your results that point to changing it, where its default came from and how to test a change with <code><a href="reference/hr_sweep.html">hr_sweep()</a></code>. The <a href="https://elkronos.github.io/harnessr/articles/settings.html">settings reference</a> lists all 227 with their defaults, and <code><a href="reference/gr_settings_table.html">gr_settings_table()</a></code> returns them in R.</p>
-<table class="table">
-<colgroup>
-<col width="25%">
-<col width="25%">
-<col width="25%">
-<col width="25%">
-</colgroup>
-<thead><tr>
-<th>stage</th>
-<th>settings</th>
-<th>most used</th>
-<th>walkthroughs</th>
-</tr></thead>
-<tbody>
-<tr>
-<td>ingest</td>
-<td>21</td>
-<td>
-<code>clean</code>, <code>ocr</code>, <code>min_chars</code>
-</td>
-<td>
-<a href="https://elkronos.github.io/harnessr/articles/ingest.html#set-clean">cleaning</a>, <a href="https://elkronos.github.io/harnessr/articles/ingest.html#set-ocr">OCR</a>
-</td>
-</tr>
-<tr>
-<td>segment</td>
-<td>20</td>
-<td>
-<code>method</code>, <code>max_tokens</code>, <code>overlap_tokens</code>
-</td>
-<td>
-<a href="https://elkronos.github.io/harnessr/articles/segment.html#set-method">segmenter</a>, <a href="https://elkronos.github.io/harnessr/articles/segment.html#set-max-tokens">size</a>, <a href="https://elkronos.github.io/harnessr/articles/segment.html#set-overlap">overlap</a>, <a href="https://elkronos.github.io/harnessr/articles/segment.html#set-contextual">context lines</a>
-</td>
-</tr>
-<tr>
-<td>read</td>
-<td>50</td>
-<td>
-<code>reader</code>, <code>model</code>, <code>top_k</code>, <code>cite</code>, <code>verify</code>
-</td>
-<td>
-<a href="https://elkronos.github.io/harnessr/articles/readers.html#set-reader">reader</a>, <a href="https://elkronos.github.io/harnessr/articles/readers.html#set-top-k"><code>top_k</code></a>, <a href="https://elkronos.github.io/harnessr/articles/readers.html#set-mmr"><code>mmr</code></a>, <a href="https://elkronos.github.io/harnessr/articles/readers.html#set-verify">checks</a>, <a href="https://elkronos.github.io/harnessr/articles/readers.html#set-effort">effort</a>
-</td>
-</tr>
-<tr>
-<td>screen</td>
-<td>33</td>
-<td>
-<code>screen_tokens</code>, <code>recall_target</code>, <code>conf</code>
-</td>
-<td><a href="https://elkronos.github.io/harnessr/articles/review.html#set-calibration">calibration</a></td>
-</tr>
-<tr>
-<td>extract</td>
-<td>10</td>
-<td>
-<code>resolve</code>, <code>require_quote</code>
-</td>
-<td><a href="https://elkronos.github.io/harnessr/articles/review.html#set-extract">extraction</a></td>
-</tr>
-<tr>
-<td>synthesise</td>
-<td>29</td>
-<td>
-<code>coherence</code>, <code>cite_style</code>
-</td>
-<td><a href="https://elkronos.github.io/harnessr/articles/review.html#set-synthesis">synthesis</a></td>
-</tr>
-<tr>
-<td>evaluate</td>
-<td>30</td>
-<td>
-<code>runs</code>, <code>governor</code>, <code>scorer</code>
-</td>
-<td>
-<a href="https://elkronos.github.io/harnessr/articles/runs.html#set-governor">governor</a>, <a href="https://elkronos.github.io/harnessr/articles/compare.html">comparing</a>, <a href="https://elkronos.github.io/harnessr/articles/evaluate.html#set-command-timeout">command checks</a>
-</td>
-</tr>
-<tr>
-<td>options</td>
-<td>34</td>
-<td>
-<code>model</code>, <code>max_cost_usd</code>, <code>max_calls</code>
-</td>
-<td><a href="https://elkronos.github.io/harnessr/articles/runs.html#set-limits">limits</a></td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="section level2">
-<h2 id="what-an-answer-gives-back">What an answer gives back<a class="anchor" aria-label="anchor" href="#what-an-answer-gives-back"></a>
-</h2>
-<p><code>print(ans)</code> sums up the cost, where the evidence came from and, when the answer is partial, why:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ans</span><span class="op">$</span><span class="va">answer</span></span>
-<span><span class="va">ans</span><span class="op">$</span><span class="va">partial</span>                 <span class="co"># TRUE means something degraded; check this first</span></span>
-<span><span class="va">ans</span><span class="op">$</span><span class="va">notes</span>                   <span class="co"># why: dropped_chunks, failed_calls, unread_pages, ...</span></span>
-<span><span class="va">ans</span><span class="op">$</span><span class="va">evidence</span>                <span class="co"># the passages the answer rests on, with page and section</span></span>
-<span><span class="fu"><a href="reference/gr_verify_evidence.html">gr_verify_evidence</a></span><span class="op">(</span><span class="va">ans</span><span class="op">)</span>     <span class="co"># whether each quoted passage is in its chunk</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">ans</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span>    <span class="co"># one row per request: stage, tokens, usd, seconds, prompt, reply</span></span></code></pre></div>
-<p>A quotation that is not in the chunk it is attributed to marks the answer partial, and a citation of a chunk that was never sent is recorded in <code>ans$notes$cited_unknown</code>. Both checks are local string operations, so they cost nothing and always run.</p>
-<p><code><a href="reference/hr_trace_cost.html">hr_trace_cost()</a></code> prices a run by each step’s own model and counts only the calls that were issued; <code><a href="articles/runs.html">vignette("runs")</a></code> shows a bill.</p>
-<p><code><a href="reference/gr_audit_report.html">gr_audit_report()</a></code> puts the question, the answer, whether it is partial and why, the cost, and the passages in document order on one HTML page:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/gr_audit_report.html">gr_audit_report</a></span><span class="op">(</span><span class="st">"answer.html"</span>, answer <span class="op">=</span> <span class="va">ans</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="many-documents-and-reviews">Many documents and reviews<a class="anchor" aria-label="anchor" href="#many-documents-and-reviews"></a>
-</h2>
-<p><code><a href="reference/gr_read_many.html">gr_read_many()</a></code> runs one recipe over a folder and returns one row per document. An unreadable file costs one row rather than the run, each document gets its own budget, <code>max_total_calls</code> and <code>max_total_usd</code> bound the run, and <code>store =</code> makes a long run resumable.</p>
-<p>A review fixes its protocol before reading anything, then runs <code><a href="reference/gr_protocol.html">gr_protocol()</a></code> → <code><a href="reference/gr_screen.html">gr_screen()</a></code> → <code><a href="reference/gr_extract.html">gr_extract()</a></code> → <code><a href="reference/gr_synthesise.html">gr_synthesise()</a></code>. Screening gives every document a decision and a reason, and sends <code>"unclear"</code> ones to a person instead of guessing. Extraction gives a typed table, and its <code>n_unverified</code> column counts the values in a row that cannot be pointed at in the document. Where a document contradicts itself, <code>conflicts</code> names the field and the earliest chunk’s value is kept; <code>resolve = "model"</code> spends one call per disagreeing field to have the model choose instead. The write-up cites <code>[study n]</code> for each row it rests on, and every marker is checked against the rows that exist. The audit report writes the whole chain out for the co-author or reviewer who asks “how do you know?”:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/gr_audit_report.html">gr_audit_report</a></span><span class="op">(</span><span class="st">"audit.html"</span>, extraction <span class="op">=</span> <span class="va">x</span>, synthesis <span class="op">=</span> <span class="va">review</span>, claims <span class="op">=</span> <span class="va">cm</span>,</span>
-<span>                protocol <span class="op">=</span> <span class="va">protocol</span><span class="op">)</span></span></code></pre></div>
-<p><code><a href="articles/review.html">vignette("review")</a></code> covers the rest: surveying a folder with <code><a href="reference/gr_inventory.html">gr_inventory()</a></code>, starting from a reference manager’s export with <code><a href="reference/gr_records.html">gr_records()</a></code>, measuring the screener against a hand-screened sample with <code><a href="reference/gr_calibrate.html">gr_calibrate()</a></code>, author-year citations, claims, outlines and gaps, and the checks on revision passes.</p>
-</div>
-<div class="section level2">
-<h2 id="limits-and-records">Limits and records<a class="anchor" aria-label="anchor" href="#limits-and-records"></a>
-</h2>
-<p>Two limits are on by default, <code>max_cost_usd = 5</code> and <code>max_calls = 400</code> per run, set with <code><a href="reference/hr_options.html">hr_options()</a></code> or held together by <code><a href="reference/hr_governor.html">hr_governor()</a></code>. Every request is checked before it is sent, against what the run has spent plus the most that request could cost, and a request that could pass a limit is not sent. The answer comes back partial, and the trace names the limit in <code>stop_reason</code>.</p>
-<p><code><a href="reference/hr_cache.html">hr_cache()</a></code> stores each successful response, keyed on everything that can change the reply, and <code><a href="reference/hr_cache_client.html">hr_cache_client()</a></code> attaches it to a client, so a repeat is free and identical. A trace records every prompt and response, so <code><a href="reference/hr_trace_save.html">hr_trace_save()</a></code> and <code><a href="reference/hr_replay_client.html">hr_replay_client()</a></code> reproduce a run from the saved trace and the source document, with no key and no spend.</p>
-<p><code><a href="articles/runs.html">vignette("runs")</a></code> covers the other limits (tokens, output caps, allowed models), reasoning effort per stage, what each trace step records, cache keys, replaying a run that used embeddings, and the classed errors and warnings.</p>
-</div>
-<div class="section level2">
-<h2 id="shiny-app">Shiny app<a class="anchor" aria-label="anchor" href="#shiny-app"></a>
-</h2>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">shiny</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">runApp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"shiny"</span>, package <span class="op">=</span> <span class="st">"harnessr"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>Every axis is a control, and a free “Preview chunking” button shows the chunks before you spend anything. Set <code>GPTREAD_DOC_ROOTS</code> before exposing the app to anyone else: unset, it reads <code>~/Documents</code>, or your whole home directory when there is none. <code><a href="articles/segment.html">vignette("segment")</a></code> has the details.</p>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>OPENAI_API_KEY <span class="op">=</span> <span class="st">"sk-..."</span><span class="op">)</span></span></code></pre></div>
+<p>Then the quick start above runs against the real model. <code><a href="articles/harnessr.html">vignette("harnessr")</a></code> covers the other ways to give a key, company gateways, other providers and local models through ellmer, and any other backend.</p>
 </div>
 <div class="section level2">
 <h2 id="guides">Guides<a class="anchor" aria-label="anchor" href="#guides"></a>
 </h2>
-<p>Each guide is on the website and, once installed, in R as <code>vignette("name")</code>.</p>
-<table class="table">
-<colgroup>
-<col width="50%">
-<col width="50%">
-</colgroup>
-<thead><tr>
-<th>guide</th>
-<th>what it covers</th>
-</tr></thead>
-<tbody>
-<tr>
-<td>
-<a href="https://elkronos.github.io/harnessr/articles/harnessr.html">Get started</a> (<code>harnessr</code>)</td>
-<td>The ideas, installing, connecting, a first question checked from start to finish, cost, a glossary</td>
-</tr>
-<tr>
-<td>
-<a href="https://elkronos.github.io/harnessr/articles/ingest.html">Getting text out of files</a> (<code>ingest</code>)</td>
-<td>PDFs, Word files, web pages and scans, every cleaner, and surveying a folder</td>
-</tr>
-<tr>
-<td>
-<a href="https://elkronos.github.io/harnessr/articles/segment.html">Cutting documents into chunks</a> (<code>segment</code>)</td>
-<td>The segmenters, overlap, minimum size, context, and comparing chunkings</td>
-</tr>
-<tr>
-<td>
-<a href="https://elkronos.github.io/harnessr/articles/readers.html">Choosing how the model reads</a> (<code>readers</code>)</td>
-<td>The reading strategies, recipes, what each costs, and how to choose</td>
-</tr>
-<tr>
-<td>
-<a href="https://elkronos.github.io/harnessr/articles/review.html">Many documents and literature reviews</a> (<code>review</code>)</td>
-<td>Search, screening, calibration and recall, several reviewers, extraction, claims, synthesis, the audit report</td>
-</tr>
-<tr>
-<td>
-<a href="https://elkronos.github.io/harnessr/articles/evaluate.html">Measuring and comparing configurations</a> (<code>evaluate</code>)</td>
-<td>Reference sets and label sheets, benchmarks and their intervals, non-inferiority, judges, baselines, drift, signals</td>
-</tr>
-<tr>
-<td>
-<a href="https://elkronos.github.io/harnessr/articles/compare.html">Comparing methods and settings</a> (<code>compare</code>)</td>
-<td>Worked comparisons of readers, segmenters and chunk sizes, one setting over its values, screening settings and a judge against labels, and how to read each report</td>
-</tr>
-<tr>
-<td>
-<a href="https://elkronos.github.io/harnessr/articles/compose.html">Composing steps into chains</a> (<code>compose</code>)</td>
-<td>Steps of your own and the built-in ones, chains run as one arm, deriving a chain by dropping or replacing a step, and what a chain checks</td>
-</tr>
-<tr>
-<td>
-<a href="https://elkronos.github.io/harnessr/articles/runs.html">Cost, limits and reproducible runs</a> (<code>runs</code>)</td>
-<td>The governor, effort, traces, caching, replay</td>
-</tr>
-<tr>
-<td>
-<a href="https://elkronos.github.io/harnessr/articles/settings.html">Settings reference</a> (<code>settings</code>)</td>
-<td>Every setting of every stage with its default and where it came from, and the extractors, cleaners, segmenters, readers, embedders and recipes</td>
-</tr>
-<tr>
-<td>
-<a href="https://elkronos.github.io/harnessr/articles/extending.html">Extending harnessr</a> (<code>extending</code>)</td>
-<td>Registering your own extractors, cleaners, segmenters, readers and embedders, and checking them</td>
-</tr>
-</tbody>
-</table>
+<p>Each guide is on the website, under the same groups as here, and once installed in R as <code>vignette("name")</code>.</p>
+<div class="section level3">
+<h3 id="get-started">Get started<a class="anchor" aria-label="anchor" href="#get-started"></a>
+</h3>
+<ul>
+<li>
+<a href="https://elkronos.github.io/harnessr/articles/harnessr.html">Get started</a> (<code>harnessr</code>): the ideas, installing, connecting, a first question checked from start to finish, cost, a glossary.</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="read-a-document">Read a document<a class="anchor" aria-label="anchor" href="#read-a-document"></a>
+</h3>
+<ul>
+<li>
+<a href="https://elkronos.github.io/harnessr/articles/ingest.html">Getting text out of files</a> (<code>ingest</code>): PDFs, Word files, web pages and scans, every cleaner, and surveying a folder.</li>
+<li>
+<a href="https://elkronos.github.io/harnessr/articles/segment.html">Cutting documents into chunks</a> (<code>segment</code>): the segmenters, overlap, minimum size, context, and comparing chunkings.</li>
+<li>
+<a href="https://elkronos.github.io/harnessr/articles/readers.html">Choosing how the model reads</a> (<code>readers</code>): the reading strategies, recipes, what each costs, and how to choose.</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="review-many-documents">Review many documents<a class="anchor" aria-label="anchor" href="#review-many-documents"></a>
+</h3>
+<ul>
+<li>
+<a href="https://elkronos.github.io/harnessr/articles/review.html">Many documents and literature reviews</a> (<code>review</code>): search, screening, calibration and recall, several reviewers, extraction, claims, synthesis, the audit report.</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="measure-and-compare">Measure and compare<a class="anchor" aria-label="anchor" href="#measure-and-compare"></a>
+</h3>
+<ul>
+<li>
+<a href="https://elkronos.github.io/harnessr/articles/evaluate.html">Measuring and comparing configurations</a> (<code>evaluate</code>): reference sets and label sheets, benchmarks and their intervals, non-inferiority, judges, baselines, drift, signals.</li>
+<li>
+<a href="https://elkronos.github.io/harnessr/articles/compare.html">Comparing methods and settings</a> (<code>compare</code>): worked comparisons of readers, segmenters and chunk sizes, one setting over its values, screening settings and a judge against labels, and how to read each report.</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="control-cost-and-settings">Control cost and settings<a class="anchor" aria-label="anchor" href="#control-cost-and-settings"></a>
+</h3>
+<ul>
+<li>
+<a href="https://elkronos.github.io/harnessr/articles/runs.html">Cost, limits and reproducible runs</a> (<code>runs</code>): the governor, effort, traces, caching, replay.</li>
+<li>
+<a href="https://elkronos.github.io/harnessr/articles/settings.html">Settings reference</a> (<code>settings</code>): every setting of every stage with its default and where it came from, and the extractors, cleaners, segmenters, readers, embedders and recipes.</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="build-your-own">Build your own<a class="anchor" aria-label="anchor" href="#build-your-own"></a>
+</h3>
+<ul>
+<li>
+<a href="https://elkronos.github.io/harnessr/articles/compose.html">Composing steps into chains</a> (<code>compose</code>): steps of your own and the built-in ones, chains run as one arm, deriving a chain by dropping or replacing a step, and what a chain checks.</li>
+<li>
+<a href="https://elkronos.github.io/harnessr/articles/extending.html">Extending harnessr</a> (<code>extending</code>): registering your own extractors, cleaners, segmenters, readers and embedders, and checking them.</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="upgrade">Upgrade<a class="anchor" aria-label="anchor" href="#upgrade"></a>
+</h3>
+<ul>
+<li>
+<a href="https://elkronos.github.io/harnessr/articles/migrate.html">Upgrading from older versions</a> (<code>migrate</code>): the old names from readgpt and v1, their replacements and the behaviour that changed.</li>
+</ul>
+</div>
 </div>
 <div class="section level2">
-<h2 id="development">Development<a class="anchor" aria-label="anchor" href="#development"></a>
+<h2 id="getting-help">Getting help<a class="anchor" aria-label="anchor" href="#getting-help"></a>
 </h2>
-<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">bash</span> run-tests.sh   <span class="co"># install deps if needed, install, run the suite; --help lists the options</span></span></code></pre></div>
-<p>The suite needs <code>testthat</code> and <code>withr</code>, plus <code>future</code> and <code>future.apply</code>, without which the tests of a parallel run’s call and cost counts are skipped. Every test uses an offline mock client, so no key is needed and no requests are made; <code>--check</code> runs a full <code>R CMD check</code>.</p>
-<table class="table">
-<colgroup>
-<col width="50%">
-<col width="50%">
-</colgroup>
-<thead><tr>
-<th>workflow</th>
-<th>what it does</th>
-</tr></thead>
-<tbody>
-<tr>
-<td><code>tests.yaml</code></td>
-<td>installs, runs the suite, runs the README’s code blocks and diffs their documented output against real output, knits every guide with no key and no network, and checks the documented counts against the registries and that no two readers share a traversal signature</td>
-</tr>
-<tr>
-<td><code>R-CMD-check.yaml</code></td>
-<td>full <code>R CMD check</code> on macOS and Ubuntu, current R and the previous release</td>
-</tr>
-<tr>
-<td><code>pkgdown.yaml</code></td>
-<td>builds the website on pushes to the main branch and publishes it; on a pull request that changes the site’s sources, builds it without publishing</td>
-</tr>
-<tr>
-<td><code>pr-checks.yaml</code></td>
-<td>fails a pull request that drops an <code>expect_*()</code> call, adds a <code>skip()</code> or adds a row to a list that may only shrink without the label <code>tests-reviewed</code>, adds a dependency without the label <code>deps-reviewed</code> (an added package must be on CRAN either way), or removes an export without the label <code>exports-reviewed</code>; fails any commit message with a <code>Co-Authored-By</code> trailer, a chat or session link or a “Generated with” line. One job, one step per check, rerun when a label changes</td>
-</tr>
-<tr>
-<td><code>pr-lint.yaml</code></td>
-<td>lints the changed files under <code>R/</code> on each push to a pull request</td>
-</tr>
-<tr>
-<td><code>ellmer-devel.yaml</code></td>
-<td>runs weekly and by hand, never on pull requests: installs ellmer from its GitHub repository and runs every test file that exercises <code><a href="reference/hr_ellmer_client.html">hr_ellmer_client()</a></code>
-</td>
-</tr>
-<tr>
-<td><code>validation.yaml</code></td>
-<td>runs nightly and by hand, never on pull requests: simulates clustered benchmarks to check the coverage of <code><a href="reference/hr_report.html">hr_report()</a></code>’s intervals (<code>dev/sim-coverage.R</code>) and <code><a href="reference/hr_mdd.html">hr_mdd()</a></code> against a power simulation (<code>dev/sim-power.R</code>), 2000 replicates each, and keeps the tables as an artifact</td>
-</tr>
-</tbody>
-</table>
-<p><code>Rscript dev/ci/pr-checks.R tests origin/main HEAD</code> runs the pull-request checks locally. No workflow needs a secret: <code>OPENAI_API_KEY</code> is empty, or a dummy value for the README blocks, so a real key can never change a result.</p>
-</div>
-<div class="section level2">
-<h2 id="migrating-from-v1">Migrating from v1<a class="anchor" aria-label="anchor" href="#migrating-from-v1"></a>
-</h2>
-<p>The v1 entry points are removed. Each one has a replacement:</p>
-<table class="table">
-<colgroup>
-<col width="50%">
-<col width="50%">
-</colgroup>
-<thead><tr>
-<th>v1</th>
-<th>now</th>
-</tr></thead>
-<tbody>
-<tr>
-<td><code>answer_question(f, q, mode = "Chunked")</code></td>
-<td><code>answer_document(f, q, "thorough")</code></td>
-</tr>
-<tr>
-<td><code>parse_text(f, chunk_method = "semantic")</code></td>
-<td>
-<code>gr_ingest(f)</code> → <code>gr_segment(doc, "semantic")</code>
-</td>
-</tr>
-<tr>
-<td><code>gpt_read_chunked()</code></td>
-<td><code>gr_read(ch, q, cl, "map_reduce")</code></td>
-</tr>
-<tr>
-<td><code>gpt_read_retrieval()</code></td>
-<td><code>gr_read(ch, q, cl, "skim")</code></td>
-</tr>
-<tr>
-<td><code>gpt_read_hierarchical()</code></td>
-<td><code>gr_read(ch, q, cl, "hierarchical")</code></td>
-</tr>
-<tr>
-<td><code>gpt_read_multipass()</code></td>
-<td><code>gr_read(ch, q, cl, "ensemble")</code></td>
-</tr>
-<tr>
-<td><code>readgpt_example()</code></td>
-<td><code><a href="reference/gr_example.html">gr_example()</a></code></td>
-</tr>
-<tr>
-<td><code>options(readgpt.api_key =)</code></td>
-<td><code>options(harnessr.api_key =)</code></td>
-</tr>
-<tr>
-<td><code>options(readgpt.allow_local_urls =)</code></td>
-<td><code>options(harnessr.allow_local_urls =)</code></td>
-</tr>
-</tbody>
-</table>
-<p>Three behaviour changes from v1 are deliberate and will alter your results:</p>
-<ol style="list-style-type: decimal">
-<li>
-<strong><code>mode</code> no longer defaults to all five modes.</strong> <code>answer_question(f, q)</code> in v1 ran every mode: 41 API calls on an 8-paragraph document, where one was expected.</li>
-<li>
-<strong>Modes no longer contaminate each other.</strong> In v1, <code>mode = c("Chunked", "Semantic")</code> changed Chunked’s chunking, its cost, and its answer relative to <code>mode = "Chunked"</code> alone.</li>
-<li>
-<strong>Digits are no longer stripped by default.</strong> v1’s <code>remove_numbers = TRUE</code> default was unreachable from <code>answer_question()</code>, so every figure, date and percentage was deleted before the model saw the document.</li>
-</ol>
-<p>For v1’s <code>refine = TRUE</code>, ask for citations with <code>cite = TRUE</code> in <code><a href="reference/gr_read_spec.html">gr_read_spec()</a></code>. Its verification pass has no replacement because it could never run: it called a <code>search_text()</code> function that was never defined anywhere in the repository.</p>
-<p>The v1 source is kept under <code>legacy/</code> for reference and A/B comparison. It is not loaded by the package. To reproduce its ingestion and chunking under the current code, use the <code>legacy</code> recipe, which reproduces its digit stripping, 3000-token paragraph chunks and lack of overlap. The regression suite in <code>tests/testthat/</code> reproduces each of these defects against the current code.</p>
+<p>Ask questions and report bugs at <a href="https://github.com/elkronos/harnessr/issues" class="external-link uri">https://github.com/elkronos/harnessr/issues</a>. <a href="https://github.com/elkronos/harnessr/blob/main/CONTRIBUTING.md" class="external-link">CONTRIBUTING.md</a> says how to run the tests and what a pull request must keep true.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">

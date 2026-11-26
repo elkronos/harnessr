@@ -60,6 +60,19 @@ and
 [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
 cover the three steps in depth.
 
+Each step is a registry you can extend without editing the package
+([`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md)).
+Ingest has 6 extractors and 14 individually toggleable cleaners, segment
+has 9 segmenters, and read has 12 strategies, each with a distinct
+traversal signature. Any ingest composes with any segmenter and any
+reader.
+[`gr_recipe()`](https://elkronos.github.io/harnessr/reference/gr_recipe.md)
+binds one of each into a named pipeline, and a recipe run alongside
+others in
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
+gives a byte-identical `$answer` and `$chunks_used` to the same recipe
+run alone.
+
 **Models can make things up.** A model may state something the document
 never says, and it can do so fluently. harnessr cannot prevent that. It
 records which text each answer rests on, checks quotations against the
@@ -131,8 +144,29 @@ checks that R can see it, and stops with an explanation if it cannot:
 hr_api_key()
 ```
 
-If the key is missing, a run stops before it reads your document and
-gives the same explanation.
+There are three places to give the key. An argument to
+[`hr_client()`](https://elkronos.github.io/harnessr/reference/hr_client.md)
+wins over the `harnessr.api_key` option, which wins over
+`OPENAI_API_KEY`:
+
+``` r
+
+Sys.setenv(OPENAI_API_KEY = "sk-...")    # for the session
+options(harnessr.api_key = "sk-...")     # the form for an .Rprofile
+cl <- hr_client(api_key = "sk-...")      # per client, for a Shiny app with many users
+```
+
+If your project is a git repository, list `.Renviron` and `.Rprofile` in
+its `.gitignore`; harnessr’s own repository ignores both.
+
+If the key is missing,
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
+and
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
+stop before they read your document, with a `gr_auth_error` that gives
+the same explanation. So a missing key does not first cost an OCR pass
+over a long scan.
 
 Behind a company gateway, `hr_client(headers = )` sends the headers it
 wants, such as Azure’s `api-key`:
@@ -150,9 +184,44 @@ Naming any header makes the key optional, so a client that authenticates
 through headers needs no key. `hr_options(api_headers = )` sets the same
 headers for every client, the form for a project’s `.Rprofile`.
 
-The README’s “Connecting a model” section covers other providers through
-the ellmer package and free models running on your own machine through
-Ollama.
+The built-in client speaks to OpenAI-compatible `/responses` and
+`/chat/completions` endpoints. For other providers,
+[`hr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/hr_ellmer_client.md)
+hands the transport to the [ellmer](https://ellmer.tidyverse.org/)
+package, which covers about twenty providers, local models through
+Ollama among them.
+
+The spending limit is on by default, and it can hold only for a model
+with a registered price. So register the model the ellmer object was
+built with, at your provider’s current prices in US dollars per million
+tokens. A local model has no price to register, so let it run unpriced:
+
+``` r
+
+library(ellmer)
+
+hr_register_model("claude-sonnet-4-5", context_window = 200000, max_output = 64000,
+                  input_usd = 3, output_usd = 15)
+cl <- hr_ellmer_client(chat_anthropic(model = "claude-sonnet-4-5"))
+answer_document("report.pdf", "What was revenue?", "thorough", client = cl)
+
+hr_options(allow_unpriced = TRUE)
+cl <- hr_ellmer_client(chat_ollama(model = "llama3.1"))
+```
+
+Without a registered price, a run under `max_cost_usd` stops before its
+first request with an `hr_unpriced_model` error.
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
+covers unpriced models and what changes through ellmer (temperature and
+embeddings).
+
+Anything else, such as a model behind a queue, goes through
+[`hr_backend_client()`](https://elkronos.github.io/harnessr/reference/hr_backend_client.md).
+It makes any function of `messages` and `params` that returns a string
+the transport. Limits, the trace, caching and replay work the same way
+on every client. Register the model’s real context window with
+[`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md),
+since it sizes your chunks.
 
 ## Practising without a key
 
@@ -479,6 +548,15 @@ and `"needle"` make one.
 explains each reading strategy and when to use it, and how to change a
 recipe’s settings or build your own.
 
+To choose a recipe or a model on more than one document,
+[`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+runs each configuration several times over a labelled set of questions
+under one spending limit.
+[`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)
+gives accuracy, paired differences and cost, with intervals that treat
+the questions about one document as a cluster. See
+[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md).
+
 ## What you can change
 
 A recipe is a set of settings, and every one of them can be changed.
@@ -495,14 +573,16 @@ table(factor(settings$stage, unique(settings$stage)))
 #>         34
 ```
 
-| stage | where you set it | guide |
-|----|----|----|
-| ingest | [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md), or by name in [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md) | [`vignette("ingest")`](https://elkronos.github.io/harnessr/articles/ingest.md) |
-| segment | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md), or by name | [`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md) |
-| read | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md), or by name; [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md) for a folder | [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md) |
-| screen, extract, synthesise | the arguments of [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md), [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md), [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) and the functions beside them | [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md) |
-| evaluate | the arguments of [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md), [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) and [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | [`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md), [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md) |
-| options | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md), for the whole session | [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md) |
+| stage | settings | where you set it | guide |
+|----|----|----|----|
+| ingest | 21 | [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md), or by name in [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md) | [`vignette("ingest")`](https://elkronos.github.io/harnessr/articles/ingest.md) |
+| segment | 20 | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md), or by name | [`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md) |
+| read | 50 | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md), or by name; [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md) for a folder | [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md) |
+| screen | 33 | the arguments of [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md) and the functions beside it | [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md) |
+| extract | 10 | the arguments of [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md) | [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md) |
+| synthesise | 29 | the arguments of [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) and the functions beside it | [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md) |
+| evaluate | 30 | the arguments of [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md), [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) and [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | [`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md), [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md) |
+| options | 34 | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md), for the whole session | [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md) |
 
 Most runs change a few of them, which
 [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
@@ -535,8 +615,10 @@ to change each:
 | options | `cache_dir` (a temporary directory) | a long run should be paid for once and survive the session |
 
 [`vignette("settings")`](https://elkronos.github.io/harnessr/articles/settings.md)
-lists every setting with its default and where the default came from,
-and links each important one to a walkthrough that says what it trades
+lists all 227 with their defaults and where each default came from, and
+[`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
+returns them in R. The settings page links each important one to a
+walkthrough at the end of one of six guides, which says what it trades
 off, the signs that point to changing it and how to test a change.
 [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
 builds one arm per value of a setting so the values can be compared, as

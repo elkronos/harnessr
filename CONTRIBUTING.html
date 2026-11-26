@@ -20,17 +20,28 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
     <li><a class="dropdown-item" href="articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="articles/readers.html">Choosing how the model reads</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Review many documents</h6></li>
     <li><a class="dropdown-item" href="articles/review.html">Many documents and literature reviews</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Measure and compare</h6></li>
     <li><a class="dropdown-item" href="articles/evaluate.html">Measuring and comparing configurations</a></li>
     <li><a class="dropdown-item" href="articles/compare.html">Comparing methods and settings</a></li>
-    <li><a class="dropdown-item" href="articles/compose.html">Composing steps into chains</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Control cost and settings</h6></li>
     <li><a class="dropdown-item" href="articles/runs.html">Cost, limits and reproducible runs</a></li>
     <li><a class="dropdown-item" href="articles/settings.html">Settings reference</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Build your own</h6></li>
+    <li><a class="dropdown-item" href="articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="articles/extending.html">Extending harnessr</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Upgrade</h6></li>
+    <li><a class="dropdown-item" href="articles/migrate.html">Upgrading from older versions</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="articles/index.html">More articles...</a></li>
   </ul></li>
@@ -59,8 +70,9 @@
 <h3 id="running-the-tests">Running the tests<a class="anchor" aria-label="anchor" href="#running-the-tests"></a></h3>
 <p>From the repository root:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">bash</span> run-tests.sh            <span class="co"># install what is missing, install the package, run the suite</span></span>
-<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">bash</span> run-tests.sh <span class="at">--check</span>    <span class="co"># a full R CMD check instead</span></span></code></pre></div>
-<p>Every test uses an offline mock client, so no key is needed and no request leaves your machine. The parallel tests start worker processes, and each worker loads the installed harnessr, not your source tree. <code>run-tests.sh</code> installs the package first; when you run a test file yourself, reinstall with <code>R CMD INSTALL .</code> before it, or the workers run the old code. The tests workflow on GitHub runs the same suite, then runs every R block of the README, knits every guide with no key and no network, and fails if any of that left a new or changed file in the repository that <code>git status</code> reports. Files <code>.gitignore</code> names are not reported, so output that matches one of its patterns (<code>docs/</code>, <code>*.Rout</code>, <code>readgpt_history_*.json</code>, <code>sim-results/</code>) passes that check unseen.</p>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">bash</span> run-tests.sh <span class="at">--check</span>    <span class="co"># a full R CMD check instead</span></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">bash</span> run-tests.sh <span class="at">--help</span>     <span class="co"># the other options</span></span></code></pre></div>
+<p>The suite needs <code>testthat</code> and <code>withr</code>. Install <code>future</code> and <code>future.apply</code> too: without them, the tests of a parallel run’s call and cost counts are skipped. Every test uses an offline mock client, so no key is needed and no request leaves your machine. The parallel tests start worker processes, and each worker loads the installed harnessr, not your source tree. <code>run-tests.sh</code> installs the package first; when you run a test file yourself, reinstall with <code>R CMD INSTALL .</code> before it, or the workers run the old code. The tests workflow on GitHub runs the same suite, then runs every R block of the README and compares the output each block documents with real output. It knits every guide with no key and no network, checks the registry counts the get started guide states against the registries, fails if two readers share a traversal signature, and fails if any of that left a new or changed file in the repository that <code>git status</code> reports. Files <code>.gitignore</code> names are not reported, so output that matches one of its patterns (<code>docs/</code>, <code>*.Rout</code>, <code>readgpt_history_*.json</code>, <code>sim-results/</code>) passes that check unseen.</p>
 <p>Three scripts rewrite the fixtures the tests compare against. Run them from the repository root, and only when you mean to change what they record:</p>
 <table class="table"><colgroup><col width="50%"><col width="50%"></colgroup><thead><tr><th>Script</th>
 <th>What it rewrites</th>
@@ -101,7 +113,9 @@
 </tr><tr><td><code>pkgdown.yaml</code></td>
 <td><code>pkgdown</code></td>
 <td>builds the site without publishing it, only when the pull request changes a file the site is built from (the list is in the workflow)</td>
-</tr></tbody></table><p>The <code>dashes</code> step fails when a pull request adds a line with an em dash, an en dash or a double hyphen between spaces. It reads <code>R/</code>, <code>man/</code>, <code>vignettes/</code>, <code>inst/</code> (not <code>inst/extdata/</code>), <code>dev/</code>, <code>.github/</code>, the top-level Markdown files, <code>DESCRIPTION</code> and <code>_pkgdown.yml</code>, and leaves <code>tests/</code> alone. It prints each line with its file and line number. Rewrite the sentence: split it, use a colon before an explanation or a list, or put a short aside in commas or parentheses. Prompt text sent to a model keeps its double hyphens, since changing it would change requests and cache keys; those lines are listed in <code>tests/testthat/fixtures/boundary/dash-allowed.csv</code>. The list also holds the name of the <code>dashes</code> step in <code>.github/workflows/pr-checks.yaml</code>, which quotes the mark it checks for. That list may only shrink, so a row added to it fails the <code>tests</code> step until the pull request carries the label <code>tests-reviewed</code>.</p>
+</tr></tbody></table><p>Two more workflows never run on pull requests. <code>ellmer-devel.yaml</code> runs weekly and by hand: it installs ellmer from its GitHub repository and runs every test file that exercises <code><a href="reference/hr_ellmer_client.html">hr_ellmer_client()</a></code>. <code>validation.yaml</code> runs nightly and by hand: it simulates clustered benchmarks to check the coverage of <code><a href="reference/hr_report.html">hr_report()</a></code>’s intervals (<code>dev/sim-coverage.R</code>) and checks <code><a href="reference/hr_mdd.html">hr_mdd()</a></code> against a power simulation (<code>dev/sim-power.R</code>), 2000 replicates each, and keeps the tables as an artifact.</p>
+<p>No workflow needs a repository secret. <code>OPENAI_API_KEY</code> is empty, or a dummy value for the README blocks, so a real key cannot change a result.</p>
+<p>The <code>dashes</code> step fails when a pull request adds a line with an em dash, an en dash or a double hyphen between spaces. It reads <code>R/</code>, <code>man/</code>, <code>vignettes/</code>, <code>inst/</code> (not <code>inst/extdata/</code>), <code>dev/</code>, <code>.github/</code>, the top-level Markdown files, <code>DESCRIPTION</code> and <code>_pkgdown.yml</code>, and leaves <code>tests/</code> alone. It prints each line with its file and line number. Rewrite the sentence: split it, use a colon before an explanation or a list, or put a short aside in commas or parentheses. Prompt text sent to a model keeps its double hyphens, since changing it would change requests and cache keys; those lines are listed in <code>tests/testthat/fixtures/boundary/dash-allowed.csv</code>. The list also holds the name of the <code>dashes</code> step in <code>.github/workflows/pr-checks.yaml</code>, which quotes the mark it checks for. That list may only shrink, so a row added to it fails the <code>tests</code> step until the pull request carries the label <code>tests-reviewed</code>.</p>
 <p>Adding or removing a label reruns <code>pr-checks.yaml</code>, so a label added after review turns its check green without a new push. Lint reads no label, so a label change does not rerun it; a push or a reopen does. A new push to a pull request cancels the older runs of the same workflow. On <code>main</code>, each merge gets its own run of <code>R-CMD-check.yaml</code> and <code>tests.yaml</code>, and <code>pkgdown.yaml</code> builds and publishes the site from the newest push to <code>main</code>.</p>
 <p><code>pr-checks.yaml</code> used to run five checks: <code>no weakened tests</code>, <code>no unreviewed dependencies</code>, <code>lint changed R files</code>, <code>no unreviewed export removals</code> and <code>no attribution in commit messages</code>. Four of them are now steps of <code>pull request checks</code>, and <code>lint changed R files</code> comes from <code>pr-lint.yaml</code>. A branch rule or ruleset that requires the old names needs updating. Do not require <code>pkgdown</code>: a pull request that changes none of its files never starts it, and a required check that never starts stays pending.</p>
 </div>
@@ -114,7 +128,7 @@
 <li>
 <strong>The core does not reach into the document layer.</strong> Files named <code>R/core-*.R</code> are the general core; <code>R/doc-*.R</code> are the document layer. A core function may not call or read anything a document file defines, except the crossings in <code>fixtures/boundary/allowed.csv</code>. The document layer should use the core through its exports; the internals it still uses are listed in <code>fixtures/boundary/doc-uses-internal.csv</code>. Both lists may only shrink. <code>test-boundary.R</code> and <code>test-doc-internal.R</code> check this. Each exported core <code>hr_</code> function needs a caller in the document layer or the tests, listed in <code>NOTES-primitives.md</code>. A change to what a module must do changes the contract version; see <code>CONTRACT.md</code>.</li>
 <li>
-<strong>Results go outside the package.</strong> Tests, guides and help page examples write to <code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir()</a></code> or a directory the user chose, never into the repository. Live runs and their results are kept outside the repository too. Two README examples are the exception: <code>gr_audit_report("answer.html", ...)</code> and <code>gr_audit_report("audit.html", ...)</code> write to the working directory, so <code>.gitignore</code> names <code>/answer.html</code> and <code>/audit.html</code>.</li>
+<strong>Results go outside the package.</strong> Tests, guides and help page examples write to <code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir()</a></code> or a directory the user chose, never into the repository. Live runs and their results are kept outside the repository too.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="what-harnessr-does-not-do">What harnessr does not do<a class="anchor" aria-label="anchor" href="#what-harnessr-does-not-do"></a></h3>

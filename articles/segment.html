@@ -34,17 +34,28 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Review many documents</h6></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Measure and compare</h6></li>
     <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
     <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
-    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Control cost and settings</h6></li>
     <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
     <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Build your own</h6></li>
+    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Upgrade</h6></li>
+    <li><a class="dropdown-item" href="../articles/migrate.html">Upgrading from older versions</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
   </ul>
@@ -909,8 +920,9 @@ else would otherwise be a second arm sending the same requests, which
 <div class="section level2">
 <h2 id="previewing-chunks-in-the-shiny-app">Previewing chunks in the Shiny app<a class="anchor" aria-label="anchor" href="#previewing-chunks-in-the-shiny-app"></a>
 </h2>
-<p>The bundled app has a control for every segmentation setting:
-segmenter, <code>max_tokens</code>, overlap and minimum chunk size. Its
+<p>The bundled app has a control for every axis: cleaning and OCR, the
+segmenter, the reading strategies and the model. For segmentation it
+also sets <code>max_tokens</code>, overlap and minimum chunk size. Its
 “Preview chunking” button shows how the current settings cut the
 document before anything is spent on reading. For a segmenter that calls
 a model, the button says so.</p>

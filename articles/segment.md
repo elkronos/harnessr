@@ -866,11 +866,12 @@ would then report.
 
 ## Previewing chunks in the Shiny app
 
-The bundled app has a control for every segmentation setting: segmenter,
-`max_tokens`, overlap and minimum chunk size. Its “Preview chunking”
-button shows how the current settings cut the document before anything
-is spent on reading. For a segmenter that calls a model, the button says
-so.
+The bundled app has a control for every axis: cleaning and OCR, the
+segmenter, the reading strategies and the model. For segmentation it
+also sets `max_tokens`, overlap and minimum chunk size. Its “Preview
+chunking” button shows how the current settings cut the document before
+anything is spent on reading. For a segmenter that calls a model, the
+button says so.
 
 ``` r
 

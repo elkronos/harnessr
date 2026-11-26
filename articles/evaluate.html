@@ -34,17 +34,28 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Review many documents</h6></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Measure and compare</h6></li>
     <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
     <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
-    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Control cost and settings</h6></li>
     <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
     <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Build your own</h6></li>
+    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Upgrade</h6></li>
+    <li><a class="dropdown-item" href="../articles/migrate.html">Upgrading from older versions</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
   </ul>
@@ -768,10 +779,10 @@ is refused with class <code>hr_registration_after_scoring</code>.</p>
 <span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mdd.html">hr_mdd</a></span><span class="op">(</span><span class="va">n</span>, n_clusters <span class="op">=</span> <span class="fl">50</span>, icc <span class="op">=</span> <span class="fl">0.1</span>, p_disc <span class="op">=</span> <span class="fl">0.15</span><span class="op">)</span></span>
 <span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_contrast.html">hr_register_contrasts</a></span><span class="op">(</span><span class="va">plan</span>, <span class="fu"><a href="../reference/hr_contrast.html">hr_contrast</a></span><span class="op">(</span><span class="st">"small"</span>, <span class="st">"large"</span>, margin <span class="op">=</span> <span class="fl">0.10</span><span class="op">)</span>, <span class="va">design</span><span class="op">)</span></span>
 <span><span class="va">reg</span></span>
-<span><span class="co">#&gt; &lt;hr_contrast_registration&gt; 1 contrast(s), 1 confirmatory; registered 2026-11-25T14:20:21.500Z</span></span>
+<span><span class="co">#&gt; &lt;hr_contrast_registration&gt; 1 contrast(s), 1 confirmatory; registered 2026-11-26T00:03:42.907Z</span></span>
 <span><span class="co">#&gt;  contrast       label        margin mdd cost_test</span></span>
 <span><span class="co">#&gt;  small vs large confirmatory 10.0   7.8 yes      </span></span>
-<span><span class="co">#&gt;   Margins and MDD in points; reference d453122a93af; hash b244e7b61614</span></span></code></pre></div>
+<span><span class="co">#&gt;   Margins and MDD in points; reference d453122a93af; hash 25ff053161d9</span></span></code></pre></div>
 <p>Here the stand-in model finds each item easier or harder by document
 and by item, and <code>mock-small</code> is a little worse on every one.
 The governor allows the 3000 calls the benchmark needs:</p>
