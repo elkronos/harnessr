@@ -334,7 +334,9 @@ ref <- data.frame(document = paste0("d", 1:8, ".pdf"),
                   human_decision = c("include", "exclude", "include", "exclude",
                                      "exclude", "include", "include", "exclude"),
                   stringsAsFactors = FALSE)
-gr_calibrate(structure(list(table = tab), class = "gr_screening"), ref)
+# The sheet covers every screened document, so `of = "all"`.
+gr_calibrate(structure(list(table = tab), class = "gr_screening"), ref,
+             of = "all")
 }
 \references{
 Lewis, D. D., Yang, E. and Frieder, O. (2021). Certifying one-phase

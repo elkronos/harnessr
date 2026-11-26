@@ -30,8 +30,12 @@ vectors and warn.}
 
 \item{model, embedding_model}{Model ids reported to the rest of the package.
 If \code{model} is not in the model registry you will get the usual unknown-model
-warning and a conservative context window; \code{\link[=hr_register_model]{hr_register_model()}} fixes that,
-and getting it right matters because it is what sizes your chunks.}
+warning and a conservative context window. Under the default spending limit
+(\code{hr_options(max_cost_usd =)}), a call to a \code{model} with no registered price
+is also refused and not sent. Register the model with \code{\link[=hr_register_model]{hr_register_model()}},
+giving \code{input_usd} and \code{output_usd} as well as its limits, or set
+\code{hr_options(allow_unpriced = TRUE)}. The context window you register is what
+sizes your chunks.}
 
 \item{id}{Stable identity for this backend, used by \code{\link[=hr_cache]{hr_cache()}} and by
 \code{\link[=gr_read_many]{gr_read_many()}}'s \code{store}. \strong{Read this before setting up a durable cache.}
@@ -81,6 +85,11 @@ returns \code{""} is treated as an empty completion, which this package reports 
 }
 
 \examples{
+# Register the model first: its limits size the calls, and a price (zero
+# here) lets the default spending limit count them instead of refusing.
+hr_register_model("my-backend", context_window = 8000, max_output = 1000,
+                  input_usd = 0, output_usd = 0)
+
 # Any function will do. This one is deterministic so the example is too.
 cl <- hr_backend_client(function(messages, params) {
   user <- Filter(function(m) m$role == "user", messages)

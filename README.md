@@ -6,9 +6,9 @@
 For one document, `answer_document()` picks an ingest, a segmentation and a
 reading strategy, and returns an answer with a trace of everything it did. For
 a folder, `gr_screen()` decides which documents count, `gr_extract()` fills a
-typed schema across all of them, and `gr_synthesise()` writes the result up
-with every claim citing the row it rests on. Every model call is budgeted,
-recorded and checked, and can be cached.
+typed schema across all of them, and `gr_synthesise()` writes the result up,
+citing the rows each section rests on and flagging any sentence that cites
+none. Every model call is budgeted, recorded and checked, and can be cached.
 
 ![Two stacked layers. Your code calls the document layer (gr_ functions for ingest, segment, read, screen, extract, claims, synthesis and review) or the core (hr_ functions for the client, calls, cache, trace and ledger, budget and governor, registry and modules, and composition). The document layer calls the core, the core sends requests to a model provider, and the core never calls the document layer.](man/figures/layers.svg)
 
@@ -75,8 +75,8 @@ cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "signature", "setting
 ```
 
 `settings` names whatever each recipe changed from the defaults. The bundled
-example is small (573 tokens as `gr_ingest()` counts them), so `fast` and
-`thorough` fit it in one chunk. On a real report they would not.
+example is small (under 600 tokens as `gr_ingest()` counts them), so `fast`
+and `thorough` fit it in one chunk. On a real report they would not.
 
 Or build a pipeline by hand, one choice per axis:
 
