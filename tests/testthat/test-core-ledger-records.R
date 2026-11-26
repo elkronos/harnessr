@@ -373,7 +373,9 @@ test_that("the gr_result help states the counted zero and the NA fields", {
   # The help once said "counted" meant only a tiktoken count, though a failed
   # or unsent request carries a counted zero, and it left out that
   # finish_reason can be NA.
-  rd <- tools::Rd_db("harnessr")[["gr_result.Rd"]]
+  # The help source when the tests run beside it, else the installed help.
+  src <- test_path("..", "..", "man", "gr_result.Rd")
+  rd <- if (file.exists(src)) tools::parse_Rd(src) else tools::Rd_db("harnessr")[["gr_result.Rd"]]
   expect_false(is.null(rd))
   txt <- paste(capture.output(tools::Rd2txt(rd, options = list(underline_titles = FALSE))),
                collapse = " ")
