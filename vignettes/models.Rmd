@@ -17,9 +17,9 @@ and the prices you set, which turn the tokens a request used into dollars and
 let `max_cost_usd` hold. The tokens come from a token counter, the same one
 that measures a prompt before it goes out.
 
-This guide covers all three: what the registry knows about a model and how
-sure it is, how to add a model and set the prices you pay, what a cost estimate
-says and when it is `NA`, and how harnessr counts tokens. Every example runs
+The sections below show what the registry knows about a model and how sure it
+is, how to add a model and set the prices you pay, what a cost estimate says
+and when it is `NA`, and how harnessr counts tokens. Every example runs
 offline with no API key. The prices in it are illustrative: use your provider's
 current prices, in US dollars per million tokens.
 
@@ -314,8 +314,11 @@ is.na(hr_model_info("gpt-4.1")$input_usd)
 ```
 
 gpt-4.1, on the good first row, has no price: nothing in the file was
-registered. Loading a file again replaces the entries of the models it names
-and leaves the others as they are. To set the same prices in every session,
+registered. Loading a file again changes the entries of the models it names
+as `hr_register_model()` does, and leaves the others as they are: a value a row
+leaves blank keeps its current value. Removing a cached rate from the file
+therefore does not remove it from the registry; register the model in full,
+with both limits, or start a new session. To set the same prices in every session,
 keep one file per project under version control and load it at the top of each
 script, as `vignette("runs")` describes:
 
@@ -431,9 +434,12 @@ hr_estimate_cost("gpt-4.1", 120000, 4000)
 ```
 
 harnessr still returns the figure, and the second estimate does not warn
-again. To clear the warning, check your provider's current prices and set them
-again: `hr_register_model()` stamps the current month, and so does a row of
-`hr_load_models()` with a blank `as_of`. A model with no price is never stale,
+again. To clear the warning, check your provider's current prices and set
+every price the entry has again, `cached_input_usd` included when it has one:
+`hr_register_model()` then stamps the current month, and so does a row of
+`hr_load_models()` with a blank `as_of`. A change that leaves one of the
+entry's prices out keeps the older month, and the warning stays. A row that
+gives `as_of` sets the month to it. A model with no price is never stale,
 and its `as_of`, the month its limits were checked, does not count.
 
 ## Counting tokens {#counting-tokens}
@@ -533,6 +539,14 @@ negative or `NA` count to 0, and stops if the function returns the wrong number
 of counts. A counter you register is copied to the workers of a parallel run,
 with the models you registered.
 
+Switch back to the counter in use before, the default heuristic, for the rest
+of the guide:
+
+```{r}
+hr_set_tokenizer(prev_tok)
+hr_tokenizer()
+```
+
 ### Where a count shows up
 
 A result's `usage` says where its token counts came from. A backend that
@@ -546,13 +560,10 @@ str(res$usage)
 
 `provenance` is `"reported"` when the provider gave the figures,
 `"counted"` when harnessr counted them with `tiktoken`, and `"estimated"` with
-any other counter, the one in use here. A count made with a crude counter can
-undercount a request's cost, so an estimated usage is worth checking against
-the provider's bill on a real run.
-
-```{r}
-hr_set_tokenizer(prev_tok)
-```
+any other counter, such as the heuristic that counted the prompt here as 7
+tokens and the reply as 13. A count made with
+a crude counter can undercount a request's cost, so an estimated usage is
+worth checking against the provider's bill on a real run.
 
 ## Choosing the settings
 
@@ -636,6 +647,26 @@ p$age_days <- as.numeric(Sys.Date() - as.Date(paste0(p$as_of, "-01")))
 p
 ```
 
+To see the option at work, load a price checked in January 2025 for a model
+no estimate has used yet, and estimate its cost under a higher limit and then
+under the default:
+
+```{r}
+contract <- file.path(tempdir(), "models-guide-contract.csv")
+# Illustrative figures.
+writeLines(c("id,context_window,max_output,input_usd,output_usd,as_of",
+             "contract-model,128000,4096,1,4,2025-01"), contract)
+hr_load_models(contract)
+prev_age <- hr_options(price_max_age_days = 3650)
+hr_estimate_cost("contract-model", 100000, 2000)
+hr_options(prev_age)
+hr_estimate_cost("contract-model", 100000, 2000)
+```
+
+Under a limit of 3650 days the price is not stale and the first estimate gives
+no warning. Back at 120 days, the second warns. The figure is the same both
+times. `hr_options(price_max_age_days = NULL)` turns the check off.
+
 ### The token counter: `tokenizer` {#set-tokenizer}
 
 **What it controls.** Which counter `hr_count_tokens()` uses, and so every
@@ -665,6 +696,10 @@ sapply(c("heuristic", "words", "chars"), function(t) {
 })
 hr_set_tokenizer(prev_tok)
 ```
+
+The heuristic counts both texts highest, 22 and 27, since it is built to come
+out high; `"words"` and `"chars"` give 10 to 14. The counter whose figures sit
+closest above your provider's reported prompt tokens is the one to keep.
 
 ## Where the document layer builds on this
 
