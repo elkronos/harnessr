@@ -257,3 +257,49 @@ test_that("hr_load_models() refuses a malformed file, naming the row and column"
   # Nothing was registered, not even the rows before the bad one.
   expect_identical(harnessr:::hr_state$models, before)
 })
+
+local_today <- function(date, env = parent.frame()) {
+  testthat::local_mocked_bindings(price_today = function() as.Date(date), .package = "harnessr",
+                                  .env = env)
+}
+
+test_that("changing some of a priced model's prices keeps the older month", {
+  local_builtin_only()
+  local_price_warnings()
+  local_today("2026-11-26")
+  hr_load_models(write_models(c("id,input_usd,output_usd,as_of", "gpt-4o,2.5,10,2026-01")))
+  # Only the cached price: the input and output prices are still from 2026-01.
+  hr_register_model("gpt-4o", cached_input_usd = 1.25)
+  a <- hr_model_info("gpt-4o")
+  expect_identical(c(a$input_usd, a$output_usd, a$cached_input_usd), c(2.5, 10, 1.25))
+  expect_identical(a$as_of, "2026-01")
+  expect_warning(hr_estimate_cost("gpt-4o", 1e6, 1e6), class = "hr_stale_price")
+  # Only the input price: the output price is still from 2026-01.
+  hr_register_model("gpt-4o", input_usd = 3)
+  expect_identical(hr_model_info("gpt-4o")$as_of, "2026-01")
+  # A file row with some prices and a newer month keeps the older one too.
+  hr_load_models(write_models(c("id,input_usd,as_of", "gpt-4o,3.5,2026-10")))
+  expect_identical(hr_model_info("gpt-4o")$as_of, "2026-01")
+  # Input and output alone leave the cached price from 2026-01.
+  hr_register_model("gpt-4o", input_usd = 2.5, output_usd = 10)
+  expect_identical(hr_model_info("gpt-4o")$as_of, "2026-01")
+  # Every price the entry uses takes the new month.
+  hr_register_model("gpt-4o", input_usd = 2.5, output_usd = 10, cached_input_usd = 1.25)
+  expect_identical(hr_model_info("gpt-4o")$as_of, "2026-11")
+  # An embedding model uses only its input price.
+  hr_load_models(write_models(c("id,input_usd,as_of", "text-embedding-3-small,0.02,2026-01")))
+  hr_register_model("text-embedding-3-small", input_usd = 0.03)
+  expect_identical(hr_model_info("text-embedding-3-small")$as_of, "2026-11")
+})
+
+test_that("prices set under a moved date are stamped with that date and are not stale", {
+  local_registries()
+  local_price_warnings()
+  local_today("2027-06-01")
+  hr_register_model("fresh-m", context_window = 8000, max_output = 1000,
+                    input_usd = 1, output_usd = 2)
+  expect_identical(hr_model_info("fresh-m")$as_of, "2027-06")
+  expect_no_warning(hr_estimate_cost("fresh-m", 1e6, 1e6), class = "hr_stale_price")
+  hr_load_models(write_models(c("id,input_usd,output_usd", "fresh-m,1,2")))
+  expect_identical(hr_model_info("fresh-m")$as_of, "2027-06")
+})

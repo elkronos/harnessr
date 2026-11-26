@@ -32,7 +32,8 @@ for a chat model, or neither. An embedding model needs only
 \item{\code{cached_input_usd}}{Price per 1M input tokens served from the
 provider's prompt cache. Blank prices them as other input tokens.}
 \item{\code{as_of}}{The month the prices were checked, as \code{YYYY-MM}. Blank
-stamps the current month. A cost computed from prices older than
+stamps the current month. A row that gives only some of a priced model's prices keeps the
+older month, since the prices it leaves out are as old as before. A cost computed from prices older than
 \code{hr_options("price_max_age_days")} warns with class
 \code{hr_stale_price}, once per model per session.}
 \item{\code{context_window}, \code{max_output}}{Limits in tokens.}

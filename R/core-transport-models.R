@@ -88,7 +88,9 @@
 #'
 #' The entry's `as_of`, shown by [hr_models()], is the current month. When you
 #' change an entry that has prices without giving new ones, it keeps the
-#' month of those prices. Once prices are older than
+#' month of those prices. When you give only some of its prices, such as
+#' `cached_input_usd` alone, the prices you leave out are as old as before, so
+#' the entry keeps their month too. Once prices are older than
 #' `hr_options("price_max_age_days")` (120 days by default), the first cost
 #' computed from them in a session warns with class `hr_stale_price`.
 #'

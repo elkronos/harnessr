@@ -234,7 +234,9 @@ models_file_seed <- function(file) {
 #' in) and changes only what is given; a model with no entry is an error.
 #' `as_of` is NULL to stamp the current month, except that an entry whose
 #' prices are kept from a priced entry keeps that entry's month, so a price's
-#' age stays visible. Errors carry a `column` naming the field at fault.
+#' age stays visible. A call that sets only some of a priced entry's prices
+#' keeps the older of the two months, for the same reason. Errors carry a `column` naming the field at
+#' fault.
 #' @noRd
 model_entry <- function(id, given, as_of = NULL) {
   has <- function(nm) nm %in% names(given)
@@ -295,13 +297,24 @@ model_entry <- function(id, given, as_of = NULL) {
                             "previous implementation compute negative input budgets."),
                      max_output, context_window), column = "max_output")
   }
-  if (is.null(as_of)) {
-    priced_base <- !is.null(base) && !is.na(as_num1(base$input_usd))
-    prices_given <- any(c("input_usd", "output_usd", "cached_input_usd") %in% names(given))
-    as_of <- if (priced_base && !prices_given) {
-      as_chr1(base$as_of, format(Sys.Date(), "%Y-%m"))
-    } else {
-      format(Sys.Date(), "%Y-%m")
+  # The month comes from price_today(), the date the age of a price is
+  # measured from, so a test that moves one moves the other.
+  this_month <- format(price_today(), "%Y-%m")
+  priced_base <- !is.null(base) && !is.na(as_num1(base$input_usd))
+  prices_given <- any(c("input_usd", "output_usd", "cached_input_usd") %in% names(given))
+  if (priced_base && !prices_given) {
+    if (is.null(as_of)) as_of <- as_chr1(base$as_of, this_month)
+  } else {
+    as_of <- as_of %||% this_month
+    # An entry holds one month for all of its prices. When a call sets only
+    # some of the prices of a priced entry, the ones it keeps are as old as
+    # before, so the entry keeps the older month and a stale price still
+    # warns. A call that sets every price the entry uses takes the new month.
+    every <- has("input_usd") && (kind == "embedding" || has("output_usd")) &&
+      (has("cached_input_usd") || is.na(as_num1(base$cached_input_usd)))
+    if (priced_base && !every) {
+      kept <- as_chr1(base$as_of, NA_character_)
+      if (!is.na(kept) && kept < as_of) as_of <- kept
     }
   }
   # Every field below becomes a column in hr_models(). NULL or a zero-length
@@ -338,7 +351,8 @@ model_entry <- function(id, given, as_of = NULL) {
 #'   \item{`cached_input_usd`}{Price per 1M input tokens served from the
 #'     provider's prompt cache. Blank prices them as other input tokens.}
 #'   \item{`as_of`}{The month the prices were checked, as `YYYY-MM`. Blank
-#'     stamps the current month. A cost computed from prices older than
+#'     stamps the current month. A row that gives only some of a priced model's prices keeps the
+#'     older month, since the prices it leaves out are as old as before. A cost computed from prices older than
 #'     `hr_options("price_max_age_days")` warns with class
 #'     `hr_stale_price`, once per model per session.}
 #'   \item{`context_window`, `max_output`}{Limits in tokens.}
