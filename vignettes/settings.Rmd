@@ -103,9 +103,9 @@ show_settings("options")
 
 The arguments of `hr_benchmark()`, `hr_report()`, `hr_judge()`,
 `gr_compare()`, `hr_error_correlation()` and `hr_step_command()`.
-`vignette("evaluate")` and `vignette("compare")` cover them, and "A governor
-for one run" in `vignette("runs")` covers the `governor` a benchmark is held
-to. `gr_compare()` belongs to the document layer and is listed here with the
+`vignette("evaluate")` and `vignette("compare")` cover them, and "The governor
+of a benchmark or a batch" in `vignette("runs")` covers the `governor` a
+benchmark is held to. `gr_compare()` belongs to the document layer and is listed here with the
 other comparisons.
 
 ```{r echo = FALSE}
