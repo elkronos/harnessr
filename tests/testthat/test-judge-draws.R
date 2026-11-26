@@ -268,7 +268,8 @@ test_that("a judge given a trace and a governor is held to both", {
   expect_length(run2$refusals, 1L)
   # Models: only those both allow; unpriced models only when both allow them.
   g <- governor_tighter(hr_governor(allowed_models = c("a", "b"), allow_unpriced = TRUE),
-                        hr_governor(allowed_models = c("b", "c"), max_cost_usd = 2))
+                        hr_governor(allowed_models = c("b", "c"), max_cost_usd = 2,
+                                    allow_unpriced = FALSE))
   expect_identical(g$allowed_models, "b")
   expect_false(g$allow_unpriced)
   expect_identical(g$max_cost_usd, 2)

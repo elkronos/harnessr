@@ -287,7 +287,8 @@ test_that("a recipe on an unpriced model under a spending limit is not known, no
   local_registries()
   old <- hr_options("max_cost_usd")
   on.exit(hr_options(max_cost_usd = old), add = TRUE)
-  hr_options(max_cost_usd = 1)
+  # allow_unpriced = FALSE: the default sends an unpriced request.
+  hr_options(max_cost_usd = 1, allow_unpriced = FALSE)
   # A mock is never refused as unpriced; a backend client is.
   cl <- hr_backend_client(function(m, p) "Revenue was 45.2 million dollars.")
   cmp <- quiet(gr_compare(cost_doc(), "What was revenue?", two_readers()[1], client = cl,
