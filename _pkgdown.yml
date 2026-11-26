@@ -18,11 +18,13 @@ articles:
     that records it, structured replies, checks on a reply, signals and
     errors by class. The model registry, the prices you set and how tokens
     are counted. How a prompt is kept inside a context window, and what is
-    cut when it does not fit.
+    cut when it does not fit. How hard a reasoning model reasons, by stage or
+    raised when a stage goes wrong.
   contents:
   - core
   - models
   - context
+  - effort
 
 - title: Read a document
   navbar: Read a document
@@ -191,8 +193,9 @@ reference:
 - title: Cost, limits and tracing
   desc: >
     Settings and spending limits, token counts and cost estimates, context
-    budgets and cuts, and the trace every run records. See `vignette("runs")`,
-    `vignette("models")` and `vignette("context")`.
+    budgets and cuts, reasoning effort, and the trace every run records. See
+    `vignette("runs")`, `vignette("models")`, `vignette("context")` and
+    `vignette("effort")`.
   contents:
   - hr_options
   - hr_governor
