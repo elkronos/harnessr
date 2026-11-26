@@ -321,8 +321,8 @@ combine_draws <- function(js, rule = "include_if_any") {
 #'       and `"unclear"`. An unclear record is a deferral, not an exclusion,
 #'       so this is the set a review should read next. In this release
 #'       `gr_extract(screened)` still reads `included`, and warns (class
-#'       `gr_unclear_dropped`) when that leaves unclear records out; from the
-#'       next release it reads `forward`.}
+#'       `gr_unclear_dropped`) when that leaves unclear records out; from 0.9.0
+#'       it reads `forward`.}
 #'     \item{`deferred`}{The distinct sources whose decision was
 #'       `"unclear"`: the ones a person still has to decide, with
 #'       [gr_resolve()].}

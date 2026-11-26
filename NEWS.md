@@ -1568,7 +1568,7 @@ corpus store key is computed as before.
   review reads at full text) and `$deferred` (the unclear ones).
   `gr_extract(screening)` still reads only `$included` in this release and now
   warns (class `gr_unclear_dropped`) when that leaves unclear records out;
-  from the next release it reads `$forward`. Pass `screening$forward` to read
+  from 0.9.0 it reads `$forward`. Pass `screening$forward` to read
   them now. Passing the vector `screening$included` gives no such warning:
   `$included` stays a plain character vector in this release, and a warning on
   that path is left to a later release.

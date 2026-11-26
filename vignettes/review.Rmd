@@ -383,7 +383,7 @@ decision.
 
 Pass `screened` itself to `gr_extract()`. In this release `gr_extract()` then
 reads the included records only, and warns (class `gr_unclear_dropped`) when it
-leaves unclear ones out; from the next release it reads `$forward`. To read the
+leaves unclear ones out; from 0.9.0 it reads `$forward`. To read the
 unclear records now, pass `screened$forward`. `screened$included` works too,
 but a character vector of paths cannot carry the search, so you lose the
 audit's search section and the bibliographic columns.

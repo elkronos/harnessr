@@ -103,8 +103,8 @@ keeps it and \code{gr_extract(screened$included)} does not.}
 and \code{"unclear"}. An unclear record is a deferral, not an exclusion,
 so this is the set a review should read next. In this release
 \code{gr_extract(screened)} still reads \code{included}, and warns (class
-\code{gr_unclear_dropped}) when that leaves unclear records out; from the
-next release it reads \code{forward}.}
+\code{gr_unclear_dropped}) when that leaves unclear records out; from 0.9.0
+it reads \code{forward}.}
 \item{\code{deferred}}{The distinct sources whose decision was
 \code{"unclear"}: the ones a person still has to decide, with
 \code{\link[=gr_resolve]{gr_resolve()}}.}
