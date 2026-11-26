@@ -143,6 +143,12 @@ before `premise`, which stays last).
   moved to `vignette("effort")`, including the `effort_mode` walkthrough
   with its `#set-effort-mode` anchor, and `gr_settings_table()` links
   `effort_mode` there.
+* Each document guide (`ingest`, `segment`, `readers`, `review`,
+  `extending`) opens by naming the core pieces it builds on, and links to
+  the core section where it mentions a budget, the trace, a refusal, the
+  cache, effort or a price. `vignette("compose")` and `vignette("evaluate")`
+  open as core guides. `vignette("settings")` lists the core settings
+  before the document settings.
 * `?gr_result` lists every field a result carries, including `cached`,
   `served_model`, `response_id`, `fingerprint`, `attempts` and, for a
   request the limits did not send, `refused` and `refusal`.
