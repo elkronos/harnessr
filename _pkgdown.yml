@@ -11,6 +11,15 @@ articles:
   contents:
   - harnessr
 
+- title: Core
+  navbar: Core
+  desc: >
+    Calls and clients without a document: what a call returns, the trace
+    that records it, structured replies, checks on a reply, signals and
+    errors by class.
+  contents:
+  - core
+
 - title: Read a document
   navbar: Read a document
   desc: >
@@ -83,7 +92,7 @@ reference:
   desc: >
     Clients for OpenAI-compatible endpoints, any provider ellmer supports, any
     function you write, and an offline stand-in for practice and tests. See
-    `vignette("harnessr")` and the README.
+    `vignette("core")`, `vignette("harnessr")` and the README.
   contents:
   - hr_client
   - hr_api_key

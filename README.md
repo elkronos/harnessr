@@ -124,6 +124,10 @@ installed in R as `vignette("name")`.
 
 - [Get started](https://elkronos.github.io/harnessr/articles/harnessr.html) (`harnessr`): the ideas, installing, connecting, a first question checked from start to finish, cost, a glossary.
 
+### Core
+
+- [The core: calls, clients and results](https://elkronos.github.io/harnessr/articles/core.html) (`core`): calls without a document, every kind of client, what a result holds, the trace, structured replies, checks, signals, errors by class.
+
 ### Read a document
 
 - [Getting text out of files](https://elkronos.github.io/harnessr/articles/ingest.html) (`ingest`): PDFs, Word files, web pages and scans, every cleaner, and surveying a folder.
