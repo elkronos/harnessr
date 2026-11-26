@@ -497,8 +497,9 @@ test_that("the pkgdown workflow builds every Markdown page change and publishes 
   after <- code[seq.int(step + 1L, length(code))]
   body <- after[seq_len(match(TRUE, c(grepl("^\\s+- ", after), TRUE)) - 1L)]
   cond <- paste(trimws(body[seq_len(grep("^\\s+uses:", body)[1] - 1L)]), collapse = " ")
-  expect_match(cond, "github.ref == 'refs/heads/main'", fixed = TRUE)
-  expect_match(cond, "github.event_name != 'pull_request'", fixed = TRUE)
-  expect_false(grepl("||", sub("\\(.*\\)", "", cond), fixed = TRUE))
+  cond <- gsub("\\s+", " ", trimws(sub("^if:\\s*>-?\\s*", "", cond)))
+  expect_identical(cond, paste(
+    "github.event_name != 'pull_request' &&",
+    "(github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')"))
   expect_true(any(grepl("^\\s+clean: true\\s*$", body)))
 })
