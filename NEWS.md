@@ -1,4 +1,4 @@
-# harnessr 0.6.0.9000
+# harnessr 0.7.0
 
 ## Built-in models carry limits and no prices
 

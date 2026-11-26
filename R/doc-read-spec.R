@@ -905,7 +905,7 @@ as_read_spec <- function(spec) {
            evidence = ev_untested(paste0("Off, as the code behaved before the setting existed. ",
                                          "Not measured as a stopping rule; on the labelled ",
                                          "quotation set, 25 of 46 quotations with one content ",
-                                         "word swapped score near_verbatim (NEWS, 0.6.0.9000)."))),
+                                         "word swapped score near_verbatim (NEWS, 0.7.0)."))),
   hr_param("max_merge_levels", "integer", default = 6L, min = 1, max = 12, tier = "advanced",
            cost_class = "per_round",
            help = "Most merge levels a reader runs before it returns its findings unmerged.",

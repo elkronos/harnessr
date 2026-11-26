@@ -169,7 +169,7 @@ nondefault_options <- function(names = .gr_late_options) {
                            evidence = list(status = "measured", source = paste0(
                              "From practitioner sources, not tuned. The matcher's error rates at ",
                              "this value were measured on 343 true and 162 false quotations ",
-                             "(dev/quote-matcher-rates.R; NEWS, 0.6.0.9000)."))),
+                             "(dev/quote-matcher-rates.R; NEWS, 0.7.0)."))),
   near_verbatim_sim_short = list(kind = "tune", lo = 0, hi = 1, whole = FALSE,
                                  evidence = list(status = "measured", source = paste0(
                                    "From practitioner sources, not tuned; measured with ",
