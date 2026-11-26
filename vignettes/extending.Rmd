@@ -27,7 +27,13 @@ This guide covers four tasks:
 - stating the parameters of a spec;
 - checking your module against the contract the built-ins follow.
 
-`vignette("harnessr")` introduces the package and its ideas.
+A module that calls the model builds on the core. It sends each request with
+`hr_call()` and records it in the run's trace ("The trace" in
+`vignette("core")`), the run's limits can refuse it ("Limits and refusals" in
+`vignette("core")`), it sizes its prompts with `hr_budget()`
+(`vignette("context")`), and it passes on the run's effort
+(`vignette("effort")`). Models and their prices belong to the core too
+(`vignette("models")`). `vignette("harnessr")` introduces the package.
 
 ## Setting up
 
@@ -166,13 +172,16 @@ function:
 
 - Send every request through `hr_call()` with the client you were given,
   never one you construct, and pass it the `trace`. Through the trace,
-  `hr_call()` counts, prices and limits your calls.
+  `hr_call()` counts, prices and limits your calls ("The trace" in
+  `vignette("core")`).
 - Expect refusals. harnessr does not send a request that would pass
   `max_calls` or `max_cost_usd`, and `hr_call()` returns a result with
-  `refused = TRUE` instead. Stop or degrade when that happens.
+  `refused = TRUE` instead ("Limits and refusals" in `vignette("core")`).
+  Stop or degrade when that happens.
 - Honour at least `spec$model`, `spec$max_answer_tokens`, `spec$temperature`
   and `spec$effort`.
-- Budget the prompt with `hr_budget()` instead of assuming the document fits.
+- Budget the prompt with `hr_budget()` instead of assuming the document fits
+  ("How much room a prompt has: `hr_budget()`" in `vignette("context")`).
 
 The `signature`, `"select|calls|state"`, describes how the reader traverses
 the chunks. Two readers with the same signature are the same method under two
@@ -289,8 +298,8 @@ Declare `cost` for any reader that makes a different number of requests.
 hr_cost(calls = 4, calls_max = 6)$calls_max
 ```
 
-`vignette("runs")` covers the governor, its limits and the pre-flight step in
-the trace.
+"Limits" in `vignette("runs")` covers the governor, its limits and the
+pre-flight step in the trace.
 
 ## Embedders
 
@@ -336,6 +345,8 @@ in any session on any machine. A trace records model calls but not vectors.
 The flag lets `hr_replay_client()` recompute a run's chunk ranking instead of
 degrading to lexical vectors. If you set it wrongly, a replay ranks chunks from
 vectors the original run never saw and still reports an exact match.
+"Embeddings in a replay" in `vignette("runs")` shows what a replay does with
+each kind of embedder.
 
 ## Models
 
@@ -592,5 +603,8 @@ hr_options(old)
   each, with every argument a module receives.
 - `?new_chunks` and `?new_answer`: the constructors a segmenter and a reader
   return.
+- `vignette("core")`: `hr_call()`, the trace and refusals, which every module
+  that calls the model uses.
+- `vignette("context")`: budgets, and fitting pieces into one.
 - `vignette("runs")`: limits, the pre-flight check, and replaying a run.
 - `vignette("effort")`: effort, by stage or raised when a stage goes wrong.
