@@ -616,9 +616,7 @@ It ships no prices. Providers change prices more often than harnessr is
 released, so a price list in the package would be wrong for most of its life,
 and a wrong price makes a spending limit hold at the wrong place. You set the
 prices you pay, and harnessr uses them for every cost it reports and for
-`max_cost_usd`. This section walks through it: what harnessr knows, setting one
-price, setting many from a file, checking them, what a model with no price
-does, and keeping prices current.
+`max_cost_usd`.
 
 The prices below are illustrative. Use your provider's current prices, in US
 dollars per million tokens.
@@ -821,8 +819,8 @@ hr_load_models(old_prices)
 hr_estimate_cost("gpt-4.1", input_tokens = 120000, output_tokens = 4000)
 ```
 
-The figure still comes back. The warning asks you to check it. To clear it,
-check your provider's current prices and set them again: `hr_register_model()`
+harnessr still returns the figure. To clear the warning, look up your
+provider's current prices and set them again: `hr_register_model()`
 stamps the current month, and so does `hr_load_models()` for a row with a blank
 `as_of`. `hr_options(price_max_age_days = 365)` allows older prices, and
 `NULL` turns the warning off.
