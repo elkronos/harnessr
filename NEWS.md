@@ -17,17 +17,18 @@ documentation.
   to `elkronos/harnessr` too, and GitHub sends the old address there, so
   `remotes::install_github("elkronos/harnessr")` installs it and the old
   `elkronos/readgpt` still works. The website moves to
-  <https://elkronos.github.io/harnessr/>. No exported function, class,
-  argument or prompt changes name in this release except `readgpt_example()`,
-  below.
+  <https://elkronos.github.io/harnessr/>. The core functions that began
+  with `gr_` now begin with `hr_` (see "Renamed core functions"), and
+  `readgpt_example()` is now `gr_example()`. Classes, arguments and prompts
+  keep their names.
 
 * **`readgpt_example()` is now `gr_example()`**, which returns the same path to
   the bundled example document. The old name is removed (see "Removed").
 
 * **Requests, cache keys and recordings are unchanged by the rename.** Every
   request is sent as 0.6.0 sent it, and the corpus store key is the one 0.6.0
-  computed. The response-cache and replay keys change later in this release
-  (see "Cache and replay keys" below), and the keys 0.6.0 computed are still
+  computed. The response-cache and replay keys change in this release (see
+  "Cache and replay keys" below), and the keys 0.6.0 computed are still
   looked up, so a warm cache, a recording made for `hr_replay_client()` and a
   `gr_read_many()` store all keep answering.
 
@@ -251,8 +252,8 @@ move.
   primary table is now kept (include or unclear) against excluded, the
   definition sensitivity uses, and `$agreement$strict` holds strict include
   against the rest as a secondary table. On the eight-record example in
-  `?gr_calibrate` kappa moves from 0.33 to 0.50. The old figure is no longer
-  reported (see "Removed").
+  `?gr_calibrate` kappa moves from 0.33 to 0.50. 0.6.0's figure is no longer
+  reported.
 
 * The `references` cleaner, in the `"academic"` and `"legacy"` presets, now
   cuts at a Markdown heading such as `## References` or `### 7. References`,
@@ -265,13 +266,10 @@ move.
   document, and so do `gr_screen()` and `gr_extract()`, whose default recipe
   is `research`: at their defaults their requests and cache keys change for a
   Markdown document with a references heading in its last 60%, so a
-  `hr_cache()` built before this misses for those documents. The golden
-  records of the two recipes and the two stages were recorded again. Requests
-  under the `"standard"` preset, the default of `answer_document()`, do not
-  change.
-
-* The `references` cleaner no longer cuts a Markdown file at a line indented
-  four or more spaces ("    # References"), which in Markdown is code, not a
+  `hr_cache()` built before this misses for those documents. Requests under
+  the `"standard"` preset, the default of `answer_document()`, do not
+  change. The cleaner no longer cuts a Markdown file at a line indented four
+  or more spaces ("    # References"), which in Markdown is code, not a
   heading. PDF and plain text still allow any indent. `gr_ingest()` tells the
   cleaners what read the file in `.source_type`.
 
@@ -290,8 +288,9 @@ move.
   no split can reach p < 0.05. Sections rank their claims by `sign_p`, lowest
   first, then by study weight, so a 5-of-5 claim now ranks above a contested
   3-to-3 one. A claim that more of its studies contradict than support ranks
-  after every other, the least contradicted first: `sign_p` is two-sided, and
-  alone it ranked 1 supporting and 8 contradicting (p = 0.039) above 5 of 5. `print()` gives each claim's tally and p (5 of 5 prints
+  after every other, the least contradicted first, since `sign_p` is
+  two-sided and would rank 1 supporting and 8 contradicting (p = 0.039) above
+  5 of 5. `print()` gives each claim's tally and p (5 of 5 prints
   p = 0.0625) and warns of low power, citing Campbell et al. 2020 (SWiM) and
   Boon and Thomson 2021; the audit report adds `sign_p`. This changes what is
   sent at the default settings for a section given claims in a different
@@ -330,11 +329,7 @@ move.
   than one batch and the reconcile reply merges or groups them: the merged
   claim's wording, and the number of claims where a group is split, feed the
   `gr_outline()` and `gr_synthesise()` prompts, so those requests, and their
-  cache and replay keys, differ from before. A new test shuffles a 24-study
-  table five times and requires at least 90% of claims to keep the same
-  studies, direction and population.
-  Two tests that expected a merge of opposite claims now expect them kept
-  apart.
+  cache and replay keys, differ from before.
 
 * The blocks of a PDF page OCR read now have `kind = "ocr"` (headings keep
   `"heading"`), as the blocks OCR reads from a Word file's images and from
@@ -395,24 +390,16 @@ move.
   `allow_unpriced`. Attach one with the new `hr_trace(governor = )` argument;
   a trace without one reads the limits from `hr_options()`, as before. The
   new limits are also options, `max_tokens_total`, `max_output_tokens`,
-  `allowed_models` (all `NULL`, off) and `allow_unpriced` (`FALSE`), so every
+  `allowed_models` (all `NULL`, off) and `allow_unpriced` (`TRUE`), so every
   trace's config snapshot now lists them. `as_json()` writes a trace's
   `refusals` and `governor` when it has any, with `allowed_models` always as
   an array. `gr_read_many()`, `gr_claims()`, `gr_outline()` and
   `gr_synthesise()`, which keep a trace of their own and fold it into the one
-  they are given, hold their requests to that trace's governor, less what it
-  has already spent and used in tokens; `max_calls` stays a limit per
-  document and per stage.
-
-* A stage that keeps a trace of its own (`gr_read_many()`, `gr_claims()`,
-  `gr_outline()`, `gr_synthesise()`) is now held to the calls its given
-  trace's `hr_governor()` has left, as it already was to the dollars and
-  tokens left. `max_calls` was left whole, so a stage given a trace that had
-  made its 2 calls under `hr_governor(max_calls = 2)` made a third. The calls
-  taken off are the ones the governor counts: every recorded request, cache
-  hits and embeddings requests included. Without a governor,
-  `hr_options(max_calls =)` is still a limit per document for
-  `gr_read_many()` and per stage for the others.
+  they are given, hold their requests to what that trace's governor has
+  left: the calls (every recorded request, cache hits and embeddings
+  requests included), the dollars and the tokens. Without a governor,
+  `hr_options(max_calls =)` is a limit per document for `gr_read_many()` and
+  per stage for the others.
 
 * **A parallel batch cannot pass a limit.** Each worker's items are held to
   an equal share of the calls and dollars the run has left, and an item its
@@ -453,8 +440,8 @@ move.
   `usage_estimated`, the share of requests whose counts were estimated, and
   `print()` on a trace says that share when it is above zero. A request that
   failed before the provider sent any usage records a `"counted"` zero, and a
-  handler's `gr_result()` built with no usage is counted here rather than
-  taken as a reported 0 in and 0 out.
+  handler's reply that gives no usage is counted here rather than taken as a
+  reported 0 in and 0 out.
 
 * **Embeddings requests record `attempts`, `served_model` and a provenance**
   like any other request; `attempts` was always `NA` although they are
@@ -517,12 +504,13 @@ registry entry is a fact or a guess. Existing columns and fields keep their
 names and meanings, and the new ones come after them (in `gr_compare()`,
 before `premise`, which stays last).
 
-* `hr_trace_cost()`, `as.data.frame()` on a trace, `hr_benchmark()`,
-  `gr_compare()`'s `summary` and the cost table of `hr_effort_check()` gain
-  the columns `priced`, `as_of` and `certain`. `hr_report()`'s `cost` table
-  gains them per arm, and adds a note naming any arm with an unpriced model.
-  `hr_judge()`'s `judge_cost` gains the same fields and `models`.
-  `gr_inventory()`'s `totals` gains them for its cost floor.
+* `hr_trace_cost()`, `as.data.frame()` on a trace and `gr_compare()`'s
+  `summary` gain the columns `priced`, `as_of` and `certain`, and so do the
+  new `hr_benchmark()` and the cost table of `hr_effort_check()`.
+  `hr_report()`'s `cost` table has them per arm, and adds a note naming any
+  arm with an unpriced model. `hr_judge()`'s `judge_cost` has the same
+  fields and `models`. `gr_inventory()`'s `totals` gains them for its cost
+  floor.
   `gr_read_many()`'s `summary` gains them after `warnings` (before
   `premise`), and the audit report's corpus table shows them in a `prices`
   column.
@@ -597,9 +585,9 @@ and has a walkthrough that says how to test it with `hr_sweep()`.
   `hr_effort_event()`. Effort changes only at stage boundaries, at most
   `max_escalations` times a run. The stage after a raised one goes back to
   the base effort unless it fired a trigger too and a raise is left. A cut
-  counts for the stage whose request it was made for. Each raise is an `"effort.escalate"` step of the
-  trace and its outcome an `"effort.resolve"` step; `hr_effort_log()` lists
-  them. `hr_call()` takes the policy as its `effort`.
+  counts for the stage whose request it was made for. Each raise is an
+  `"effort.escalate"` step of the trace and its outcome an
+  `"effort.resolve"` step; `hr_effort_log()` lists them. `hr_call()` takes the policy as its `effort`.
 
 * `gr_read_spec()` gains `effort_mode`. `"escalate"` makes the read's
   `effort` such a policy, starting at `effort` (`"low"` when unset) and
@@ -625,12 +613,6 @@ and has a walkthrough that says how to test it with `hr_sweep()`.
   flagged by the judge; a hedge moved into another sentence is not.
   `"lexicon"`, the default, sends no judge request.
 
-* Left out: a look-up step for `hierarchical` (reading the chunks behind the
-  summary an answer rests on) and showing `iterative` its earlier queries.
-  Each changes the requests of a reader in a way that needs its own
-  benchmark arm, and neither was needed for the policy itself.
-
-The read stage now has 50 settings and the synthesise stage 29, 227 in all.
 
 ## Reading options
 
@@ -805,7 +787,7 @@ Each option below is off by default, so a default run sends the requests it
 sent before, keeps its store, cache and replay keys, and returns the tables
 it returned. Each is declared with its evidence (`untested` unless a source
 is named), is listed by `gr_settings_table()`, and has a walkthrough that
-says how to test it with `hr_sweep()`. The settings come to 227 in all.
+says how to test it with `hr_sweep()`.
 
 * `gr_extract()` gains `resolve = "vote"`, which keeps the value most of a
   document's chunks gave, for no extra request; a tie goes to the earliest
@@ -1211,7 +1193,7 @@ says how to test it with `hr_sweep()`. The settings come to 227 in all.
   that was sent: `top_k` under the `fast` recipe, which sends the whole
   document, is one.
 * **`gr_settings_table()`** returns every setting of every stage in one table
-  of 227 rows: the ingest, segment and read schemas (with the entries of
+  of 228 rows: the ingest, segment and read schemas (with the entries of
   `cleaner_opts` and `layout_opts` the built-in code reads), the arguments of
   the screening, extraction, synthesis and evaluation functions, and every
   `hr_options()` option. Each row has its stage, the function that takes it,
@@ -2010,9 +1992,9 @@ sends the requests it sent before, with the same cache keys.
 `hr_step_command()` is opt-in: no command runs unless you build a step with
 one, so every default run sends the requests it sent before, with the same
 cache keys. Its three settings are declared with their evidence
-(`untested`), are listed by `gr_settings_table()` under the evaluate stage
-(227 settings in all), and have walkthroughs in `vignette("evaluate")` that
-test each with `hr_sweep()`.
+(`untested`), are listed by `gr_settings_table()` under the evaluate stage,
+and have walkthroughs in `vignette("evaluate")` that test each with
+`hr_sweep()`.
 
 * `hr_step_command(name, argv, parse, timeout, held, wd)` builds a chain step
   that runs a program you name, through `system2()`, and reads its result as
