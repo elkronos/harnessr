@@ -32,8 +32,8 @@ knits every guide with no key and no network, checks the registry counts
 the get started guide states against the registries, fails if two readers
 share a traversal signature, and fails if any of that left a new or
 changed file in the repository that `git status` reports. Files `.gitignore` names are not reported, so output that matches
-one of its patterns (`docs/`, `*.Rout`, `readgpt_history_*.json`,
-`sim-results/`) passes that check unseen.
+one of its patterns (`docs/`, `*.Rout`, `sim-results/`) passes that check
+unseen.
 
 These scripts rewrite fixtures the tests compare against. Run them from
 the repository root, and only when you mean to change what they record:
