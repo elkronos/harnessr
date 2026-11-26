@@ -860,7 +860,8 @@ fallback would change every budget calculation.
 
 `hr_budget()` does the context arithmetic for every request. It cannot return a
 non-positive input budget: in that case it raises an error that says what to
-change. `?hr_options` documents every setting.
+change. `vignette("context")` covers budgets and cuts in full, and
+`?hr_options` documents every setting.
 
 ## Choosing the settings
 

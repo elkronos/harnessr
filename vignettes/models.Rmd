@@ -679,5 +679,7 @@ hr_options(old)
 
 - `vignette("core")`: the calls these limits and prices apply to, and the
   trace that records their tokens and cost.
+- `vignette("context")`: the budgets these limits set, and how a prompt is cut
+  to fit them.
 - `vignette("runs")`: spending limits, the governor, caching and replay.
 - `vignette("settings")`: every setting with its default.

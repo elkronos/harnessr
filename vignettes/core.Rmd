@@ -861,6 +861,8 @@ hr_options(old)
 
 - `vignette("models")`: the model registry, setting prices, cost estimates and
   token counts.
+- `vignette("context")`: how much room a prompt has, and what is cut when it
+  does not fit.
 - `vignette("runs")`: limits, the governor, caching across sessions, replaying
   a whole run, and model prices.
 - `vignette("compose")`: steps and chains built from calls like these, and a
