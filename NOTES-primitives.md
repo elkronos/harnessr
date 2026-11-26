@@ -134,16 +134,13 @@ test.
 
 ## Other parts of the core under review
 
-- `tests/testthat/fixtures/boundary/allowed.csv` lists three calls from the
-  core into the document layer, each with the change that removes it:
-  - The embedding request path, `hr_embed()`, calls `resolve_embedder()` and
-    `lexical_embed()`. These go when embedders become a registered module
-    kind and the core looks them up in the registry.
-  - `segment_effort()` (`R/core-effort-static.R`) hands a segmenter the
-    effort its own requests resolve to, and calls `segment_effort_label()`
-    (`R/doc-segment-run.R`) to learn the label a built-in segmenter's
-    requests carry. This goes when each segmenter declares its own call
-    stems and the label function is deleted.
+- `tests/testthat/fixtures/boundary/allowed.csv` holds only its header: the
+  core makes no call into the document layer. The last three calls went with
+  the module registry. `hr_embed()` reads embedders through the embedder
+  kind's accessor instead of calling `resolve_embedder()` and
+  `lexical_embed()`, and `segment_effort()` (`R/core-effort-static.R`)
+  reads a segmenter's `effort_label` through the segmenter kind's accessor
+  instead of calling `segment_effort_label()`, which is deleted.
 - `tests/testthat/fixtures/boundary/doc-uses-internal.csv` lists the core
   functions that are not exported and that the document layer still uses.
   The list may only shrink.
