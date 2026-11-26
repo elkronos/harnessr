@@ -1283,8 +1283,7 @@ read_reference_csv <- function(path, na.strings = c("", "NA"), ...) {
 #' @export
 print.gr_calibration <- function(x, ...) {
   cat(sprintf("<gr_calibration> %d hand-screened row(s), %d eligible\n", x$n, x$n_positives))
-  cat(sprintf("  sampled from: %s (%s of %s screened)\n", x$frame$of,
-              format(x$frame$frame_n), format(x$frame$screened_n)))
+  cat(sprintf("  sampled from: %s (%s)\n", x$frame$of, calibration_frame_size(x$frame)))
   for (i in seq_len(nrow(x$metrics))) {
     m <- x$metrics[i, ]
     cat(sprintf("  %-30s %s  [%s, %s]  n=%d\n", m$metric,
@@ -1343,6 +1342,23 @@ print.gr_calibration <- function(x, ...) {
                 else sprintf("those %d observations", x$n_positives)))
   }
   invisible(x)
+}
+
+#' The size part of a calibration's "sampled from" line: "30 of 100
+#' screened", or the screened count alone when the reference did not record
+#' how large its frame was. format(NA) printed "NA of 8 screened".
+#' @noRd
+calibration_frame_size <- function(frame) {
+  count <- function(v) {
+    v <- suppressWarnings(as.numeric(v %||% NA_real_))[1]
+    if (is.na(v)) NA_character_ else format(v, scientific = FALSE)
+  }
+  fn <- count(frame$frame_n)
+  sn <- count(frame$screened_n)
+  if (!is.na(fn) && !is.na(sn)) sprintf("%s of %s screened", fn, sn)
+  else if (!is.na(sn)) sprintf("%s screened; frame size not recorded", sn)
+  else if (!is.na(fn)) sprintf("%s in the frame; screened count not recorded", fn)
+  else "frame size not recorded"
 }
 
 #' The recall part of a calibration's print: recall with its interval and

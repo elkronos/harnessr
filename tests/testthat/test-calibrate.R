@@ -397,3 +397,57 @@ test_that("duplicates are not screened twice into the calibration", {
   scr <- structure(list(table = tab), class = "gr_screening")
   expect_equal(nrow(gr_reference(scr, n = Inf, of = "all")), 3L)
 })
+
+# print() showed "sampled from: excluded (NA of 8 screened)" for a reference
+# given as a plain data frame, which does not record how large its frame was.
+sampled_from_line <- function(cal) {
+  out <- utils::capture.output(print(cal))
+  out[grepl("sampled from:", out, fixed = TRUE)]
+}
+
+test_that("a reference with no frame size prints the screened count, not NA", {
+  scr <- screening_of(c("include", "include", "unclear", "exclude",
+                        "exclude", "exclude", "include", "exclude"))
+  ex <- data.frame(document = paste0("d", c(4, 5, 6, 8), ".pdf"),
+                   human_decision = c("exclude", "exclude", "include", "exclude"),
+                   stringsAsFactors = FALSE)
+  cal <- gr_calibrate(scr, ex, of = "excluded")
+  expect_true(is.na(cal$frame$frame_n))
+  expect_identical(sampled_from_line(cal),
+                   "  sampled from: excluded (8 screened; frame size not recorded)")
+  expect_false(any(grepl("\\bNA\\b", utils::capture.output(print(cal)))))
+
+  kept <- data.frame(document = paste0("d", c(1, 2, 3, 7), ".pdf"),
+                     human_decision = c("include", "exclude", "include", "include"),
+                     stringsAsFactors = FALSE)
+  cal <- gr_calibrate(scr, kept, of = "kept")
+  expect_identical(sampled_from_line(cal),
+                   "  sampled from: kept (8 screened; frame size not recorded)")
+  expect_false(any(grepl("\\bNA\\b", utils::capture.output(print(cal)))))
+
+  every <- data.frame(document = paste0("d", 1:8, ".pdf"),
+                      human_decision = c("include", "exclude", "include", "exclude",
+                                         "exclude", "include", "include", "exclude"),
+                      stringsAsFactors = FALSE)
+  expect_warning(cal <- gr_calibrate(scr, every), class = "gr_unknown_frame")
+  expect_identical(sampled_from_line(cal),
+                   "  sampled from: unknown (8 screened; frame size not recorded)")
+  expect_false(any(grepl("\\bNA\\b", utils::capture.output(print(cal)))))
+})
+
+test_that("a reference that records its frame size prints it as before", {
+  scr <- screening_of(c("include", "include", "unclear", "exclude",
+                        "exclude", "exclude", "include", "exclude"))
+  ref <- gr_reference(scr, n = Inf, of = "excluded", blind = FALSE)
+  ref$human_decision <- c("exclude", "exclude", "include", "exclude")
+  cal <- gr_calibrate(scr, ref)
+  expect_identical(sampled_from_line(cal), "  sampled from: excluded (4 of 8 screened)")
+  ref <- gr_reference(scr, n = 3, of = "kept", seed = 1)
+  ref$human_decision <- "include"
+  expect_identical(sampled_from_line(gr_calibrate(scr, ref)),
+                   "  sampled from: kept (4 of 8 screened)")
+  ref <- gr_reference(scr, n = 2, of = "stacked", seed = 1, blind = FALSE)
+  ref$human_decision <- "include"
+  expect_identical(sampled_from_line(gr_calibrate(scr, ref)),
+                   "  sampled from: stacked (8 of 8 screened)")
+})
