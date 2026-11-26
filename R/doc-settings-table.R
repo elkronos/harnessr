@@ -192,7 +192,7 @@
   read.answer_format = "readers#set-answer-format",
   read.premise = "readers#set-premise", read.premise_verdict = "readers#set-premise",
   read.accept_near_verbatim = "readers#set-verify",
-  read.effort = "readers#set-effort", read.effort_mode = "runs#set-effort-mode",
+  read.effort = "readers#set-effort", read.effort_mode = "effort#set-effort-mode",
   read.context_policy = "readers#set-context-policy",
   read.refine_state = "readers#set-context-policy",
   read.max_merge_levels = "readers#set-merge-levels", read.fan_in = "readers#set-merge-levels",

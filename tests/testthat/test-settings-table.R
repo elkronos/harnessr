@@ -53,6 +53,9 @@ test_that("gr_settings_table() carries the schemas' defaults, tiers and evidence
   expect_identical(o$guide[o$name == "min_output_tokens"], "context#set-reply-reserve")
   # The output cap floor links to the effort guide's walkthrough.
   expect_identical(o$guide[o$name == "reasoning_floor"], "effort#set-reasoning-floor")
+  # So does a read's effort_mode, whose walkthrough moved there from the runs
+  # guide.
+  expect_identical(s$guide[s$name == "effort_mode"], "effort#set-effort-mode")
   syn <- gr_settings_table("synthesise")
   expect_identical(syn$default[syn$name == "coherence_rounds"], "1")
   expect_identical(syn$status[syn$name == "prominence"], "untested")

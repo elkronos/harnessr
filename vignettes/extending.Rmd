@@ -213,7 +213,7 @@ tryCatch(gr_read_spec("longest", effort = c(longst = "low")),
 
 To name the calls of your own module in an effort map, register the module
 first, with its labels in `calls`. The `calls` column of `gr_readers()` and
-`gr_segmenters()` lists every module's stems. `vignette("runs")` explains what
+`gr_segmenters()` lists every module's stems. `vignette("effort")` explains what
 effort does and which models it is sent to.
 
 ## Declaring cost
@@ -592,4 +592,5 @@ hr_options(old)
   each, with every argument a module receives.
 - `?new_chunks` and `?new_answer`: the constructors a segmenter and a reader
   return.
-- `vignette("runs")`: limits, the pre-flight check, effort, and replaying a run.
+- `vignette("runs")`: limits, the pre-flight check, and replaying a run.
+- `vignette("effort")`: effort, by stage or raised when a stage goes wrong.
