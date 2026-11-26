@@ -54,11 +54,186 @@ articles:
   - migrate
 
 reference:
-- title: Ask a question
+- title: Core
   desc: >
-    Start here. One call reads a document and answers a question, and the
-    answer says what it rests on and whether anything went wrong. See
-    `vignette("harnessr")`.
+    The harness for model calls, with or without a document: calls and
+    clients, models and prices, context, effort, limits, caching and replay,
+    composition and measurement. The groups follow the core guides in order,
+    starting with `vignette("core")`.
+
+- subtitle: Calls, clients and results
+  desc: >
+    One call to a model, the result it returns and the trace that records it.
+    Clients for OpenAI-compatible endpoints, any provider ellmer supports, any
+    function you write, and an offline stand-in for practice and tests.
+    Signals a run records about its own work, and the schemas that check
+    settings. See `vignette("core")`.
+  contents:
+  - hr_call
+  - gr_result
+  - hr_client
+  - hr_api_key
+  - hr_ellmer_client
+  - hr_backend_client
+  - hr_mock_client
+  - hr_embed
+  - hr_trace
+  - hr_trace_summary
+  - hr_trace_cost
+  - hr_trace_save
+  - as_json
+  - hr_signal
+  - hr_param
+  - hr_schema
+  - hr_validate
+
+- subtitle: Models, prices and tokens
+  desc: >
+    The model registry, the prices you set, cost estimates and token counts.
+    See `vignette("models")`.
+  contents:
+  - hr_models
+  - hr_model_info
+  - hr_model_limits
+  - hr_register_model
+  - hr_load_models
+  - hr_estimate_cost
+  - hr_count_tokens
+  - hr_tokenizer
+  - hr_set_tokenizer
+
+- subtitle: Context
+  desc: >
+    How much room a prompt has, fitting its pieces into that room, and cutting
+    one piece. See `vignette("context")`.
+  contents:
+  - hr_budget
+  - hr_context_fit
+  - hr_context_policy
+  - hr_truncate
+  - hr_truncate_tokens
+
+- subtitle: Effort
+  desc: >
+    Raising reasoning effort when a stage goes wrong, the log of each raise,
+    and checking whether more effort pays. See `vignette("effort")`.
+  contents:
+  - hr_effort_escalate
+  - hr_effort_event
+  - hr_effort_log
+  - hr_effort_check
+
+- subtitle: Limits, caching and replay
+  desc: >
+    Settings and spending limits, paying for a request once, and replaying a
+    recorded run without a model. See `vignette("runs")`.
+  contents:
+  - hr_options
+  - hr_governor
+  - hr_cache
+  - hr_cache_client
+  - hr_cache_stats
+  - hr_cache_clear
+  - hr_replay_client
+
+- subtitle: Compose steps and chains
+  desc: >
+    Build a run from steps, run them in order as one arm, derive a chain by
+    dropping or replacing a step, list, change and sweep its settings by path,
+    give a step a skill, and check a step's output by running a program. See
+    `vignette("compose")`.
+  contents:
+  - hr_step
+  - hr_chain
+  - hr_settings
+  - hr_set
+  - hr_step_command
+  - hr_skill
+
+- subtitle: Benchmarks
+  desc: >
+    Compare configurations on a labelled reference: arms, sweeps of a setting,
+    the reference and its splits, scorers, and repeated runs held to one
+    spending limit. See `vignette("evaluate")` and `vignette("compare")`.
+  contents:
+  - hr_benchmark
+  - hr_report
+  - hr_error_correlation
+  - hr_mdd
+  - hr_contrast
+  - hr_drift_check
+  - hr_arm
+  - hr_sweep
+  - hr_sweep_check
+  - hr_reference
+  - hr_scorer
+  - hr_assign_splits
+
+- subtitle: Judges
+  desc: >
+    A model that chooses between candidates or grades one against a reference,
+    asked in both orders, validated against blind human labels before it
+    scores, with its accuracy corrected by those labels. See
+    `vignette("evaluate")`.
+  contents:
+  - hr_judge
+  - hr_judge_config
+  - hr_judge_validate
+  - hr_scorer_judge
+  - hr_judge_ppi
+
+- subtitle: Baselines
+  desc: >
+    Comparisons that use no model: tf-idf features, a cross-fitted classifier
+    and a simulated active-learning ranker for screening. See
+    `vignette("evaluate")`.
+  contents:
+  - hr_tfidf
+  - hr_baseline_classifier
+  - hr_baseline_ranker
+
+- subtitle: Signal calibration
+  desc: >
+    The calibration records that measure how well a signal predicts being
+    right, and the thresholds and policy that decide whether a signal may gate
+    an action. Nothing gates by default. See `vignette("evaluate")`.
+  contents:
+  - hr_calibrate_signal
+  - hr_calibration_valid
+  - hr_gate_threshold
+  - hr_signal_policy
+
+- subtitle: Statistics
+  desc: >
+    Intervals for proportions, agreement between raters and coders, design-
+    weighted and prediction-powered estimates, and the test of whether a
+    model's labels can stand in for people's. See `vignette("evaluate")`.
+  contents:
+  - hr_prop_ci
+  - hr_agreement
+  - hr_ht_estimate
+  - hr_ppi
+  - hr_alt_test
+
+- subtitle: Modules and the registry
+  desc: >
+    Register and list modules of any kind, declare what a module's run costs,
+    and check a module against rules of your own. See `vignette("extending")`.
+  contents:
+  - hr_register
+  - hr_modules
+  - hr_cost
+  - hr_check_module
+
+- title: Documents
+  desc: >
+    The document layer, built on the core: ingest, segment, read, and review
+    many documents. See `vignette("harnessr")` for a first question.
+
+- subtitle: Ask a question
+  desc: >
+    One call reads a document and answers a question, and the answer says what
+    it rests on and whether anything went wrong. See `vignette("harnessr")`.
   contents:
   - answer_document
   - gr_answer
@@ -67,28 +242,9 @@ reference:
   - gr_recipes
   - gr_recipe
   - gr_compare
+  - gr_methods_text
 
-- title: Connect to a model
-  desc: >
-    Clients for OpenAI-compatible endpoints, any provider ellmer supports, any
-    function you write, and an offline stand-in for practice and tests. See
-    `vignette("core")`, `vignette("models")`, `vignette("harnessr")` and the
-    README.
-  contents:
-  - hr_client
-  - hr_api_key
-  - hr_ellmer_client
-  - hr_backend_client
-  - hr_mock_client
-  - hr_call
-  - gr_result
-  - hr_models
-  - hr_model_info
-  - hr_model_limits
-  - hr_register_model
-  - hr_load_models
-
-- title: Get text out of files
+- subtitle: Get text out of files
   desc: >
     Extraction, cleaning and a survey of a folder before anything is spent.
     See `vignette("ingest")`.
@@ -100,8 +256,9 @@ reference:
   - gr_cleaners
   - gr_clean
   - gr_inventory
+  - gr_flush_caches
 
-- title: Cut documents into chunks
+- subtitle: Cut documents into chunks
   desc: >
     The segmenters, their settings, and the free statistics for comparing
     chunkings: size, boundary error against a reference (Pk and WindowDiff)
@@ -116,25 +273,25 @@ reference:
   - gr_seg_pk
   - gr_seg_recall
 
-- title: Read the chunks
+- subtitle: Read the chunks
   desc: >
-    The reading strategies, the settings that choose and place chunks, and
-    the check on quoted evidence. See `vignette("readers")`.
+    The reading strategies, the settings that choose and place chunks, the
+    embedders that rank them, and the check on quoted evidence. See
+    `vignette("readers")`.
   contents:
   - gr_read
   - gr_read_spec
   - gr_readers
   - gr_reader_signature
-  - hr_embed
   - gr_embedders
   - gr_verify_evidence
 
-- title: Many documents and literature reviews
+- subtitle: Many documents and literature reviews
   desc: >
     One question over many documents, and a review from a search export to
     screened studies, an extraction table, a written review and an audit
-    report, with the screening measured against a hand-screened sample. See
-    `vignette("review")`.
+    report, with the screening measured against a hand-screened sample and a
+    stopping test for prioritised screening. See `vignette("review")`.
   contents:
   - gr_read_many
   - gr_protocol
@@ -149,6 +306,7 @@ reference:
   - gr_reference_consensus
   - gr_calibrate
   - gr_screen_sample_size
+  - gr_stop_test
   - gr_resolve
   - '`[.gr_reference_frame`'
   - gr_fields
@@ -164,167 +322,42 @@ reference:
   - gr_flow
   - gr_audit_report
 
-- title: Cost, limits and tracing
+- subtitle: Document arms, steps and references
   desc: >
-    Settings and spending limits, token counts and cost estimates, context
-    budgets and cuts, reasoning effort, and the trace every run records. See
-    `vignette("runs")`, `vignette("models")`, `vignette("context")` and
-    `vignette("effort")`.
+    Document arms and steps for the core benchmarks and chains, question-
+    answer references, label sheets, and the checks on what a reader keeps.
+    See `vignette("evaluate")` and `vignette("compose")`.
   contents:
-  - hr_options
-  - hr_governor
-  - hr_estimate_cost
-  - hr_count_tokens
-  - hr_tokenizer
-  - hr_set_tokenizer
-  - hr_truncate_tokens
-  - hr_truncate
-  - hr_context_policy
-  - hr_context_fit
-  - hr_effort_escalate
-  - hr_effort_event
-  - hr_effort_log
-  - hr_budget
-  - hr_trace
-  - hr_trace_summary
-  - hr_trace_cost
-  - hr_trace_save
-  - as_json
-  - gr_methods_text
-
-- title: Caching and replaying runs
-  desc: >
-    Paying for a request once, and replaying a recorded run without a model.
-    See `vignette("runs")`.
-  contents:
-  - hr_cache
-  - hr_cache_client
-  - hr_cache_stats
-  - hr_cache_clear
-  - gr_flush_caches
-  - hr_replay_client
-
-- title: Statistics
-  desc: >
-    Intervals for proportions, agreement between raters and coders,
-    design-weighted and prediction-powered estimates, and the test of whether
-    a model's labels can stand in for people's. See `vignette("evaluate")`.
-  contents:
-  - hr_prop_ci
-  - hr_agreement
-  - hr_ht_estimate
-  - hr_ppi
-  - hr_alt_test
-
-- title: Benchmarks
-  desc: >
-    Compare configurations on a labelled reference: arms, sweeps of a
-    setting, the reference and its splits, scorers, and repeated runs held to
-    one spending limit. See `vignette("evaluate")` and `vignette("compare")`.
-  contents:
-  - hr_benchmark
-  - hr_report
-  - hr_error_correlation
-  - hr_mdd
-  - hr_contrast
-  - hr_drift_check
-  - hr_arm
-  - hr_sweep
-  - hr_sweep_check
-  - hr_effort_check
-  - hr_reference
-  - hr_scorer
   - gr_arm
+  - gr_step
   - gr_qa_reference
   - gr_scorer_answer
   - gr_condensation_check
   - gr_reverse_text
-
-- title: Compose steps and chains
-  desc: >
-    Build a run from steps (ingest, segment, retrieve, read, or a function of
-    your own), run them in order as one arm, derive a chain by dropping or
-    replacing a step, list, change and sweep its settings by path, give a
-    step a skill, and check a step's output by running a program. See
-    `vignette("compose")` and `vignette("evaluate")`.
-  contents:
-  - hr_step
-  - hr_chain
-  - hr_settings
-  - hr_set
-  - hr_step_command
-  - hr_skill
-  - gr_step
-
-- title: Baselines
-  desc: >
-    Comparisons that use no model: tf-idf features, a cross-fitted classifier,
-    a simulated active-learning ranker for screening, and the stopping test for
-    prioritised screening. See `vignette("evaluate")`, and `vignette("review")`
-    for the stopping test.
-  contents:
-  - hr_tfidf
-  - hr_baseline_classifier
-  - hr_baseline_ranker
-  - gr_stop_test
-
-- title: Judges
-  desc: >
-    A model that chooses between candidates or grades one against a
-    reference, asked in both orders, validated against blind human labels
-    before it scores, with its accuracy corrected by those labels. See
-    `vignette("evaluate")`.
-  contents:
-  - hr_judge
-  - hr_judge_config
-  - hr_judge_validate
-  - hr_scorer_judge
-  - hr_judge_ppi
-
-- title: Signals and calibration
-  desc: >
-    Values the package records about its own work, the calibration records
-    that measure how well they predict being right, and the thresholds and
-    policy that decide whether a signal may gate an action. Nothing gates by
-    default. See `vignette("evaluate")`.
-  contents:
-  - hr_signal
-  - hr_calibrate_signal
-  - hr_calibration_valid
-  - hr_gate_threshold
-  - hr_signal_policy
-
-- title: Reference sets and splits
-  desc: >
-    Splitting reference items into tuning, calibration and test sets by
-    document, and the sheets people fill in to label them. See
-    `vignette("evaluate")`.
-  contents:
-  - hr_assign_splits
   - gr_label_sheet
   - gr_read_labels
 
-- title: Extending harnessr
+- subtitle: Settings of the document stages
   desc: >
-    Every axis is a registry, and an addition is used exactly like a
-    built-in. `hr_register()` and `hr_modules()` register and list modules
-    of any kind. See `vignette("extending")`.
+    The settings of a read, segment or ingest spec, and every setting of every
+    stage in one table. See `vignette("settings")`.
+  contents:
+  - gr_settings
+  - gr_settings_table
+
+- subtitle: Extending the document layer
+  desc: >
+    Every document axis is a registry, and an addition is used exactly like a
+    built-in. Register extractors, cleaners, segmenters, readers and
+    embedders, build the objects they return, and check them against the
+    contract. See `vignette("extending")`.
   contents:
   - gr_register_extractor
   - gr_register_cleaner
   - gr_register_segmenter
   - gr_register_reader
   - gr_register_embedder
-  - hr_register
-  - hr_modules
   - new_chunks
   - new_answer
-  - hr_cost
-  - gr_settings
-  - gr_settings_table
-  - hr_schema
-  - hr_param
-  - hr_validate
-  - hr_check_module
   - gr_check_reader
   - gr_check_segmenter
