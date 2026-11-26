@@ -448,10 +448,11 @@ test_that("run-tests.sh needs every package harnessr imports, and knitr for --ch
 })
 
 # ---------------------------------------------------------------------------
-# A pull request that changes a Markdown page the site renders builds the site.
+# A pull request that changes a Markdown page the site renders builds the site,
+# and only main publishes it.
 # ---------------------------------------------------------------------------
 
-test_that("the pkgdown pull request filter covers every Markdown page the site renders", {
+test_that("the pkgdown workflow builds every Markdown page change and publishes only main", {
   skip_on_cran()
   wf <- source_file(".github", "workflows", "pkgdown.yaml")
   skip_if(is.null(wf), "the workflow is not available")
@@ -479,4 +480,25 @@ test_that("the pkgdown pull request filter covers every Markdown page the site r
   for (p in pages) expect_true(covered(p), info = p)
   expect_true(covered("R/core-request.R"))
   expect_false(covered("tests/testthat/test-boundary.R"))
+
+  # Only main publishes, and a publish replaces gh-pages. A release built the
+  # site from its tag, which pointed at an old commit, and that site replaced
+  # the current one.
+  code <- y[!grepl("^\\s*#", y)]
+  on_at <- grep("^on:\\s*$", code)
+  expect_length(on_at, 1L)
+  rest <- code[seq.int(on_at + 1L, length(code))]
+  triggers <- rest[seq_len(match(TRUE, grepl("^\\S", rest)) - 1L)]
+  events <- sub("^  ([a-z_]+):.*$", "\\1", grep("^  [a-z_]+:", triggers, value = TRUE))
+  expect_setequal(events, c("push", "pull_request", "workflow_dispatch"))
+
+  step <- grep("^\\s+- name: Deploy to GitHub Pages\\s*$", code)
+  expect_length(step, 1L)
+  after <- code[seq.int(step + 1L, length(code))]
+  body <- after[seq_len(match(TRUE, c(grepl("^\\s+- ", after), TRUE)) - 1L)]
+  cond <- paste(trimws(body[seq_len(grep("^\\s+uses:", body)[1] - 1L)]), collapse = " ")
+  expect_match(cond, "github.ref == 'refs/heads/main'", fixed = TRUE)
+  expect_match(cond, "github.event_name != 'pull_request'", fixed = TRUE)
+  expect_false(grepl("||", sub("\\(.*\\)", "", cond), fixed = TRUE))
+  expect_true(any(grepl("^\\s+clean: true\\s*$", body)))
 })
