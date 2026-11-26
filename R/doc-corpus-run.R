@@ -719,8 +719,9 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
     if (!is.null(max_total_usd) && length(unpriced_chat) && is.null(warned_unpriced)) {
       warned_unpriced <- TRUE
       gr_warn(sprintf(paste0("`max_total_usd` cannot be enforced: %s no registered price, so ",
-                             "what it costs is unknown rather than zero. Register the price with ",
-                             "hr_register_model(input_usd =, output_usd =), or drop the ceiling. ",
+                             "what it costs is unknown rather than zero. Set its prices with ",
+                             "hr_register_model(input_usd =, output_usd =) or hr_load_models(), ",
+                             "or drop the ceiling. ",
                              "The run continues, uncapped."), corpus_models_have(unpriced_chat)),
               class = "gr_corpus_cost_unknown")
     }
@@ -731,9 +732,9 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
       warned_floor <- TRUE
       gr_warn(sprintf(paste0("`max_total_usd` is checked against the spend that has a price: ",
                              "embedding %s no registered price, so %s requests are not counted ",
-                             "and the run can pass the ceiling by what they cost. Register it with ",
-                             "hr_register_model('%s', context_window =, max_output = 0, ",
-                             "input_usd =, kind = \"embedding\") to count them."),
+                             "and the run can pass the ceiling by what they cost. Set its price ",
+                             "with hr_register_model('%s', input_usd =), which keeps the ",
+                             "model's limits, or with hr_load_models(), to count them."),
                       corpus_models_have(unpriced_embed),
                       if (length(unpriced_embed) == 1L) "its" else "their", unpriced_embed[[1]]),
               class = "gr_corpus_cost_floor")
