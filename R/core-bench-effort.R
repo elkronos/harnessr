@@ -48,7 +48,7 @@
 #'     `cost_diff`, `cost_upper`, `cost_holds`, `verdict` and `p_value`,
 #'     from [hr_report()]'s `ni` table.}
 #'   \item{`cost`}{One row per arm: `arm`, `accuracy` (the mean of
-#'     `correct` over reportable rows), `usd` (mean per run), `calls` (model
+#'     `correct` over reportable rows), `usd` (mean per run, `NA` when a run has no price), `calls` (model
 #'     requests per run), `escalations` (raises per run), `escalated_calls`
 #'     (requests per run sent at a raised effort) and `resolved` (the share
 #'     of raises whose stage fired none of the same triggers again, `NA`
@@ -167,7 +167,10 @@ effort_costs <- function(bench) {
     esc <- sum(r[, "escalations"], na.rm = TRUE)
     data.frame(arm = a,
                accuracy = mean(df$correct[w & rep_ok], na.rm = TRUE),
-               usd = if ("usd" %in% names(df)) mean(df$usd[w], na.rm = TRUE) else NA_real_,
+               # NA when a run's cost is unknown, as in hr_report(): with
+               # na.rm the mean of the priced runs passed for the arm's, and
+               # an arm with no priced run gave NaN.
+               usd = if ("usd" %in% names(df)) mean(df$usd[w]) else NA_real_,
                calls = mean(r[, "calls"], na.rm = TRUE),
                escalations = mean(r[, "escalations"], na.rm = TRUE),
                escalated_calls = mean(r[, "raised"], na.rm = TRUE),
@@ -199,5 +202,12 @@ print.hr_effort_check <- function(x, ...) {
   }
   cat(sprintf("  best fixed comparator: %s\n", x$best_fixed))
   print(x$cost, row.names = FALSE, digits = 3)
+  unpriced <- x$cost$arm[x$cost$priced %in% FALSE]
+  if (length(unpriced)) {
+    cat(sprintf(paste0("  usd is NA for %s: no price set for a model of %s (set one with ",
+                       "hr_register_model() or hr_load_models())\n"),
+                paste(unpriced, collapse = ", "),
+                if (length(unpriced) == 1L) "that arm" else "those arms"))
+  }
   invisible(x)
 }

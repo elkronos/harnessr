@@ -298,3 +298,28 @@ test_that("hr_effort_check() tests the policy against fixed levels, with Holm an
                class = "gr_bad_setting")
   expect_error(hr_effort_check(bench, "escalate", margin = 2), class = "gr_bad_setting")
 })
+
+test_that("hr_effort_check() gives NA for an arm's cost when a run's price is unknown", {
+  df <- data.frame(arm = c("a", "a", "b", "b", "c"), correct = TRUE,
+                   usd = c(1e-4, NA, NA, NA, 2e-4), priced = c(TRUE, FALSE, FALSE, FALSE, TRUE),
+                   as_of = c("2026-11", NA, NA, NA, "2026-11"), certain = TRUE,
+                   stringsAsFactors = FALSE)
+  ct <- harnessr:::effort_costs(df)
+  # One run of a has no price: the mean of the priced run alone is not a's.
+  expect_identical(ct$usd[ct$arm == "a"], NA_real_)
+  # No run of b has a price: NA, never NaN.
+  expect_identical(ct$usd[ct$arm == "b"], NA_real_)
+  expect_false(any(is.nan(ct$usd)))
+  expect_equal(ct$usd[ct$arm == "c"], 2e-4)
+  expect_identical(ct$priced, c(FALSE, FALSE, TRUE))
+
+  bench <- ee_bench()
+  bench$usd[bench$arm == "low"] <- NA_real_
+  bench$priced[bench$arm == "low"] <- FALSE
+  chk <- hr_effort_check(bench, "escalate", margin = 0.05, cost_test = FALSE, B = 200)
+  expect_identical(chk$cost$usd[chk$cost$arm == "low"], NA_real_)
+  out <- capture.output(print(chk))
+  expect_true(any(grepl("usd is NA for low: no price set for a model of that arm", out,
+                        fixed = TRUE)))
+  expect_true(any(grepl("hr_load_models()", out, fixed = TRUE)))
+})

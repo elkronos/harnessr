@@ -47,7 +47,7 @@ An object of class \code{hr_effort_check}, a list of
 \code{cost_diff}, \code{cost_upper}, \code{cost_holds}, \code{verdict} and \code{p_value},
 from \code{\link[=hr_report]{hr_report()}}'s \code{ni} table.}
 \item{\code{cost}}{One row per arm: \code{arm}, \code{accuracy} (the mean of
-\code{correct} over reportable rows), \code{usd} (mean per run), \code{calls} (model
+\code{correct} over reportable rows), \code{usd} (mean per run, \code{NA} when a run has no price), \code{calls} (model
 requests per run), \code{escalations} (raises per run), \code{escalated_calls}
 (requests per run sent at a raised effort) and \code{resolved} (the share
 of raises whose stage fired none of the same triggers again, \code{NA}
