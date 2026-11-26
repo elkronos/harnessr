@@ -28,7 +28,7 @@ documentation.
   request is sent as 0.6.0 sent it, and the corpus store key is the one 0.6.0
   computed. The response-cache and replay keys change later in this release
   (see "Cache and replay keys" below), and the keys 0.6.0 computed are still
-  looked up, so a warm cache, a recording made for `gr_replay_client()` and a
+  looked up, so a warm cache, a recording made for `hr_replay_client()` and a
   `gr_read_many()` store all keep answering.
 
 * **Two options are renamed**: `readgpt.api_key` is now `harnessr.api_key`, and
@@ -137,16 +137,19 @@ no longer ships them. You set the prices you pay.
 * A built-in models file that cannot be read stops the package from
   loading, with an error of class `hr_bad_models_file`, instead of leaving
   the registry empty.
-* `allow_unpriced` now defaults to `TRUE`. Under a spending limit, a
-  request to a chat model with no price is sent instead of refused. The
-  trace prices it `NA`, and the first such request to each model in a
-  session warns with class `hr_unpriced_model` that the spending limit does
-  not cover the model until you set its prices. Token and call limits still
-  apply. `hr_options(allow_unpriced = FALSE)` or
-  `hr_governor(allow_unpriced = FALSE)` restores the refusal. A trace's
-  config snapshot records the new default. A read gives this warning before
+* New option `allow_unpriced` (`TRUE`). Under a spending limit, a request
+  to a chat model with no price is sent, as in 0.6.0. The trace prices it
+  `NA`, and the first such request to each model in a session warns with
+  class `hr_unpriced_model` that the spending limit does not cover the
+  model until you set its prices. Token and call limits still apply: set
+  `max_tokens_total` to bound such a run. A read gives this warning before
   it starts, and no longer adds a `gr_cost_uncheckable` warning on every
-  run. `hr_mock_client()` and replays are not warned about. With
+  run. `hr_options(allow_unpriced = FALSE)` or
+  `hr_governor(allow_unpriced = FALSE)` refuses such a request instead, with
+  a condition of class `hr_unpriced_model`, and `gr_read()` then stops
+  before its first request. `hr_mock_client()`, replays and embedding models
+  with no price are never refused or warned about. An ellmer chat is priced
+  as the model it was built with, whatever a spec names. With
   `parallel = TRUE` the workers do not repeat this warning or the stale
   price warning, and it names the limit you set, not a worker's share.
 * New option `price_max_age_days` (120). A cost computed from prices older
@@ -162,23 +165,9 @@ no longer ships them. You set the prices you pay.
   guides, the README and the examples set illustrative prices before they
   show a cost.
 
-* **A chat model with no registered price is refused while a spending limit
-  is set**, with a condition of class `hr_unpriced_model`. Such a model added
-  nothing to the spend, so the limit never stopped it. `gr_read()` stops
-  before its first request with an `hr_unpriced_model` error. Register the
-  model's prices with `gr_register_model()`, or set
-  `gr_options(allow_unpriced = TRUE)`; then its requests are sent, still
-  count against `max_calls` and `max_tokens_total`, and are priced `NA` in
-  the trace. `gr_mock_client()` and replays are never refused for this, and
-  neither are embedding models with no price. An ellmer chat is priced as
-  the model it was built with, whatever a spec names, so a chat on a model
-  with no registered price is refused too; the README and the
-  `gr_ellmer_client()` example now register its price, and allow a local
-  model to run unpriced.
-
 ## Cache and replay keys
 
-* **`gr_call()` takes a `draw_index`** for the draws of a sampled request: 0,
+* **`hr_call()` takes a `draw_index`** for the draws of a sampled request: 0,
   the default, for an ordinary call, and 1, 2, ... for repeated draws. Above 0
   it is part of the response-cache key, so N identical calls with draw
   indexes 1 to N are N cached replies; before, a cache returned the first
@@ -192,9 +181,9 @@ no longer ships them. You set the prices you pay.
   still read for calls with no draw index: a call that finds nothing under
   its new key is looked up under the old one. The first reply found that way
   in a session warns once for the cache, with class `hr_legacy_key`, and
-  `gr_cache_stats()` has a new column, `legacy_hits`, that counts them. Old
+  `hr_cache_stats()` has a new column, `legacy_hits`, that counts them. Old
   entries are never rewritten, new ones are written under the new key only,
-  and `gr_cache_clear()` removes both.
+  and `hr_cache_clear()` removes both.
 
 * **The replay key is now `harnessr-replay-v2`**, and covers the temperature
   (once the session default is filled in), the output cap asked for and the
@@ -217,7 +206,7 @@ no longer ships them. You set the prices you pay.
   the last reply recorded for its request, or for a draw that was never
   recorded, raises `hr_replay_exhausted`. It used to repeat the last reply,
   so a replay making more calls than the recorded run looked like an exact
-  reproduction. `gr_replay_client(on_exhausted = "flag")` keeps the old
+  reproduction. `hr_replay_client(on_exhausted = "flag")` keeps the old
   behaviour, counted in `$stats()$repeats`. A call with a `draw_index` above
   0 is answered with the reply recorded for that draw, or the k-th reply to
   the request in a recording made without draw indexes.
@@ -276,7 +265,7 @@ move.
   document, and so do `gr_screen()` and `gr_extract()`, whose default recipe
   is `research`: at their defaults their requests and cache keys change for a
   Markdown document with a references heading in its last 60%, so a
-  `gr_cache()` built before this misses for those documents. The golden
+  `hr_cache()` built before this misses for those documents. The golden
   records of the two recipes and the two stages were recorded again. Requests
   under the `"standard"` preset, the default of `answer_document()`, do not
   change.
@@ -355,7 +344,7 @@ move.
   OCR, and no text and no request changes. Without tesseract nothing
   changes.
 
-* `gr_options()` given one named argument whose value is a list now sets that
+* `hr_options()` given one named argument whose value is a list now sets that
   option. It used to read the list as a set of options to restore, which only
   an unnamed list should be.
 
@@ -364,7 +353,7 @@ move.
 * **`max_calls` and `max_cost_usd` now hold exactly.** Every request is
   checked before it is sent, by the call path itself, against what the run
   has spent plus the most the request could cost: its prompt at the input
-  price and its output cap (for a reasoning model, the raised cap `gr_call()`
+  price and its output cap (for a reasoning model, the raised cap `hr_call()`
   sends) at the output price. The prompt is counted with the JSON schema and
   extra body fields the request carries and a few tokens of framing per
   message, then raised by `safety_margin`, since the provider bills for all
@@ -376,7 +365,7 @@ move.
   model's limit stops while it still has headroom a smaller cap would have
   used.
 
-* **A refused request is not a call.** It comes back from `gr_call()` as a
+* **A refused request is not a call.** It comes back from `hr_call()` as a
   failed result with `refused = TRUE` and an error naming the limit, after a
   condition of class `hr_budget_refused` is signalled (catch it to stop
   instead). It adds nothing to the trace's calls, steps or spend; the trace
@@ -389,7 +378,7 @@ move.
   Judges, the ensemble's adjudication, conflict resolution in `extract`,
   context and proposition segmentation, claims, outlines, screening,
   synthesis and embeddings requests all go through the same check, as does
-  any request a custom reader or a script makes with `gr_call()`. The
+  any request a custom reader or a script makes with `hr_call()`. The
   readers no longer check `trace_can_call()` themselves. It is kept for
   custom readers written to the 0.6.0 help page, which still work.
 
@@ -403,8 +392,8 @@ move.
 * **New `hr_governor()`** holds a run's limits: `max_calls`, `max_cost_usd`,
   `max_tokens_total`, `max_output_tokens` (the largest output cap one request may carry; a
   request with a larger one is refused, not cut down), `allowed_models` and
-  `allow_unpriced`. Attach one with the new `gr_trace(governor = )` argument;
-  a trace without one reads the limits from `gr_options()`, as before. The
+  `allow_unpriced`. Attach one with the new `hr_trace(governor = )` argument;
+  a trace without one reads the limits from `hr_options()`, as before. The
   new limits are also options, `max_tokens_total`, `max_output_tokens`,
   `allowed_models` (all `NULL`, off) and `allow_unpriced` (`FALSE`), so every
   trace's config snapshot now lists them. `as_json()` writes a trace's
@@ -422,7 +411,7 @@ move.
   made its 2 calls under `hr_governor(max_calls = 2)` made a third. The calls
   taken off are the ones the governor counts: every recorded request, cache
   hits and embeddings requests included. Without a governor,
-  `gr_options(max_calls =)` is still a limit per document for
+  `hr_options(max_calls =)` is still a limit per document for
   `gr_read_many()` and per stage for the others.
 
 * **A parallel batch cannot pass a limit.** Each worker's items are held to
@@ -438,16 +427,16 @@ move.
 * **Each request step records `params_sent`**, the request as it went out with
   every default resolved: the model, `api`, `base_url`, the output cap
   actually sent (a reasoning model's small cap goes out raised to 2048), the
-  temperature (filled from `gr_options("temperature")`, or `NA` when none was
+  temperature (filled from `hr_options("temperature")`, or `NA` when none was
   sent), the effort, the schema name, and SHA-256 hashes of the schema and of
-  the extra body fields. For a `gr_client()` it is read from the request body
+  the extra body fields. For a `hr_client()` it is read from the request body
   itself. `params` keeps what the caller asked for, as before. Requests,
   response-cache keys and replay keys are unchanged.
 
 * **Steps record `served_model`, `response_id` and `fingerprint`** where the
   provider returns them, beside `model`, which stays the model asked for and
   is what a step is priced and replayed by. None of them enters a cache or
-  replay key. `gr_call()` results carry the same three fields.
+  replay key. `hr_call()` results carry the same three fields.
 
 * **Steps record `attempts`**, the number of requests sent, retries included
   (0 for a reply from a cache or a recording), and `started_utc` and
@@ -460,7 +449,7 @@ move.
   `"tiktoken"` tokenizer, or `"estimated"` with another one. Reasoning and
   cached input tokens the provider reports are kept as `tokens$reasoning` and
   `tokens$cached_input`, parts of `output` and `input` rather than additions.
-  `gr_trace_summary()` gains `tokens_reasoning`, `tokens_cached_in` and
+  `hr_trace_summary()` gains `tokens_reasoning`, `tokens_cached_in` and
   `usage_estimated`, the share of requests whose counts were estimated, and
   `print()` on a trace says that share when it is above zero. A request that
   failed before the provider sent any usage records a `"counted"` zero, and a
@@ -472,17 +461,17 @@ move.
   retried, and a failed one had no provenance.
   `as.data.frame()` on a trace gains `tokens_reasoning`, `tokens_cached_in`
   and `served_model` columns when some request has them, and
-  `gr_trace_cost()` gains `paid_reasoning` and `paid_cached_in`.
+  `hr_trace_cost()` gains `paid_reasoning` and `paid_cached_in`.
 
-* **Cached input can be priced at its own rate.** `gr_register_model()` takes
-  `cached_input_usd`, `gr_estimate_cost()` takes `cached_input_tokens`, and
-  `gr_models()` shows `cached_input_usd_per_1m`. A model with no cached rate
+* **Cached input can be priced at its own rate.** `hr_register_model()` takes
+  `cached_input_usd`, `hr_estimate_cost()` takes `cached_input_tokens`, and
+  `hr_models()` shows `cached_input_usd_per_1m`. A model with no cached rate
   prices cached input as other input, so every built-in model costs what it
   did.
 
-* **Runs record who they are for.** `gr_trace()` takes `system`, `owner`,
+* **Runs record who they are for.** `hr_trace()` takes `system`, `owner`,
   `run_by`, `purpose` and `approved_by`, and the new option
-  `gr_options(actor = list(...))` sets them for every trace; a field named
+  `hr_options(actor = list(...))` sets them for every trace; a field named
   nowhere is `NA`. They are written to a saved trace under `actor` and shown
   by `print()` when set.
 
@@ -558,7 +547,7 @@ and has a walkthrough that says how to test it with `hr_sweep()`.
 
 * `hr_truncate(text, n, keep)` cuts text to `n` tokens and keeps the part
   asked for: the start (`"head"`, the default, which is
-  `gr_truncate_tokens()` itself), the end (`"tail"`), both ends (`"both"`)
+  `hr_truncate_tokens()` itself), the end (`"tail"`), both ends (`"both"`)
   or the units with the highest `scores` (`"scored"`). With a trace, a cut
   writes a `"truncate"` step naming the piece, the part dropped
   (`dropped_part`) and the tokens it held. `hr_context_policy()` states
@@ -610,7 +599,7 @@ and has a walkthrough that says how to test it with `hr_sweep()`.
   the base effort unless it fired a trigger too and a raise is left. A cut
   counts for the stage whose request it was made for. Each raise is an `"effort.escalate"` step of the
   trace and its outcome an `"effort.resolve"` step; `hr_effort_log()` lists
-  them. `gr_call()` takes the policy as its `effort`.
+  them. `hr_call()` takes the policy as its `effort`.
 
 * `gr_read_spec()` gains `effort_mode`. `"escalate"` makes the read's
   `effort` such a policy, starting at `effort` (`"low"` when unset) and
@@ -1157,7 +1146,7 @@ says how to test it with `hr_sweep()`. The settings come to 227 in all.
   adds its calls to that trace when it finishes, as `gr_screen()`,
   `gr_extract()`, `gr_read_many()` and `gr_synthesise()` already did. Before,
   both recorded straight onto the trace they were given, so a review trace
-  that an earlier stage had taken past `gr_options(max_calls =)` or
+  that an earlier stage had taken past `hr_options(max_calls =)` or
   `max_cost_usd =` stopped them before they sent a request, and
   `gr_claims()` returned no claims, marked partial. Pass one trace to every
   stage and its totals are the sum of the stages', with each request counted
@@ -1184,7 +1173,7 @@ says how to test it with `hr_sweep()`. The settings come to 227 in all.
   record how their counts were obtained, such as one saved by an earlier
   version). A recipe is charged for a segmentation it shares with an
   earlier recipe, as it would be run alone, so the column can add up to more
-  than `gr_trace_cost(cmp$trace)`. `usd` is `NA` when a model has no
+  than `hr_trace_cost(cmp$trace)`. `usd` is `NA` when a model has no
   registered price. The columns come after `error` and before `premise`.
 
 * **`gr_compare(correct =)`** takes strings that a right answer contains
@@ -1225,7 +1214,7 @@ says how to test it with `hr_sweep()`. The settings come to 227 in all.
   of 227 rows: the ingest, segment and read schemas (with the entries of
   `cleaner_opts` and `layout_opts` the built-in code reads), the arguments of
   the screening, extraction, synthesis and evaluation functions, and every
-  `gr_options()` option. Each row has its stage, the function that takes it,
+  `hr_options()` option. Each row has its stage, the function that takes it,
   its default, tier, evidence status and source, the first sentence of its
   help, and the guide section that explains how to choose it. It is built
   from the schemas, the option rules, the functions' arguments and the
@@ -1244,11 +1233,11 @@ is stored in the spec only when it is not its default, and a new option is
 recorded in a trace's options, and joins a key, only then. Each setting's help
 says where its default came from; almost none has a measurement behind it.
 
-* **`gr_options()`**: `auto_max_tokens` (50000) and `auto_room_share` (0.5)
+* **`hr_options()`**: `auto_max_tokens` (50000) and `auto_room_share` (0.5)
   set when `answer_document(recipe = "auto")` reads with `"fast"`;
   `reasoning_floor` (2048) is the least output cap sent to a reasoning model,
   and `0` turns the raise off; `output_reserve_share` (0.25) is the share of
-  the window `gr_budget()` reserves for the reply; `near_verbatim_sim` (0.90),
+  the window `hr_budget()` reserves for the reply; `near_verbatim_sim` (0.90),
   `near_verbatim_sim_short` (0.95) and `near_verbatim_short_chars` (40) set
   when the edit-distance matcher scores a quotation `near_verbatim`. A
   non-default `reasoning_floor` joins the response-cache key, and it,
@@ -1377,7 +1366,7 @@ says where its default came from; almost none has a measurement behind it.
 * **New `hr_arm()`** describes one configuration to compare: a function of
   an item and a context that carries the client, a trace of the run alone,
   the governor and the run's `draw_index`, with `ctx$call()` as a shortcut
-  for `gr_call()` that fills in all three. `run` is required. The arm
+  for `hr_call()` that fills in all three. `run` is required. The arm
   records its settings, a version and a hash of its code and settings,
   which is the same in every session and after `saveRDS()`, also for an arm
   built inside a function of yours. The hash covers the values the code
@@ -1410,7 +1399,7 @@ says where its default came from; almost none has a measurement behind it.
   recorded draws, and an arm whose runs come back as one stored reply (the
   same cache entry, a repeated replay, a repeated response id) is refused
   with an error of class `hr_duplicate_draw`. Each draw is also recorded
-  under the arm's name, and `gr_replay_client()` answers an arm only with
+  under the arm's name, and `hr_replay_client()` answers an arm only with
   its own replies, so replaying some of the arms, or the arms in another
   order, gives each arm what it got even when two arms sent the same
   request. The whole benchmark is held to
@@ -1418,7 +1407,7 @@ says where its default came from; almost none has a measurement behind it.
   and counted wrong, and the benchmark warns (class `hr_budget_stopped`)
   with the number of runs stopped, the limits that stopped them, how many
   count against an arm, and the first run stopped. With no governor the
-  limits are `gr_options()`'s, set for one run of a reader (400 calls), and
+  limits are `hr_options()`'s, set for one run of a reader (400 calls), and
   the warning gives the values of the options that stopped runs and, for a
   call, spending or token limit, says to pass a governor sized for the
   benchmark. A reader stopped by its own check before its first request
@@ -1438,7 +1427,7 @@ says where its default came from; almost none has a measurement behind it.
 * `hr_benchmark()` now sets each run's draw index on `ctx$trace`, not only
   on `ctx$call()`. A `gr_read()`, `gr_segment()`, `answer_document()` or
   other stage called with `trace = ctx$trace` sent its requests at draw 0,
-  so under a `gr_cache()` the arm was refused with `hr_duplicate_draw`
+  so under a `hr_cache()` the arm was refused with `hr_duplicate_draw`
   unless it set `ctx$trace$draw_index` itself. Arms no longer need that
   line, and `gr_arm()` no longer sets it. A request given a fixed
   `draw_index` still sends that one, and such an arm is still refused.
@@ -1661,7 +1650,7 @@ requests it sent before, with the same cache keys, and no setting is added.
   a failed request or a reply with no allowed verdict is `"failed"`. One
   order is allowed for grading only. With more than two candidates,
   `orders` above 2 shows cyclic rotations. Requests go through the same
-  path as `gr_call()`, so the governor, a cache keyed with `draw_index` and
+  path as `hr_call()`, so the governor, a cache keyed with `draw_index` and
   the trace all apply, under the labels `judge.<mode>.o<k>`. They are
   recorded in the judge's own trace and their cost in `$judge_cost`, never
   in the trace of the run being judged, which gets a local note pointing at
@@ -1710,7 +1699,7 @@ requests it sent before, with the same cache keys, and no setting is added.
   governor and never folded it in, so its calls and dollars were missing
   from the run's cost, from `usd` in `hr_benchmark()` and from the count
   the benchmark's governor checks, and its requests went
-  out at draw index 0: under a `gr_cache()` every run was handed run 1's
+  out at draw index 0: under a `hr_cache()` every run was handed run 1's
   verdict. Its requests now count against the trace's governor, are folded
   into the trace when the judgement ends, and are sent at the trace's draw
   index and draw scope unless `draw_index` names another. A `governor`
@@ -1822,7 +1811,7 @@ requests it sent before, with the same cache keys, and no setting is added.
   trace, an answer or a list of them as one table, a row per value, with the
   value as text and as a number. A trace object reached twice in the list is
   read once; two separate traces are both read even when they share a
-  `run_id` (two traces made with `gr_trace(run_id = "pilot")` give 2 rows,
+  `run_id` (two traces made with `hr_trace(run_id = "pilot")` give 2 rows,
   not 1).
 
 * **Three readers record a signal.** `iterative` records
@@ -2114,13 +2103,13 @@ hr_register()" section of `vignette("extending")` shows both functions.
   gets the whole map.
 * Reads that look up a module by name, such as running a reader, choosing
   a segmenter's effort or picking an embedder, go through the kind's
-  accessor, and `gr_embed()` looks embedders up the same way. The listings
+  accessor, and `hr_embed()` looks embedders up the same way. The listings
   and the worker snapshot still read the document layer's slots. The core
   calls no document layer function.
-* When an embeddings request fails, `gr_embed()` falls back on the embedder
+* When an embeddings request fails, `hr_embed()` falls back on the embedder
   registered as `"lexical"`, so if you replace `"lexical"` with
   `gr_register_embedder()` your function also serves as the fallback. If
-  your function fails there, `gr_embed()` warns with its error and uses the
+  your function fails there, `hr_embed()` warns with its error and uses the
   built-in hashed lexical vectors.
 
 ## Module contract 0.2
@@ -2157,14 +2146,14 @@ every field that changed.
 
 ## Conformance checks
 
-Nothing here changes a default or adds a setting. `gr_mock_client()` without
+Nothing here changes a default or adds a setting. `hr_mock_client()` without
 `mode` keeps the fields and replies it had, and no request or cache key
 changes. "Checking a module against the contract" in `vignette("extending")`
 shows a mode in use.
 
-* `gr_mock_client()` gains `mode`, which breaks each chat reply the way a
+* `hr_mock_client()` gains `mode`, which breaks each chat reply the way a
   provider can: `"bad_json"` sends a JSON object cut off part way,
-  `"refuse"` sends an empty reply that `gr_call()` reports as failed,
+  `"refuse"` sends an empty reply that `hr_call()` reports as failed,
   `"at_cap"` marks the handler's reply as cut off at the output cap and
   bills the cap (a failed result from the handler comes back as it is),
   and a vector of HTTP status codes such as `c(429, 500, 200)` gives call
@@ -2232,8 +2221,8 @@ shows a mode in use.
   through the `harnessr.api_key` option no longer stays in the worker process
   after its item. A worker started from a session with `OPENAI_API_KEY` set
   has that key from the start and keeps it. A backend handler or
-  `gr_ellmer_client()` that reads the key from the environment still gets
-  it. A batch through `gr_mock_client()` sets no key. Requests and cache keys
+  `hr_ellmer_client()` that reads the key from the environment still gets
+  it. A batch through `hr_mock_client()` sets no key. Requests and cache keys
   do not change.
 
 * A `gr_claims`, `gr_synthesis` or `gr_calibration` you saved with an earlier
@@ -2251,7 +2240,7 @@ shows a mode in use.
   send their requests at the draw index and draw scope of the trace they are
   given. Each records on a trace of its own, which did not carry them, so its
   requests went out at draw index 0 whatever run of a benchmark the trace
-  was: under a `gr_cache()` runs 2 onwards were answered with run 1's reply,
+  was: under a `hr_cache()` runs 2 onwards were answered with run 1's reply,
   and an `hr_benchmark()` arm that called `gr_claims(trace = ctx$trace)` was
   refused for repeating a draw. The items of a parallel `gr_lapply()` batch
   carry the run's draw index and scope the same way. Requests made without a
