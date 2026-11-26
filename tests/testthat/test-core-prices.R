@@ -232,3 +232,40 @@ test_that("price_max_age_days is an option with evidence, kept out of a trace at
   hr_options(price_max_age_days = 90)
   expect_identical(hr_trace()$config$options$price_max_age_days, 90)
 })
+
+test_that("a parallel run gives each price warning once, with the run's own limit", {
+  skip_if_no_future()
+  local_price_warnings()
+  b <- unpriced_backend()
+  path <- tempfile(fileext = ".csv")
+  writeLines(c("id,context_window,max_output,input_usd,output_usd,as_of",
+               "price-test-old,100000,4000,1,2,2025-01"), path)
+  on.exit(unlink(path), add = TRUE)
+  hr_load_models(path)
+  hr_options(verbose = FALSE)
+  item <- function(model) function(i, trace) {
+    hr_call(b$client, paste("item", i), model = model, max_output = 4L, trace = trace)$ok
+  }
+  warned <- list()
+  batch <- function(model) {
+    tr <- hr_trace(governor = hr_governor(max_cost_usd = 5))
+    withCallingHandlers(
+      suppressMessages(harnessr:::gr_lapply(1:6, item(model), parallel = TRUE, workers = 2,
+                                            trace = tr, client = b$client)),
+      warning = function(w) {
+        warned[[length(warned) + 1L]] <<- w
+        invokeRestart("muffleWarning")
+      })
+  }
+  for (k in 1:2) {
+    expect_true(all(unlist(batch(b$model))))
+    expect_true(all(unlist(batch("price-test-old"))))
+  }
+  unpriced <- Filter(function(w) inherits(w, "hr_unpriced_model"), warned)
+  stale <- Filter(function(w) inherits(w, "hr_stale_price"), warned)
+  expect_length(unpriced, 1L)
+  expect_length(stale, 1L)
+  # The limit the user set, not a worker's share of it.
+  expect_match(conditionMessage(unpriced[[1]]), "the $5 spending limit", fixed = TRUE)
+  expect_identical(stale[[1]]$model, "price-test-old")
+})
