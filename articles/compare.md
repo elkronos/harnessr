@@ -1,20 +1,20 @@
 # Comparing methods and settings
 
-Should this corpus be read with `retrieve` or `map_reduce`? Do smaller
-chunks help? Is `top_k = 1` enough? Does the screener need to see more
-of each record? Each of these is a comparison between configurations,
-and each can be answered the same way: build one arm per configuration,
-run them all on the same labelled questions several times, and read the
-report with its intervals.
+Several choices come down to a comparison between configurations:
+`retrieve` against `map_reduce` for a corpus, smaller chunks against
+larger, `top_k = 1` against more, and how much of each record the
+screener sees. You settle each one the same way. Build one arm per
+configuration, run all the arms on the same labelled questions several
+times, and read the report with its intervals.
 
 [`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md)
-explains the machinery: references and splits, arms, scorers,
-benchmarks, reports, judges. This guide puts it to work on five
-comparisons: readers, segmenters and chunk sizes, one setting swept over
-its values, screening settings, and a judge against people’s labels.
-Each runs offline here on a stand-in model, and each ends in a report
-and what it does and does not show. The last section repeats the steps
-on your own documents.
+explains the parts: references and splits, arms, scorers, benchmarks,
+reports and judges. This guide uses them for five comparisons: readers,
+segmenters and chunk sizes, one setting swept over its values, screening
+settings, and a judge against people’s labels. Each runs offline on a
+stand-in model and ends in a report, with what that report shows and
+what it leaves open. The last section repeats the steps on your own
+documents.
 
 ## Setting up
 
@@ -27,11 +27,11 @@ hr_register_model("mock-model", context_window = 128000, max_output = 16384,
                   input_usd = 1, output_usd = 4)
 ```
 
-The stand-in model’s id is `mock-model`; the price gives the benchmarks
-a cost to compare. The corpus is twelve short annual reports. Each has
-six paragraphs, one topic each, and four questions are asked of each
-report. Some sentences share a question’s words without answering it
-(“Export revenue rose with prices”), as real reports do, so ranking
+The stand-in model’s id is `mock-model`, and its price gives each
+benchmark a cost you can compare. The corpus is twelve short annual
+reports. Each has six paragraphs, one topic each, and four questions
+about it. As in real reports, some sentences share a question’s words
+without answering it (“Export revenue rose with prices”), so ranking
 chunks by the question’s words can pick the wrong one:
 
 ``` r
@@ -84,18 +84,18 @@ qa
 #>   hash: c3a742404b80
 ```
 
-The first four reports are the dev split, kept for tuning; the other
-eight are the test split, which every reported comparison is scored on.
-Each report is one cluster, since four questions about one report share
-its quirks.
+The first four reports form the dev split, kept for tuning. The other
+eight form the test split, and every reported comparison is scored on
+it. Each report is one cluster, because its four questions share its
+quirks. For a set of your own,
 [`hr_assign_splits()`](https://elkronos.github.io/harnessr/reference/hr_assign_splits.md)
-draws the split for a set of your own.
+draws the split.
 
-The stand-in reader answers from what it is shown. It finds the sentence
-that answers the question in its prompt and returns it, or
-`NOT_IN_DOCUMENT` when the prompt does not hold it. Like a real model it
-gets worse as its prompt grows: it misses a sentence it was shown with
-probability equal to the prompt’s length in characters over 6000.
+The stand-in reader answers from its prompt. It returns the sentence
+there that answers the question, or `NOT_IN_DOCUMENT` if the prompt
+lacks one. Like a real model, it does worse as its prompt grows: it
+misses a sentence it was shown with probability equal to the prompt’s
+length in characters over 6000.
 
 ``` r
 
@@ -116,11 +116,11 @@ reader <- hr_mock_client(function(messages, params) {
 
 ## Which settings there are
 
-Every setting a reader, segmenter or ingest step takes is declared in a
-schema, with its type, default, range, tier and the evidence behind its
+A schema declares every setting a reader, segmenter or ingest step
+takes, with its type, default, range, tier and the evidence behind its
 default.
 [`gr_settings()`](https://elkronos.github.io/harnessr/reference/gr_settings.md)
-returns the schema; printed, it shows each setting’s tier and evidence
+returns the schema, and its print shows each setting’s tier and evidence
 status:
 
 ``` r
@@ -149,9 +149,9 @@ gr_settings("segment")
 #>   runt_merge                 enum          advanced  untested  backward|both
 ```
 
-`basic` marks the few settings most comparisons vary; the read schema’s
-are `reader`, `model`, `top_k`, `cite` and `verify`.
-[`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) adds the
+The `basic` tier marks the few settings most comparisons vary. In the
+read schema those are `reader`, `model`, `top_k`, `cite` and `verify`.
+[`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) adds each
 default and where it came from:
 
 ``` r
@@ -168,9 +168,9 @@ rs[rs$name %in% c("top_k", "lexical_blend", "bm25_k1"), c("name", "default", "st
 #> 33                                                                                          An even blend, set when the offline path was written.
 ```
 
-Most defaults are `untested`: they were chosen, not measured. That is
-what makes them worth comparing. Any setting in these schemas can be
-given to
+Most defaults are `untested`: someone picked them without measuring
+them, which makes them worth comparing. You can give any setting in
+these schemas to
 [`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md) in
 `settings`, which takes what
 [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
@@ -178,10 +178,10 @@ takes in `...`.
 
 ## The rules every comparison here follows
 
-- **Tune on dev, report on test.** Settings are chosen by looking at dev
-  results, which are never reported. A setting chosen on the test split
-  and then reported on it is fitted to those questions, and its
-  advantage is partly luck.
+- **Tune on dev, report on test.** Choose settings by their dev results,
+  and never report those results. A setting chosen on the test split and
+  then reported on it is fitted to those questions, so part of its
+  advantage is luck.
   [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)
   leaves dev rows out.
 - **At least five runs, and ten when the report asks.** A model asked
@@ -190,18 +190,18 @@ takes in `...`.
   [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
   warns and
   [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)
-  gives no intervals. When run-to-run variance is above 10% of the
-  total, the report’s notes say “use runs = 10”.
-- **One governor for the whole benchmark.** The default limits are for
-  one read (400 calls). Size
+  gives no intervals. If run-to-run variance is above 10% of the total,
+  the report’s notes say “use runs = 10”.
+- **One governor for the whole benchmark.** The default limits fit one
+  read (400 calls). Size
   [`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md)
-  for arms x items x runs x calls per run, and check afterwards how much
-  of it was used.
-- **Intervals, not point estimates.** An arm ahead by 5 points with an
-  interval from -3 to 13 has not been shown to be better.
-- **Know the smallest difference the design can see.**
+  for arms x items x runs x calls per run, and afterwards check how much
+  of it the benchmark used.
+- **Read intervals.** An arm ahead by 5 points with an interval from -3
+  to 13 has not been shown to be better.
+- **Know the smallest difference the design can detect.**
   [`hr_mdd()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md)
-  gives it before anything is run.
+  gives it before you run anything.
 
 The test split here is 32 questions in 8 reports. If the two arms
 disagree on about 15% of questions and questions in one report are
@@ -218,17 +218,20 @@ hr_n_needed(0.05, m = 4, icc = 0.1, p_disc = 0.15)
 #>   n_eff 477 effective items; DE 1.3, so 624 items in 156 clusters of 4
 ```
 
-So no comparison below is designed to detect a difference smaller than
-about 25.5 points, and a 5 point difference would need about 624
-questions in 156 reports. A difference the report calls uncertain at
-this size is not evidence that the arms are the same.
+No comparison below is designed to detect a difference smaller than
+about 25.5 points. A 5 point difference would need about 624 questions
+in 156 reports. At this size, a difference the report calls uncertain is
+not evidence that the arms are the same.
 
 ## Readers on the same questions
 
-Three readers, each with the segmentation it is usually paired with:
-`stuff` sends the whole report in one request, `map_reduce` reads
-60-token chunks one by one and merges the answers, and `retrieve` sends
-the two 60-token chunks of sentences that rank highest:
+Three readers run here, each with the segmentation it is usually paired
+with:
+
+- `stuff` sends the whole report in one request.
+- `map_reduce` reads 60-token chunks one by one and merges the answers.
+- `retrieve` sends the two 60-token chunks of sentences that rank
+  highest.
 
 ``` r
 
@@ -252,12 +255,12 @@ hr_trace_summary(attr(b_read, "trace"))[, c("calls", "tokens_in", "tokens_out")]
 #> 1  1920    304730      26029
 ```
 
-Each arm runs 10 times, not 5. With `runs = 5` the report’s notes said
+Each arm runs 10 times. With `runs = 5` the report’s notes said
 “Run-to-run variance is 81% of the total, above 10%: use runs = 10.”,
-and the rule below is to do what that line says. The governor allows 8
-calls per run for each of 3 arms, 32 questions and 10 runs, 7,680 in
-all, which is more than `map_reduce` needs on reports this short; the
-trace shows 1,920 used.
+and the rule on runs is to follow that note. The governor allows 8 calls
+per run for each of 3 arms, 32 questions and 10 runs: 7,680 in all. That
+is more than `map_reduce` needs on reports this short, and the trace
+records 1,920 calls.
 
 ``` r
 
@@ -284,49 +287,54 @@ r_read$cost[, c("arm", "usd_per_item", "tokens_per_item")]
 #> 3   retrieve     0.000214             178
 ```
 
-`map_reduce` has the highest estimate, 0.906 against 0.894 for
+`map_reduce` has the highest estimate, 0.906, against 0.894 for
 `retrieve` and 0.847 for `stuff`. The intervals below do not show that
-it is more accurate than either. `contrasts` gives each pair its own 95%
-interval. For `stuff` against `map_reduce` that interval, -0.114 to
--0.005, just excludes 0, but three pairs were compared, and with three
-intervals at 95% each the chance that at least one excludes 0 by luck is
-higher than 5%. `simultaneous` gives intervals that hold for all three
-pairs at once (max-t). Its `critical` column is the multiplier of the
-standard error, 2.92 here, larger than the one a single pair’s interval
-uses, so each interval is wider. There the same difference runs from
--0.127 to 0.008, which includes 0. So this design has not shown that
-`stuff` is worse. When more than two arms are compared and no one pair
-was named before the run, read `simultaneous`.
+it is more accurate than either.
 
-`map_reduce` against `retrieve` is 0.013, from -0.091 to 0.116 at once:
-no difference is shown. The minimum detectable difference is 25.5
-points: a true difference that size would be shown 80% of the time. A
-true difference of 1 point would be shown much less often, though not
-never, so this result does not say the two readers are equally accurate.
-The cost difference is large: `map_reduce` sends 588 tokens per question
-against 178 for `retrieve`, and costs 3.5 times as much. Whether an
-unproven point is worth that is a decision the report informs and does
-not make. The stand-in is built to miss more in long prompts, so these
-figures say nothing about any real model; they show how to read the
-report.
+`contrasts` gives each pair its own 95% interval. For `stuff` against
+`map_reduce` that interval, -0.114 to -0.005, narrowly excludes 0. But
+three pairs were compared, and with three intervals at 95% each, the
+chance that at least one excludes 0 by luck is higher than 5%.
+
+`simultaneous` gives intervals that hold for all three pairs at once
+(max-t). Its `critical` column is the multiplier of the standard error,
+2.92 here. A single pair’s interval uses a smaller one, so each
+simultaneous interval is wider. There the same difference runs from
+-0.127 to 0.008, which includes 0, and this design has not shown that
+`stuff` is worse. If you compare more than two arms and named no one
+pair before the run, read `simultaneous`.
+
+`map_reduce` against `retrieve` is 0.013, from -0.091 to 0.116 at once,
+so no difference is shown. The minimum detectable difference is 25.5
+points: this design would show a true difference of that size 80% of the
+time. It would show a true difference of 1 point much less often, though
+not never, so this result does not say the two readers are equally
+accurate.
+
+The cost gap is large. `map_reduce` sends 588 tokens per question
+against 178 for `retrieve`, and costs 3.5 times as much. You decide
+whether an unproven point is worth that; the report informs the decision
+and does not make it. The stand-in is built to miss more in long
+prompts, so these figures say nothing about any real model. They show
+how to read the report.
 
 ## Segmenters and chunk sizes
 
-A segmenter is tested first for nothing, then with a model. Two free
-measures come before any benchmark.
+Test a segmenter first at no cost, then with a model. Two free measures
+come before any benchmark.
 
 ### Boundaries against the topics
 
-Each report’s six paragraphs are its topics, so the paragraphs are a
-reference segmentation.
+Each report’s six paragraphs are its topics, so the paragraphs serve as
+a reference segmentation.
 [`gr_seg_boundaries()`](https://elkronos.github.io/harnessr/reference/gr_seg_boundaries.md)
-maps a segmentation to sentence boundaries, and
+maps a segmentation to sentence boundaries.
 [`gr_seg_pk()`](https://elkronos.github.io/harnessr/reference/gr_seg_pk.md)
 and
 [`gr_seg_windowdiff()`](https://elkronos.github.io/harnessr/reference/gr_seg_pk.md)
 measure how far a chunking’s boundaries fall from the reference’s: 0
-means the same boundaries, and lower is better. The settings form a grid
-of three segmenters at two sizes:
+means the same boundaries, and lower is better. The grid crosses three
+segmenters with two sizes:
 
 ``` r
 
@@ -353,22 +361,24 @@ cbind(seg_grid["name"], t(mapply(boundary_error, seg_grid$method, seg_grid$max_t
 #> paragraph.1 paragraph_80 0.278      0.278
 ```
 
-A paragraph here is about 30 tokens, so at 40 tokens the paragraph
+A paragraph here is about 30 tokens. At 40 tokens the paragraph
 segmenter makes most chunks one paragraph and has the lowest error, Pk
 0.194. At 80 tokens it packs two paragraphs into a chunk and misses the
 boundary between them (0.278). The sentence segmenter packs sentences
-across paragraph ends and does worst, 0.722 at 40 tokens, worse than
-fixed windows (0.444), which ignore the text. The two measures differ
-only for `paragraph_40` (0.194 and 0.222): WindowDiff also counts a
-window in which both have a boundary but not the same number. Both say
-where chunk edges fall, not whether a reader will find the answer.
+across paragraph ends and does worst: 0.722 at 40 tokens, worse than
+fixed windows (0.444), which ignore the text.
+
+The two measures differ only for `paragraph_40` (0.194 and 0.222),
+because WindowDiff also counts a window in which both have a boundary
+but not the same number. Both measure where chunk edges fall. Neither
+tells you whether a reader will find the answer.
 
 ### Whether the answer is in the chunks retrieved
 
 [`gr_seg_recall()`](https://elkronos.github.io/harnessr/reference/gr_seg_recall.md)
-ranks each segmentation’s chunks for each question as the `retrieve`
-reader does and counts the questions whose answer is in the first `k`
-chunks. It calls no model with the lexical embedder:
+ranks each segmentation’s chunks for each question the way the
+`retrieve` reader does, then counts the questions whose answer is in the
+first `k` chunks. With the lexical embedder it calls no model:
 
 ``` r
 
@@ -387,17 +397,18 @@ rec[rec$k == 1, c("segmenter", "hits", "questions", "recall", "no_chunk", "chunk
 ```
 
 With one chunk retrieved, four settings put the answer first for 12 of
-the 16 dev questions, and `fixed_40` and `sentence_80` for 8. `no_chunk`
-is 0 throughout, so no chunk edge cut an answer in two: the misses are
-in the ranking, where a chunk that shares the question’s words (such as
-“Export revenue rose with prices”) can outrank the one that answers it.
-`attr(rec, "ranks")` gives the rank of the answering chunk for every
-question. Neither measure called a model.
+the 16 dev questions, and `fixed_40` and `sentence_80` do so for 8.
+`no_chunk` is 0 throughout, so no chunk edge cut an answer in two. The
+misses come from the ranking: a chunk that shares the question’s words
+(such as “Export revenue rose with prices”) can outrank the one that
+answers it. `attr(rec, "ranks")` gives the rank of the answering chunk
+for every question. Neither measure called a model.
 
 ### A grid of arms on dev, then one comparison on test
 
-The same grid becomes arms, one per row, each the `retrieve` reader with
-`top_k = 1`, and runs on the dev split:
+Next the same grid becomes arms, one per row. Each arm is the `retrieve`
+reader with `top_k = 1` and that row’s segmenter and size, and the arms
+run on the dev split:
 
 ``` r
 
@@ -423,14 +434,13 @@ b_seg_dev
 #>   Descriptive only: accuracy is the mean over runs within each item, then over labelled items, with no interval.
 ```
 
-The dev column is the only accuracy printed, and
+The print shows accuracy only in the dev column, and
 [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)
-would refuse these rows. On dev `paragraph_40` scores highest, 0.725,
-just above `sentence_40` at 0.713, and the two arms whose recall at 1
+would refuse these rows. On dev, `paragraph_40` scores highest at 0.725,
+narrowly above `sentence_40` at 0.713. The two arms whose recall at 1
 was 0.50 score lowest (0.475 and 0.500). The best of six close dev
-scores is partly luck, which is why it is confirmed on test. The
-comparison there is with the paragraph segmenter at 80 tokens, the other
-size of the same segmenter:
+scores is partly luck, so you confirm it on test. There it faces the
+paragraph segmenter at 80 tokens, the other size of the same segmenter:
 
 ``` r
 
@@ -447,19 +457,19 @@ r_seg$contrasts[, c("arm1", "arm2", "estimate", "lower", "upper")]
 #> 1 paragraph_40 paragraph_80    0.131 0.0132 0.249
 ```
 
-This benchmark also runs 10 times: at 5 runs its notes said run-to-run
-variance was 15% of the total. On test, `paragraph_40` scores 0.834 and
-`paragraph_80` 0.703, and the difference of 0.131 has an interval from
-0.013 to 0.249, which excludes 0. It can be reported because it is one
-contrast, and both arms were chosen on dev before their test results
-were seen. It still carries the width of 8 reports: the gain could be
-anything from 1 to 25 points.
+This benchmark also runs 10 times, since at 5 runs its notes put
+run-to-run variance at 15% of the total. On test, `paragraph_40` scores
+0.834 and `paragraph_80` 0.703. The difference of 0.131 has an interval
+from 0.013 to 0.249, which excludes 0. You can report it because it is
+one contrast, and both arms were chosen on dev before anyone saw their
+test results. The interval still has the width that 8 reports allow: the
+gain could be anything from 1 to 25 points.
 
 ## One setting swept over its values
 
-`top_k` is how many chunks `retrieve` sends. More chunks make it
-likelier the answer is among them and the prompt longer. The sweep runs
-on dev:
+`top_k` sets how many chunks `retrieve` sends. More chunks raise the
+chance that the answer is among them, and they make the prompt longer.
+The sweep runs on dev:
 
 ``` r
 
@@ -480,9 +490,9 @@ b_k_dev
 #>   Descriptive only: accuracy is the mean over runs within each item, then over labelled items, with no interval.
 ```
 
-`top_k = 2` is highest on dev, 0.950. `top_k = 1` misses the questions
-whose answer ranks second, and `top_k = 4` gives the stand-in a longer
-prompt, which it reads worse. On test the choice is compared with
+`top_k = 2` is highest on dev, at 0.950. `top_k = 1` misses the
+questions whose answer ranks second. `top_k = 4` gives the stand-in a
+longer prompt, which it reads worse. On test the chosen value faces
 `top_k = 4`, the value nearer the default of 6:
 
 ``` r
@@ -502,24 +512,26 @@ r_k$cost[, c("arm", "usd_per_item", "tokens_per_item")]
 
 With 10 runs (at 5, the notes put run-to-run variance at 79% of the
 total), `top_k = 2` is 6.9 points more accurate than `top_k = 4` on
-test, with an interval from 1.8 to 12.0 points, and sends 155 tokens per
-question instead of 213. The difference is far below the 25.5-point
-minimum detectable difference above, and the interval still excludes 0.
-That is not a contradiction. The 25.5 points is the true difference this
+test. The interval runs from 1.8 to 12.0 points, and `top_k = 2` sends
+155 tokens per question instead of 213.
+
+The difference is far below the 25.5-point minimum detectable difference
+above, and the interval still excludes 0. The two figures do not
+contradict each other. The 25.5 points is the true difference this
 design would detect 80% of the time, on an assumed disagreement of 15%
-and a correlation of 0.1; it is not the width of an interval and not a
-floor under what can be shown. A smaller true difference is detected
+and a correlation of 0.1. It is neither the width of an interval nor a
+floor under what can be shown: a smaller true difference is detected
 less often, not never. The interval rests on what these two arms did.
 Plan with values measured in a pilot on dev, and read the result from
 the report.
 
 ## Screening settings
 
-An arm can be any function, so a screening setting is compared the same
-way. Here 16 records of hand-hygiene studies are screened for randomised
-comparisons. Every record opens with the same background, and the
-sentence that settles it comes in the second, third or fourth sentence,
-so a screener shown too little of a record cannot decide:
+An arm can be any function, so you compare a screening setting the same
+way. Here a screener checks 16 records of hand-hygiene studies for
+randomised comparisons. Every record opens with the same background, and
+the sentence that settles it comes second, third or fourth, so a
+screener shown too little of a record cannot decide:
 
 ``` r
 
@@ -550,10 +562,10 @@ screens <- hr_reference(setNames(as.list(paths), sprintf("s%02d", seq_len(n))),
                         cluster = sprintf("batch%d", rep(1:4, each = 4)), split = "test")
 ```
 
-The stand-in screener decides from the allocation sentence when it is in
-the excerpt it was shown, and says `unclear` otherwise. One arm per
-value of `screen_tokens`, the cap on what the screener is shown; each
-run screens one record through
+The stand-in screener decides from the allocation sentence if the
+excerpt it was shown holds that sentence, and says `unclear` otherwise.
+Each value of `screen_tokens`, the cap on what the screener is shown,
+gets one arm. Each run screens one record through
 [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md),
 on the run’s trace and at its draw index:
 
@@ -598,23 +610,25 @@ r_scr$cost[, c("arm", "usd_per_item", "tokens_per_item")]
 ```
 
 At 40 tokens the allocation sentence fits in the excerpt for 3 of the 16
-records, and the screener says `unclear` about the other 13: accuracy
+records, and the screener says `unclear` about the other 13. Accuracy is
 0.188, with an interval from 0.059 to 0.460, against 1.000 at 80 tokens.
-That interval, 0.714 to 1.000, is Korn and Graubard’s, one-sided because
-every run was right. The cap saves little, 352 tokens per record against
-363, since the instructions and criteria are most of each request. An
-`unclear` decision is counted wrong here. It is not an exclusion, since
-a person settles it, but it costs that person a look; a scorer that
-counts it another way is a few lines with
+That second interval, 0.714 to 1.000, is Korn and Graubard’s, one-sided
+because every run was right. The cap saves little, 352 tokens per record
+against 363, since the instructions and criteria are most of each
+request.
+
+This guide counts an `unclear` decision as wrong. It is not an
+exclusion, since a person settles it, but it costs that person a look. A
+scorer that counts it another way takes a few lines with
 [`hr_scorer()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md).
 
 ## A judge against people’s labels
 
-Some outputs need a judge, and a judge is a model whose decisions have
-to be checked against people before its scores mean anything. A pairwise
+Some outputs need a judge. A judge is a model, and you check its
+decisions against people before its scores mean anything. A pairwise
 judge says which of two texts answers better. Its labels come from a
-pairwise sheet: two texts per row, in an order drawn for that row, with
-the order kept in an opaque key so that the person cannot tell which
+pairwise sheet: two texts per row, in an order drawn for that row. An
+opaque key keeps the order, so the person labelling cannot tell which
 text is which candidate.
 
 Here 180 pairs set the right sentence against a wrong one (the 2026
@@ -650,8 +664,8 @@ head(sheet[, c("item_id", "text_1", "text_2", "order_key")], 3)
 ```
 
 A person fills `preferred` with 1, 2 or tie for each row as shown. Here
-the filling is simulated: the text with the 2024 figure is preferred,
-and two right texts are a tie.
+the code below simulates the filling: the text with the 2024 figure is
+preferred, and two right texts are a tie.
 
 ``` r
 
@@ -669,13 +683,14 @@ table(shown_first = labels$shown_first, preferred = labels$preferred)
 ```
 
 [`gr_read_labels()`](https://elkronos.github.io/harnessr/reference/gr_read_labels.md)
-turns each answer back into candidate order with the key: `preferred` is
-`A`, `B` or `tie` whichever text was shown first. A key that was edited,
-lost or pasted onto another row is an error of class `gr_bad_labels`.
+uses the key to turn each answer back into candidate order, so
+`preferred` is `A`, `B` or `tie` whichever text was shown first. A key
+that was edited, lost or pasted onto another row is an error of class
+`gr_bad_labels`.
 
 The judge sees each pair in both orders. This stand-in judge prefers the
-text with the 2024 figure but, a quarter of the time, simply picks
-whichever text it was shown first:
+text with the 2024 figure, but a quarter of the time it picks whichever
+text it was shown first:
 
 ``` r
 
@@ -704,8 +719,8 @@ table(verdicts, useNA = "ifany")
 A verdict that changes with the order is `unresolved`, recorded as `NA`.
 With `positive = "A"`,
 [`hr_judge_validate()`](https://elkronos.github.io/harnessr/reference/hr_judge_validate.md)
-measures how well the judge finds the pairs where candidate A is better;
-a tie and a B both count as negative:
+measures how well the judge finds the pairs where candidate A is better.
+A tie and a B both count as negative:
 
 ``` r
 
@@ -722,13 +737,13 @@ v_pair
 ```
 
 The judge finds 0.767 of the 60 pairs where people preferred A, with an
-interval from 0.646 to 0.856, and never prefers A where they did not
+interval from 0.646 to 0.856. It never prefers A where they did not
 (specificity 1.000). Its swap inconsistency is 0.322: on 58 of 180 pairs
-the verdict changed with the order. Those count as not preferring A,
-which is how a scorer would count them, and they are why sensitivity is
-low; a judge that changes its mind on a third of pairs needs a better
-rubric or model before its scores are used. With `positive = "A"` a tie
-is negative, so a judge that calls a tie where people preferred A has
+the verdict changed with the order. Those pairs count as not preferring
+A, as a scorer would count them, and they are why sensitivity is low. A
+judge whose verdict changes on a third of pairs needs a better rubric or
+model before you use its scores. With `positive = "A"` a tie is
+negative, so a judge that calls a tie where people preferred A has
 missed it.
 
 ### When the judge is the model it grades
@@ -736,11 +751,11 @@ missed it.
 A model grading its own answers can favour them.
 [`hr_scorer_judge()`](https://elkronos.github.io/harnessr/reference/hr_scorer_judge.md)
 takes the judge’s model in `judge_model` (the configuration’s by
-default), and
+default).
 [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
 marks each run whose requests went to that same model in `self_judged`.
-Nothing is refused, and the report says so. Here the grade judge runs on
-`mock-model`, the model the arm reads with; its validation record is
+It refuses no run, and the report says so. Here the grade judge runs on
+`mock-model`, the model the arm reads with. Its validation record is
 simulated, as in
 [`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md):
 
@@ -772,54 +787,56 @@ cat(hr_report(judged, B = 200)$notes, sep = "\n")
 #> The frontier share (how often an arm is on the cost-accuracy frontier over resamples) is an extension, not a published standard.
 ```
 
-All 320 runs, 32 questions times 10, are marked `self_judged`, and the
+All 320 runs (32 questions times 10) are marked `self_judged`, and the
 first note says so. At 5 runs the notes put run-to-run variance at 82%
-of the total and asked for 10, so this benchmark runs 10 times; at 10
-the notes no longer ask for more.
+of the total and asked for 10, so this benchmark runs 10 times. At 10
+runs the notes no longer ask for more.
 
-`judge_model = "mock-judge"` would mark the same runs `FALSE`, and a run
-with no model request is `NA`. The match is exact, so give the served
-model id when the provider names its model differently from the one
-asked for.
+`judge_model = "mock-judge"` would mark the same runs `FALSE`. A run
+with no model request is `NA`. The match is exact: if the provider names
+its model differently from the one you asked for, give the served model
+id.
 
 ## Reading a comparison honestly
 
-The five comparisons above end in reports, and each has the same limits.
+Each of the five comparisons above ends in a report, and the reports
+share the same limits.
 
 - **Read the interval of the difference, not the two accuracies.** A
   contrast whose interval covers 0 has not shown a difference. With more
   than two arms, read `simultaneous` unless one pair was named before
   the run.
-- **Hold the result against the minimum detectable difference.** At 32
-  questions in 8 reports, a real gain of 5 points would usually be
-  missed.
+- **Compare the result with the minimum detectable difference.** At 32
+  questions in 8 reports, this design would usually miss a real gain of
+  5 points.
   [`hr_n_needed()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md)
-  says how many questions would show it.
+  gives the number of questions that would show it.
 - **Report only test results.** The grids and sweeps above were read on
-  dev, one setting was chosen there, and only that setting and one
-  comparator were run on test: `paragraph_40` against `paragraph_80`,
-  and `top_k = 2` against `top_k = 4`. Reporting the best of six dev
-  arms as if it were one planned comparison overstates it.
-- **Five runs is the minimum.** When the report’s notes say run-to-run
-  variance is more than 10% of the total, use 10. The reader, segmenter,
-  `top_k` and judge benchmarks on test all said so at 5 runs (81%, 15%,
-  79% and 82%), so they run 10 times.
+  dev. One setting was chosen there, and only that setting and one
+  comparator ran on test: `paragraph_40` against `paragraph_80`, and
+  `top_k = 2` against `top_k = 4`. If you report the best of six dev
+  arms as if it were one planned comparison, you overstate it.
+- **Five runs is the minimum.** If the report’s notes say run-to-run
+  variance is more than 10% of the total, use 10. At 5 runs the notes
+  for the reader, segmenter, `top_k` and judge benchmarks on test all
+  said so (81%, 15%, 79% and 82%), so those benchmarks run 10 times.
 - **Size the governor for the whole benchmark** and compare its limit
   with the calls the trace records. A run stopped by a limit is counted
   wrong.
-- **The free measures are not the outcome.** Pk, WindowDiff and recall
-  at k say why an arm may do well; only the benchmark says whether it
+- **Treat the free measures as clues.** Pk, WindowDiff and recall at k
+  suggest why an arm may do well. Only the benchmark shows whether it
   does.
-- **A judge’s scores are as good as its validation.** Validate it
-  against blind labels, say when it graded its own model, and correct
-  judge-scored accuracy with
+- **Trust a judge’s scores only as far as its validation.** Validate the
+  judge against blind labels, say when it graded its own model, and
+  correct judge-scored accuracy with
   [`hr_judge_ppi()`](https://elkronos.github.io/harnessr/reference/hr_judge_ppi.md).
 
 ## On your own documents
 
-The same steps on real documents and a real model. Nothing here runs
-when the guide is built. Results go to a directory you name; this uses
-the per-user data directory, never the package’s own folder:
+Here are the same steps on real documents with a real model. Nothing in
+this section runs when the guide is built. Results go to a directory you
+name. This example uses the per-user data directory, never the package’s
+own folder:
 
 ``` r
 
@@ -868,7 +885,7 @@ saveRDS(test, file.path(out, "test-bench.rds"))
 writeLines(as_json(rpt), file.path(out, "test-report.json"))
 ```
 
-`max_calls` and `max_cost_usd` above are examples: set them from the
+`max_calls` and `max_cost_usd` above are examples. Set them from the
 number of arms, test questions, runs and calls per run
 ([`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md)
 lists each reader’s calls), with room to spare.

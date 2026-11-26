@@ -90,23 +90,23 @@
     
     
 <p>A model reads a long document in pieces, called <em>chunks</em>, and
-chunking decides what it can see together. A figure in one chunk and the
-sentence that explains it in the next may never be read side by side.
-This guide covers the nine ways harnessr cuts a document, the settings
-every one of them shares, and how to compare chunkings before you pay
-for any reading.</p>
-<p>Six of the nine segmenters make no model calls, and a seventh makes
-none by default, so you can try them for nothing.
+the chunking decides what it sees together. Put a figure in one chunk
+and the sentence that explains it in the next, and the model may never
+read them side by side. This guide covers the nine ways harnessr cuts a
+document, the settings all nine share, and how to compare chunkings
+before you pay for any reading.</p>
+<p>Six of the nine segmenters make no model calls. A seventh makes none
+by default. At their defaults, you can try all seven for nothing.
 <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> introduces the package and the ideas
-used here, and <code><a href="../articles/ingest.html">vignette("ingest")</a></code> covers the step before
-this one.</p>
+this guide uses, and <code><a href="../articles/ingest.html">vignette("ingest")</a></code> covers the step
+before this one.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/harnessr" class="external-link">harnessr</a></span><span class="op">)</span></span>
 <span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span></code></pre></div>
-<p><code>embedder = "lexical"</code> makes the one segmenter that embeds
-text, <code>semantic</code>, use hashed bag-of-words vectors rather than
-an embeddings endpoint, so this guide runs offline and gives the same
-chunks every time.</p>
+<p>Only one segmenter embeds text: <code>semantic</code>. With
+<code>embedder = "lexical"</code> it uses hashed bag-of-words vectors
+instead of an embeddings endpoint, so this guide runs offline and gives
+the same chunks every time.</p>
 <div class="section level2">
 <h2 id="what-segmentation-produces">What segmentation produces<a class="anchor" aria-label="anchor" href="#what-segmentation-produces"></a>
 </h2>
@@ -137,14 +137,20 @@ from:</p>
 <span><span class="co">#&gt; 7        7     84   NA                                    Outlook       NA</span></span>
 <span><span class="co">#&gt; 8        8     39   NA                                 References       17</span></span></code></pre></div>
 <p><code>page</code> is <code>NA</code> here because the example is
-Markdown, which has no pages; a PDF fills it in. <code>block_id</code>
-is <code>NA</code> on a chunk built from several blocks, and so is
-<code>page</code> on a chunk that runs from one page onto the next. A
-chunk that is not from one place says so rather than naming the first
-place it touches. This provenance is what <code>ans$evidence</code>
-reports for every chunk an answer rests on.</p>
+Markdown, which has no pages. A PDF fills it in. Two other cases also
+give <code>NA</code>:</p>
+<ul>
+<li>
+<code>block_id</code> on a chunk built from several blocks;</li>
+<li>
+<code>page</code> on a chunk that runs from one page onto the
+next.</li>
+</ul>
+<p>A chunk that spans places gets <code>NA</code> instead of the first
+place it touches. <code>ans$evidence</code> reports this provenance for
+every chunk an answer rests on.</p>
 <p>You rarely call <code><a href="../reference/gr_segment.html">gr_segment()</a></code> yourself.
-<code><a href="../reference/answer_document.html">answer_document()</a></code> does it, using the <code>segment</code>
+<code><a href="../reference/answer_document.html">answer_document()</a></code> calls it with the <code>segment</code>
 part of a recipe:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_recipe.html">gr_recipe</a></span><span class="op">(</span><span class="st">"survey"</span><span class="op">)</span><span class="op">$</span><span class="va">segment</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"method"</span>, <span class="st">"max_tokens"</span>, <span class="st">"overlap_tokens"</span><span class="op">)</span><span class="op">]</span></span>
@@ -156,8 +162,8 @@ part of a recipe:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $overlap_tokens</span></span>
 <span><span class="co">#&gt; [1] 0</span></span></code></pre></div>
-<p>To change it, build a recipe of your own with
-<code>gr_recipe(segment = list(...))</code>;
+<p>To change it, build your own recipe with
+<code>gr_recipe(segment = list(...))</code>.
 <code><a href="../articles/readers.html">vignette("readers")</a></code> covers recipes.</p>
 </div>
 <div class="section level2">
@@ -247,8 +253,8 @@ breaks:</p>
 </tr>
 </tbody>
 </table>
-<p>The cost and client columns come from the registry, so you can check
-them rather than trust them:</p>
+<p>The cost and client columns are read from the registry, so you can
+check them yourself:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_segmenters.html">gr_segmenters</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"cost"</span>, <span class="st">"needs_client"</span>, <span class="st">"calls"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;          name      cost needs_client               calls</span></span>
@@ -263,25 +269,26 @@ them rather than trust them:</p>
 <span><span class="co">#&gt; 9  structural      free        FALSE</span></span></code></pre></div>
 <p><code>paragraph</code> is the default. It packs the author’s
 paragraphs, in order, into chunks up to the cap. <code>sentence</code>
-packs sentences instead, which gives more, smaller chunks with cleaner
-edges. <code>structural</code> never lets a chunk cross a heading, and
-by default (<code>prefix_section = TRUE</code>) starts every chunk with
-its section’s heading, so the fourth chunk of a long “Methods” section
-still says it is about methods. When the extractor found no sections,
+packs sentences instead, for more, smaller chunks with cleaner
+edges.</p>
+<p><code>structural</code> never lets a chunk cross a heading. By
+default (<code>prefix_section = TRUE</code>) it also starts every chunk
+with its section’s heading, so the fourth chunk of a long “Methods”
+section still names its subject. If the extractor found no sections,
 <code>structural</code> finds headings itself: a Markdown <code>#</code>
-line, or a short line that is numbered or written in capitals.
-<code>page</code> makes one chunk per page, splitting only a page too
-long for the cap, and says so when it does.</p>
+line, or a short line that is numbered or written in capitals.</p>
+<p><code>page</code> makes one chunk per page. It splits only a page too
+long for the cap, and prints a message when it does.</p>
 <p><code>fixed</code> cuts the text into windows of equal size and
-ignores its structure, which makes it the baseline to measure the others
-against. <code>recursive</code> splits on the strongest separator that
-still gives pieces under the cap: by default blank lines, then line
-breaks, then sentence ends, semicolons, commas and spaces. Set your own
-cascade, strongest first, with <code>separators</code>.</p>
-<p><code>fixed</code> and <code>recursive</code> work on the whole
-document joined into one string, by design, so their chunks carry no
-page or section. That is the cost of ignoring structure, and it is
-reported as <code>NA</code> rather than guessed at:</p>
+ignores its structure, so it serves as the baseline for the others.
+<code>recursive</code> splits on the strongest separator that still
+gives pieces under the cap. By default the cascade runs from blank lines
+to line breaks, then sentence ends, semicolons, commas and spaces. Set
+your own cascade, strongest first, with <code>separators</code>.</p>
+<p>By design, <code>fixed</code> and <code>recursive</code> work on the
+whole document joined into one string, so their chunks carry no page or
+section. That is the cost of ignoring structure. harnessr reports it as
+<code>NA</code> instead of guessing:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fx</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_segment.html">gr_segment</a></span><span class="op">(</span><span class="va">doc</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"fixed"</span>, max_tokens <span class="op">=</span> <span class="fl">120</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">fx</span><span class="op">$</span><span class="va">chunks</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"chunk_id"</span>, <span class="st">"page"</span>, <span class="st">"section"</span>, <span class="st">"block_id"</span><span class="op">)</span><span class="op">]</span></span>
@@ -289,49 +296,52 @@ reported as <code>NA</code> rather than guessed at:</p>
 <span><span class="co">#&gt; 1        1   NA    &lt;NA&gt;       NA</span></span>
 <span><span class="co">#&gt; 2        2   NA    &lt;NA&gt;       NA</span></span>
 <span><span class="co">#&gt; 3        3   NA    &lt;NA&gt;       NA</span></span></code></pre></div>
-<p>The last three segmenters, <code>semantic</code>,
-<code>contextual</code> and <code>proposition</code>, are covered below,
-under the settings and model calls they add.</p>
+<p>The sections below cover the last three segmenters,
+<code>semantic</code>, <code>contextual</code> and
+<code>proposition</code>, with the settings and model calls they
+add.</p>
 </div>
 <div class="section level2">
 <h2 id="when-a-segmenter-cannot-run-as-asked">When a segmenter cannot run as asked<a class="anchor" aria-label="anchor" href="#when-a-segmenter-cannot-run-as-asked"></a>
 </h2>
-<p>A segmenter that cannot do what was asked falls back to one that can,
-warns, and records the change. <code>page</code> on a source with no
-page numbers falls back to <code>paragraph</code>:</p>
+<p>If a segmenter cannot do what you asked, harnessr falls back to one
+that can, warns, and records the change. <code>page</code> on a source
+with no page numbers falls back to <code>paragraph</code>:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_segment.html">gr_segment</a></span><span class="op">(</span><span class="va">doc</span>, <span class="st">"page"</span><span class="op">)</span></span>
 <span><span class="va">pg</span><span class="op">$</span><span class="va">method</span></span>
 <span><span class="co">#&gt; [1] "page-&gt;paragraph"</span></span></code></pre></div>
-<p><code>semantic</code> without a client falls back to
-<code>paragraph</code>, and <code>proposition</code> without one falls
-back to <code>sentence</code>. The fallback shows in
-<code>$method</code> (<code>"semantic-&gt;paragraph"</code>,
+<p>Without a client, <code>semantic</code> falls back to
+<code>paragraph</code> and <code>proposition</code> to
+<code>sentence</code>. The fallback shows in <code>$method</code>
+(<code>"semantic-&gt;paragraph"</code>,
 <code>"proposition-&gt;sentence"</code>) and in the <code>method</code>
 column of <code><a href="../reference/gr_chunk_stats.html">gr_chunk_stats()</a></code>, so a comparison never reports a
-chunking that did not run. <code>contextual</code> keeps its name when
+chunking that did not run.</p>
+<p><code>contextual</code> keeps its name when
 <code>context_source = "llm"</code> has no client, because only the
-source of its context lines changed; <code>$extra$context_source</code>
-records <code>"metadata"</code>, the one that ran.</p>
-<p>Every one of these warnings has the class
-<code>gr_segment_fallback</code>, and it is carried onto the answer of
-any read that uses the chunks.</p>
+source of its context lines changed. <code>$extra$context_source</code>
+records the source that ran, <code>"metadata"</code>.</p>
+<p>Each of these warnings has the class
+<code>gr_segment_fallback</code>. harnessr carries the warning onto the
+answer of any read that uses the chunks.</p>
 </div>
 <div class="section level2">
 <h2 id="chunk-size">Chunk size<a class="anchor" aria-label="anchor" href="#chunk-size"></a>
 </h2>
-<p><code>max_tokens</code> is the cap on a chunk’s size, and every
-segmenter is held to it, including one you register yourself. After a
-segmenter returns, <code><a href="../reference/gr_segment.html">gr_segment()</a></code> splits any chunk over the
-cap (at sentences, then words, then characters) and counts how many it
-had to split in <code>$extra$cap_enforced</code>. The pieces keep the
-page, section and block of the chunk they came from. If the active
-tokenizer counts a single character as more than the cap,
-<code><a href="../reference/gr_segment.html">gr_segment()</a></code> stops with an error of class
-<code>gr_cap_unenforceable</code> rather than send a chunk the model
+<p><code>max_tokens</code> caps a chunk’s size.
+<code><a href="../reference/gr_segment.html">gr_segment()</a></code> holds every segmenter to it, including one you
+register yourself. After a segmenter returns, <code><a href="../reference/gr_segment.html">gr_segment()</a></code>
+splits any chunk over the cap (at sentences, then words, then
+characters) and counts the chunks it split in
+<code>$extra$cap_enforced</code>. Each piece keeps the page, section and
+block of its original chunk.</p>
+<p>If the active tokenizer counts a single character as more than the
+cap, <code><a href="../reference/gr_segment.html">gr_segment()</a></code> stops with an error of class
+<code>gr_cap_unenforceable</code> instead of sending a chunk the model
 will reject.</p>
-<p>A setting out of range is corrected and the correction is
-announced:</p>
+<p>harnessr corrects a setting out of range and warns about the
+correction:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_segment_spec.html">gr_segment_spec</a></span><span class="op">(</span><span class="st">"paragraph"</span>, max_tokens <span class="op">=</span> <span class="fl">100</span>, overlap_tokens <span class="op">=</span> <span class="fl">500</span><span class="op">)</span>,</span>
 <span>         warning <span class="op">=</span> <span class="va">conditionMessage</span><span class="op">)</span></span>
@@ -339,19 +349,19 @@ announced:</p>
 <p><code>max_tokens</code> is held to between 32 and 1,000,000,
 <code>overlap_tokens</code> to less than <code>max_tokens</code>, and
 <code>min_tokens</code> to no more than <code>max_tokens</code>.</p>
-<p>What the right size is depends on the reader. A reader that sends
-every chunk pays for each request, so small chunks multiply the bill;
-one that picks the best few chunks needs chunks small enough that the
-best few hold the answer and little else.
-<code><a href="../articles/readers.html">vignette("readers")</a></code> compares them.</p>
+<p>The right size depends on the reader. A reader that sends every chunk
+pays for each request, so small chunks multiply the bill. A reader that
+picks the best few chunks needs chunks small enough that those few hold
+the answer and little else. <code><a href="../articles/readers.html">vignette("readers")</a></code> compares
+the readers.</p>
 </div>
 <div class="section level2">
 <h2 id="overlap">Overlap<a class="anchor" aria-label="anchor" href="#overlap"></a>
 </h2>
-<p>Without overlap, an answer that straddles a boundary is split between
-two chunks and may be lost by both. <code>overlap_tokens</code> copies
-the end of each chunk into the start of the next. It costs duplicated
-tokens, which <code><a href="../reference/gr_chunk_stats.html">gr_chunk_stats()</a></code> shows as a larger
+<p>Without overlap, a boundary can split an answer between two chunks,
+and neither chunk may hold enough of it. <code>overlap_tokens</code>
+copies the end of each chunk into the start of the next. You pay for the
+duplicated tokens, which <code><a href="../reference/gr_chunk_stats.html">gr_chunk_stats()</a></code> shows as a larger
 <code>total_tokens</code>:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">30</span>, <span class="fl">60</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">ov</span><span class="op">)</span></span>
@@ -361,20 +371,25 @@ tokens, which <code><a href="../reference/gr_chunk_stats.html">gr_chunk_stats()<
 <span><span class="co">#&gt; 1 sentence 6          534  47   92.5 89.0 107        0</span></span>
 <span><span class="co">#&gt; 2 sentence 7          668  74   99.0 95.4 107        0</span></span>
 <span><span class="co">#&gt; 3 sentence 9          863  79   94.0 95.9 109        0</span></span></code></pre></div>
-<p>The document is the same 534 tokens each time: at 60 tokens of
-overlap the model would be sent 863, about 60% more. The carried text is
-cut at a sentence boundary when one is close, otherwise at a word; text
-written without spaces (Chinese, Japanese, Thai) is cut by characters.
-The overlap is trimmed so that the chunk it opens still fits the
-cap.</p>
-<p>Provenance counts the overlap. A chunk that opens with a sentence
-carried from page 3 and goes on to page 4 reports page <code>NA</code>,
-since it is not wholly from either.</p>
-<p>Overlap applies to every segmenter except <code>page</code>, where
-the page is the unit, and <code>proposition</code>, whose statements are
-written to stand alone, so its overlap is always 0.
-<code>structural</code> applies it within a section, never across a
-heading.</p>
+<p>The document is the same 534 tokens each time. At 60 tokens of
+overlap the model would be sent 863, about 60% more.</p>
+<p>harnessr cuts the carried text at a sentence boundary when one is
+close, and otherwise at a word. Text written without spaces (Chinese,
+Japanese, Thai) is cut by characters. The overlap is trimmed so that the
+chunk it opens still fits the cap.</p>
+<p>Provenance counts the overlap. Say a chunk opens with a sentence
+carried from page 3 and goes on to page 4. It reports page
+<code>NA</code>, since it is not wholly from either.</p>
+<p>Overlap applies to every segmenter with two exceptions:</p>
+<ul>
+<li>
+<code>page</code>, where the page is the unit;</li>
+<li>
+<code>proposition</code>, whose statements are written to stand
+alone, so its overlap is always 0.</li>
+</ul>
+<p><code>structural</code> applies overlap within a section, never
+across a heading.</p>
 </div>
 <div class="section level2">
 <h2 id="minimum-size">Minimum size<a class="anchor" aria-label="anchor" href="#minimum-size"></a>
@@ -383,7 +398,7 @@ heading.</p>
 chunk before it, so a one-line paragraph between two headings does not
 become a request of its own. The merge happens only when the result
 still fits the cap. With a cap of 60 tokens the example’s paragraphs
-give fourteen chunks, the smallest of 8 tokens;
+give fourteen chunks, the smallest of 8 tokens.
 <code>min_tokens = 30</code> folds one of them away:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">30</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
@@ -393,9 +408,10 @@ give fourteen chunks, the smallest of 8 tokens;
 <span><span class="co">#&gt; 1 paragraph 14          565   8   42.5 40.4  57        0</span></span>
 <span><span class="co">#&gt; 2 paragraph 13          562  21   45.0 43.2  57        0</span></span></code></pre></div>
 <p><code>fixed</code> and <code>page</code> ignore
-<code>min_tokens</code>. <code>structural</code> applies it within a
-section only, because it never merges across headings: its 16-token
-first chunk, the report’s title, stays as it is whatever you set.</p>
+<code>min_tokens</code>. <code>structural</code> never merges across
+headings, so it applies <code>min_tokens</code> within a section only.
+Its 16-token first chunk, the report’s title, stays as it is whatever
+you set:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_chunk_stats.html">gr_chunk_stats</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_segment.html">gr_segment</a></span><span class="op">(</span><span class="va">doc</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"structural"</span>, max_tokens <span class="op">=</span> <span class="fl">120</span>,</span>
 <span>                                    min_tokens <span class="op">=</span> <span class="fl">40</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
@@ -405,12 +421,12 @@ first chunk, the report’s title, stays as it is whatever you set.</p>
 <div class="section level2">
 <h2 id="context-lines">Context lines<a class="anchor" aria-label="anchor" href="#context-lines"></a>
 </h2>
-<p>A chunk retrieved on its own can be hard to place: “it rose 17
+<p>A chunk retrieved on its own can be hard to place. “It rose 17
 percent” means little without the section it came from.
 <code>contextual</code> packs paragraphs as <code>paragraph</code> does,
 then starts each chunk with a bracketed line saying where it sits. By
-default (<code>context_source = "metadata"</code>) the line is built
-from the file name, section, page and position, for nothing:</p>
+default (<code>context_source = "metadata"</code>) harnessr builds the
+line from the file name, section, page and position, at no cost:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ctx</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_segment.html">gr_segment</a></span><span class="op">(</span><span class="va">doc</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"contextual"</span>, max_tokens <span class="op">=</span> <span class="fl">120</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="va">ctx</span><span class="op">$</span><span class="va">chunks</span><span class="op">$</span><span class="va">text</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span></span>
@@ -421,13 +437,13 @@ from the file name, section, page and position, for nothing:</p>
 <span><span class="co">#&gt; percent. Operating income was 6.9 million dollars against 4.1 million the year</span></span>
 <span><span class="co">#&gt; before.</span></span></code></pre></div>
 <p>With <code>context_source = "llm"</code> a model writes the line
-instead, one call per chunk, from the chunk, the document’s first 1,500
-tokens and the chunk’s section path from the document’s headings
-(<code>"Report &gt; Results"</code>), so a chunk from deep in a long
-document can be placed. It makes one request per chunk and never more:
-<code>$extra$cost</code> declares <code>calls</code> and
-<code>calls_max</code> as the number of chunks. The mock client below
-stands in for that model:</p>
+instead. Each call sends the chunk, the document’s first 1,500 tokens
+and the chunk’s section path from the document’s headings
+(<code>"Report &gt; Results"</code>), so the model can place a chunk
+from deep in a long document. <code>contextual</code> makes one request
+per chunk and never more: <code>$extra$cost</code> declares
+<code>calls</code> and <code>calls_max</code> as the number of chunks.
+The mock client below stands in for that model:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">writer</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"This excerpt reports the 2024 results."</span><span class="op">)</span></span>
 <span><span class="va">ctx_llm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_segment.html">gr_segment</a></span><span class="op">(</span><span class="va">doc</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"contextual"</span>, max_tokens <span class="op">=</span> <span class="fl">120</span>,</span>
@@ -438,20 +454,26 @@ stands in for that model:</p>
 <span><span class="co">#&gt; Northwind Instruments reported revenue of 45.2 million dollars in fiscal 2024,</span></span>
 <span><span class="co">#&gt; up from 38.7 million in 2023. Gross margin improved to 41 percent from 37</span></span>
 <span><span class="co">#&gt; percent.</span></span></code></pre></div>
-<p>Room for the line is held back from each chunk before packing (90
-tokens for <code>"llm"</code>, the longest header the document could
-need for <code>"metadata"</code>, never more than half of
-<code>max_tokens</code>), so adding the line never pushes a chunk over
-the cap. A line that still does not fit is shortened; the document text
-is not.</p>
-<p>When a context call fails or is skipped at the run’s limits, the
-chunk keeps its text without a line. <code>$extra$blurbs_missing</code>
-counts those chunks, and a <code>gr_segment_fallback</code> warning says
-so.</p>
+<p>Before packing, <code>contextual</code> holds back room for the line
+from each chunk, so adding the line never pushes a chunk over the cap.
+The room is:</p>
+<ul>
+<li>for <code>"llm"</code>, <code>context_reply_tokens</code> (90 by
+default);</li>
+<li>for <code>"metadata"</code>, the longest header the document could
+need;</li>
+<li>in both cases, never more than half of <code>max_tokens</code>.</li>
+</ul>
+<p>A line that still does not fit is shortened. The document text is
+not.</p>
+<p>If a context call fails or is skipped at the run’s limits, the chunk
+keeps its text without a line. <code>$extra$blurbs_missing</code> counts
+those chunks, and a <code>gr_segment_fallback</code> warning reports
+them.</p>
 <p>The context line is not the document’s text, and a model may have
-written it. So the chunk also keeps its body alone in a
-<code>source_text</code> column, and a quotation from the chunk is
-checked against that, never against the line:</p>
+written it. The chunk therefore keeps its body alone in a
+<code>source_text</code> column. harnessr checks a quotation from the
+chunk against that column, never against the line:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ctx_llm</span><span class="op">$</span><span class="va">chunks</span><span class="op">$</span><span class="va">source_text</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span></span>
 <span><span class="co">#&gt; [1] "Northwind Instruments reported revenue of 45.2 million dollars in fiscal 2024,\nup from 38.7 million in 2023. Gross margin improved to 41 percent from 37\npercent."</span></span>
@@ -468,32 +490,41 @@ checked against that, never against the line:</p>
 <li>
 <code>semantic</code> embeds the text a few sentences at a time
 (<code>semantic_window</code>, default 2) and cuts where two
-neighbouring windows differ most: at distances above the
-<code>semantic_percentile</code> (default 90; higher gives fewer, larger
-chunks), or, with <code>semantic_threshold = "texttiling"</code>, at the
-deep valleys of the similarity between neighbouring windows (see below).
-The packer then holds the pieces to the cap and the minimum.</li>
+neighbouring windows differ most. By default it cuts at distances above
+the <code>semantic_percentile</code> (default 90; higher gives fewer,
+larger chunks). With <code>semantic_threshold = "texttiling"</code> it
+cuts at the deep valleys of the similarity between neighbouring windows
+(see below). The packer then holds the pieces to the cap and the
+minimum.</li>
 <li>
 <code>contextual</code> with <code>context_source = "llm"</code>
 makes one call per chunk, as above.</li>
 <li>
 <code>proposition</code> sends the document in batches of about
-<code>proposition_batch_tokens</code> (default 900) and has the model
-rewrite each into standalone factual statements, with pronouns resolved
-and numbers kept as written. With
-<code>proposition_context_tokens</code> above 0, each batch’s request
-also carries that many tokens from the end of the batch before it, so
-what it refers back to can be resolved. Its chunks are the model’s
-words, so <code>source_text</code> holds the passage each was written
-from, and quotes are checked against that; each chunk keeps the page and
-section of its passage. A proposition with no support in its passage (a
-number the passage does not give, or most of its words absent) is
-counted in <code>$extra$propositions_unsupported</code>; with
-<code>proposition_check = "drop"</code> it is also dropped as invented,
-counted in <code>$extra$propositions_dropped</code>, with a
-<code>gr_proposition_dropped</code> warning. A batch that cannot be
-rewritten is kept as written rather than dropped, with a warning, and
-counted in <code>$extra$batches_kept_as_written</code>.</li>
+<code>proposition_batch_tokens</code> (default 900). The model rewrites
+each batch into standalone factual statements, with pronouns resolved
+and numbers kept as written.</li>
+</ul>
+<p>With <code>proposition_context_tokens</code> above 0, each
+<code>proposition</code> request also carries that many tokens from the
+end of the batch before it, so the model can resolve what the batch
+refers back to. The chunks are the model’s words, so
+<code>source_text</code> holds the passage each was written from, and
+harnessr checks quotes against that passage. Each chunk keeps the page
+and section of its passage. Three counts in <code>$extra</code> track
+what the check and the model did:</p>
+<ul>
+<li>
+<code>propositions_unsupported</code> counts propositions with no
+support in their passage: a number the passage does not give, or most of
+the words absent. With <code>proposition_check = "drop"</code>, harnessr
+also drops each one as invented, counts it in
+<code>propositions_dropped</code>, and warns with class
+<code>gr_proposition_dropped</code>.</li>
+<li>
+<code>batches_kept_as_written</code> counts batches the model could
+not rewrite. harnessr keeps such a batch as written instead of dropping
+it, and warns.</li>
 </ul>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"unused"</span><span class="op">)</span></span>
@@ -504,11 +535,12 @@ counted in <code>$extra$batches_kept_as_written</code>.</li>
 <span><span class="va">sem</span><span class="op">$</span><span class="va">extra</span><span class="op">$</span><span class="va">embedding_source</span></span>
 <span><span class="co">#&gt; [1] "lexical"</span></span></code></pre></div>
 <p><code>embedding_source</code> is <code>"lexical"</code> here, so the
-boundaries reflect shared words, not meaning, and <code>$method</code>
-says so: <code>"semantic-&gt;lexical"</code>. With a real embeddings
-endpoint it is <code>"api"</code>, and the method is
-<code>"semantic"</code>. The label is all that differs; the chunks and
-the requests are the same.</p>
+boundaries follow shared words instead of meaning, and
+<code>$method</code> says so: <code>"semantic-&gt;lexical"</code>. With
+a real embeddings endpoint, <code>embedding_source</code> is
+<code>"api"</code> and the method is <code>"semantic"</code>. The
+<code>-&gt;lexical</code> suffix is a label only: it changes neither the
+chunks nor the requests.</p>
 <p>These requests count against the run’s limits,
 <code>hr_options(max_calls =, max_cost_usd =)</code>, like any other.
 Called without a <code>trace</code>, <code><a href="../reference/gr_segment.html">gr_segment()</a></code> makes its
@@ -523,8 +555,8 @@ segmenting cost:</p>
 <div class="section level2">
 <h2 id="comparing-segmentations">Comparing segmentations<a class="anchor" aria-label="anchor" href="#comparing-segmentations"></a>
 </h2>
-<p><code><a href="../reference/gr_chunk_stats.html">gr_chunk_stats()</a></code> sums a chunk set up in one row, so
-comparing chunkings is an <code><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind()</a></code>:</p>
+<p><code><a href="../reference/gr_chunk_stats.html">gr_chunk_stats()</a></code> sums up a chunk set in one row, so you
+compare chunkings with <code><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind()</a></code>:</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"fixed"</span>, <span class="st">"paragraph"</span>, <span class="st">"sentence"</span>, <span class="st">"structural"</span><span class="op">)</span>,</span>
 <span>  <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="fu"><a href="../reference/gr_chunk_stats.html">gr_chunk_stats</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_segment.html">gr_segment</a></span><span class="op">(</span><span class="va">doc</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="va">m</span>, max_tokens <span class="op">=</span> <span class="fl">120</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
@@ -533,18 +565,27 @@ comparing chunkings is an <code><a href="https://rdrr.io/r/base/cbind.html" clas
 <span><span class="co">#&gt; 2  paragraph 6          539  48   92.0  89.8 116        0</span></span>
 <span><span class="co">#&gt; 3   sentence 6          534  47   92.5  89.0 107        0</span></span>
 <span><span class="co">#&gt; 4 structural 8          557  16   76.5  69.6 102        0</span></span></code></pre></div>
-<p><code>n</code> is the number of chunks, which is the number of
-requests for a reader that sends every chunk. <code>total_tokens</code>
-grows with overlap and with text a segmenter adds, such as the headings
-<code>structural</code> puts at the top of its chunks.
+<p>The columns:</p>
+<ul>
+<li>
+<code>n</code> is the number of chunks, and so the number of
+requests for a reader that sends every chunk.</li>
+<li>
+<code>total_tokens</code> grows with overlap and with text a
+segmenter adds, such as the headings <code>structural</code> puts at the
+top of its chunks.</li>
+<li>
 <code>over_cap</code> is 0 for anything <code><a href="../reference/gr_segment.html">gr_segment()</a></code>
-returns, since the cap is enforced; it is there for chunk sets built
-some other way. <code>method</code> names any fallback.</p>
-<p>To compare what different chunkings do to an answer, give
+returns, since <code><a href="../reference/gr_segment.html">gr_segment()</a></code> enforces the cap. The column is
+there for chunk sets built some other way.</li>
+<li>
+<code>method</code> names any fallback.</li>
+</ul>
+<p>To see what different chunkings do to an answer, give
 <code><a href="../reference/gr_compare.html">gr_compare()</a></code> recipes that differ only in their
-<code>segment</code>. It extracts the document once and reuses a
-segmentation across recipes whose segment settings match, so only the
-reading is paid for more than once:</p>
+<code>segment</code>. <code><a href="../reference/gr_compare.html">gr_compare()</a></code> extracts the document
+once and reuses a segmentation across recipes whose segment settings
+match, so you pay more than once only for the reading:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_compare.html">gr_compare</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/gr_recipe.html">gr_recipe</a></span><span class="op">(</span><span class="st">"by_paragraph"</span>, segment <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"paragraph"</span>, max_tokens <span class="op">=</span> <span class="fl">120</span><span class="op">)</span>,</span>
@@ -559,21 +600,27 @@ reading is paid for more than once:</p>
 <div class="section level2">
 <h2 id="choosing-the-settings">Choosing the settings<a class="anchor" aria-label="anchor" href="#choosing-the-settings"></a>
 </h2>
-<p>Each walkthrough below takes one segmentation setting or group: what
-it controls and what it trades off, the signs in your results that point
-to changing it, where its default came from, and how to test a change.
-<code><a href="../articles/settings.html">vignette("settings")</a></code> lists every segmentation setting with
-its default.</p>
-<p>The free statistics above (<code><a href="../reference/gr_chunk_stats.html">gr_chunk_stats()</a></code>, and
-<code><a href="../reference/gr_seg_recall.html">gr_seg_recall()</a></code> and <code><a href="../reference/gr_seg_pk.html">gr_seg_pk()</a></code> in
-<code><a href="../articles/compare.html">vignette("compare")</a></code>) are the first test of a chunking,
-since they cost nothing. What a chunking does to answers is tested with
-arms: <code><a href="../reference/hr_sweep.html">hr_sweep()</a></code> builds one arm per value and
-<code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> runs them on a reference. Here the arms run
-on one question and a stand-in model that always answers correctly, so
-the examples show how a sweep is built and read, not which value is
-better. <code><a href="../articles/compare.html">vignette("compare")</a></code> runs a grid of segmenters and
-chunk sizes on dev, then compares one choice on test with intervals.</p>
+<p>Each walkthrough below takes one segmentation setting or group of
+settings and covers four things:</p>
+<ul>
+<li>what it controls and what it trades off;</li>
+<li>the signs in your results that point to changing it;</li>
+<li>where its default came from;</li>
+<li>how to test a change.</li>
+</ul>
+<p><code><a href="../articles/settings.html">vignette("settings")</a></code> lists every segmentation setting
+with its default.</p>
+<p>Test a chunking first with the free statistics:
+<code><a href="../reference/gr_chunk_stats.html">gr_chunk_stats()</a></code> above, and <code><a href="../reference/gr_seg_recall.html">gr_seg_recall()</a></code>
+and <code><a href="../reference/gr_seg_pk.html">gr_seg_pk()</a></code> in <code><a href="../articles/compare.html">vignette("compare")</a></code>. To
+test what a chunking does to answers, use arms: <code><a href="../reference/hr_sweep.html">hr_sweep()</a></code>
+builds one arm per value and <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> runs them on a
+reference.</p>
+<p>Here the arms run on one question and a stand-in model that always
+answers correctly. The examples therefore show how to build and read a
+sweep; they do not show which value is better.
+<code><a href="../articles/compare.html">vignette("compare")</a></code> runs a grid of segmenters and chunk
+sizes on dev, then compares one choice on test with intervals.</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">qa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_qa_reference.html">gr_qa_reference</a></span><span class="op">(</span>questions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>revenue <span class="op">=</span> <span class="st">"What was revenue in 2024?"</span><span class="op">)</span>,</span>
 <span>                      documents <span class="op">=</span> <span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, answers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"45.2 million"</span><span class="op">)</span>,</span>
@@ -586,23 +633,23 @@ chunk sizes on dev, then compares one choice on test with intervals.</p>
 <div class="section level3">
 <h3 id="set-method">Which segmenter<a class="anchor" aria-label="anchor" href="#set-method"></a>
 </h3>
-<p><strong>What it controls.</strong> <code>method</code> is where the
+<p><strong>What it controls.</strong> <code>method</code> sets where the
 cuts fall: on a ruler (<code>fixed</code>), at the author’s paragraphs,
 sentences or headings, at pages, or where the embeddings shift
 (<code>semantic</code>). Each is a guess about where meaning breaks. A
-cut through the middle of a table or an argument separates the parts a
-model needs together; chunks that keep whole sections are larger and
+cut through the middle of a table or an argument separates parts a model
+needs together. Chunks that keep whole sections are larger and
 fewer.</p>
-<p><strong>Signs it needs changing.</strong> An answer that gives half a
-figure, or a quotation that stops mid-sentence, points to cuts in the
-wrong places: look at the chunks around it with
-<code>chunks$chunks$text</code>. <code><a href="../reference/gr_seg_recall.html">gr_seg_recall()</a></code> reporting
-the answer outside the top chunks for one segmenter and inside for
-another is the same sign, measured. A document with headings that a
-<code>paragraph</code> chunking runs across is a candidate for
-<code>structural</code>; a form or invoice for <code>page</code>.</p>
+<p><strong>Signs it needs changing.</strong> Suspect cuts in the wrong
+places when an answer gives half a figure or a quotation stops
+mid-sentence. Look at the chunks around it with
+<code>chunks$chunks$text</code>. The same sign, measured, is
+<code><a href="../reference/gr_seg_recall.html">gr_seg_recall()</a></code> reporting the answer outside the top chunks
+for one segmenter and inside for another. Try <code>structural</code> on
+a document with headings that a <code>paragraph</code> chunking runs
+across, and <code>page</code> on a form or invoice.</p>
 <p><strong>Where the default came from.</strong> <code>paragraph</code>
-was chosen because it needs no model or embedder; it has not been
+was chosen because it needs no model or embedder. It has not been
 compared with the others (<code>untested</code>). Each recipe sets its
 own: <code>"needle"</code> uses <code>semantic</code>,
 <code>"precise"</code> uses <code>sentence</code>.</p>
@@ -615,8 +662,8 @@ own: <code>"needle"</code> uses <code>semantic</code>,
 <span><span class="co">#&gt; 1    paragraph       676</span></span>
 <span><span class="co">#&gt; 2     sentence       667</span></span>
 <span><span class="co">#&gt; 3   structural       690</span></span></code></pre></div>
-<p>All three sent different requests here
-(<code>hr_sweep_check(bench)</code> has no rows), and
+<p>All three arms sent different requests here
+(<code>hr_sweep_check(bench)</code> has no rows).
 <code>structural</code> sent the most, 690 prompt tokens against 667 for
 <code>sentence</code>, because its chunks carry their headings.</p>
 </div>
@@ -624,21 +671,24 @@ own: <code>"needle"</code> uses <code>semantic</code>,
 <h3 id="set-max-tokens">Chunk size: <code>max_tokens</code><a class="anchor" aria-label="anchor" href="#set-max-tokens"></a>
 </h3>
 <p><strong>What it controls.</strong> <code>max_tokens</code> caps every
-chunk. Smaller chunks make more requests for a reader that sends every
-chunk, and let a reader that picks the best few send less text around
-the answer; larger chunks keep more context together and cost fewer
-requests.</p>
+chunk. Smaller chunks mean more requests for a reader that sends every
+chunk. They also let a reader that picks the best few send less text
+around the answer. Larger chunks keep more context together and cost
+fewer requests.</p>
 <p><strong>Signs it needs changing.</strong> Under
 <code>map_reduce</code> or <code>skim</code>, a cost dominated by the
 number of requests (<code><a href="../reference/hr_trace_summary.html">hr_trace_summary()</a></code>) points to larger
-chunks. Under <code>retrieve</code>, an answer that is right but rests
-on long chunks of unrelated text points to smaller ones, and an answer
-split across two chunks, of which only one was picked, points to larger
-ones or to overlap.</p>
-<p><strong>Where the default came from.</strong> 1200 tokens was set
-when the segmenters were written and not tuned (<code>untested</code>).
-The recipes set their own, from 500 (<code>"needle"</code>) to 4000
-(<code>"fast"</code>).</p>
+chunks. Under <code>retrieve</code>:</p>
+<ul>
+<li>a right answer that rests on long chunks of unrelated text points to
+smaller chunks;</li>
+<li>an answer split across two chunks, of which <code>retrieve</code>
+picked only one, points to larger chunks or to overlap.</li>
+</ul>
+<p><strong>Where the default came from.</strong> The 1200-token default
+was set when the segmenters were written and not tuned
+(<code>untested</code>). The recipes set their own, from 500
+(<code>"needle"</code>) to 4000 (<code>"fast"</code>).</p>
 <p><strong>How to test it.</strong></p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"needle"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>max_tokens <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">200</span>, <span class="fl">500</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
@@ -647,28 +697,28 @@ The recipes set their own, from 500 (<code>"needle"</code>) to 4000
 <span><span class="co">#&gt; 1              100       829</span></span>
 <span><span class="co">#&gt; 2              200       737</span></span>
 <span><span class="co">#&gt; 3              500       676</span></span></code></pre></div>
-<p>Under <code>retrieve</code>, smaller chunks sent more here, 829
+<p>Under <code>retrieve</code>, smaller chunks sent more here: 829
 prompt tokens at 100 against 676 at 500. At 100 the report became eight
 chunks holding 704 tokens, since each repeats the recipe’s 50 tokens of
-overlap, and <code>retrieve</code> sent all eight (the recipe’s
-<code>top_k</code> is 8); at 500 it became two chunks of 563 tokens.
-Whether the answers change is what a benchmark on your own reference
-measures.</p>
+overlap. <code>retrieve</code> sent all eight, because the recipe’s
+<code>top_k</code> is 8. At 500 the report became two chunks of 563
+tokens. A benchmark on your own reference measures whether the answers
+change.</p>
 </div>
 <div class="section level3">
 <h3 id="set-overlap">Overlap: <code>overlap_tokens</code><a class="anchor" aria-label="anchor" href="#set-overlap"></a>
 </h3>
 <p><strong>What it controls.</strong> <code>overlap_tokens</code> copies
 the end of each chunk into the start of the next, so a sentence near a
-cut is whole in at least one chunk. It costs duplicated tokens in every
-request that carries both chunks, and for a reader that sends every
-chunk, in every request (see “Overlap” above).</p>
+cut is whole in at least one chunk. You pay for duplicated tokens in
+every request that carries both chunks. For a reader that sends every
+chunk, that means every request (see “Overlap” above).</p>
 <p><strong>Signs it needs changing.</strong> An answer that needs the
 end of one chunk and the start of the next, such as a figure in one and
 its unit in the other, points to more overlap. A bill that grew with no
 change in answers points to less.</p>
-<p><strong>Where the default came from.</strong> 0, so no text is sent
-twice; it has not been compared with other values
+<p><strong>Where the default came from.</strong> The default is 0, so no
+text is sent twice. It has not been compared with other values
 (<code>untested</code>). Several recipes set 10% of their chunk
 size.</p>
 <p><strong>How to test it.</strong></p>
@@ -687,27 +737,35 @@ than none (829 against 669).</p>
 <h3 id="set-packing">Packing: <code>packing</code>, <code>min_tokens</code> and
 <code>runt_merge</code><a class="anchor" aria-label="anchor" href="#set-packing"></a>
 </h3>
-<p><strong>What they control.</strong> How units (paragraphs, sentences,
-pieces) are packed into chunks under the cap.
+<p><strong>What they control.</strong> These settings decide how units
+(paragraphs, sentences, pieces) are packed into chunks under the
+cap.</p>
+<ul>
+<li>
 <code>packing = "greedy"</code> fills each chunk to
-<code>max_tokens</code> and leaves the remainder in the last chunk;
+<code>max_tokens</code> and leaves the remainder in the last chunk.
 <code>"balanced"</code> keeps the same number of chunks and evens their
-sizes. <code>min_tokens</code> merges a chunk smaller than it into the
-chunk before it; <code>runt_merge = "both"</code> also merges a first
-chunk smaller than it forward into the second, which the backward rule
-cannot reach, since nothing comes before it.</p>
-<p><strong>Signs they need changing.</strong> A last chunk much smaller
-than the others, in a reader that weighs chunks alike
-(<code>retrieve</code> scoring, <code>map_reduce</code> notes), points
-to <code>"balanced"</code>. A document whose first chunk is only its
-title, sent as a request of its own, points to <code>min_tokens</code>
-with <code>runt_merge = "both"</code>.</p>
+sizes.</li>
+<li>
+<code>min_tokens</code> merges a chunk smaller than it into the
+chunk before it.</li>
+<li>
+<code>runt_merge = "both"</code> also merges a first chunk smaller
+than <code>min_tokens</code> forward into the second. The backward rule
+cannot reach a first chunk, since nothing comes before it.</li>
+</ul>
+<p><strong>Signs they need changing.</strong> Try
+<code>"balanced"</code> when the last chunk is much smaller than the
+others and the reader weighs chunks alike (<code>retrieve</code>
+scoring, <code>map_reduce</code> notes). Try <code>min_tokens</code>
+with <code>runt_merge = "both"</code> when a document’s first chunk is
+only its title, sent as a request of its own.</p>
 <p><strong>Where the defaults came from.</strong> <code>"greedy"</code>,
-<code>min_tokens = 0</code> and <code>"backward"</code> are how chunks
-were packed before these settings existed; none has been compared with
-the alternatives (<code>untested</code>).</p>
+<code>min_tokens = 0</code> and <code>"backward"</code> reproduce how
+harnessr packed chunks before these settings existed. None has been
+compared with the alternatives (<code>untested</code>).</p>
 <p><strong>How to test them.</strong> The chunk sizes show what they do,
-for nothing:</p>
+at no cost:</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">paras</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Paragraph %02d reports the year's results in some detail, %s."</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">25</span>,</span>
 <span>                 <span class="st">"with a few more words to give it some length"</span><span class="op">)</span></span>
@@ -717,9 +775,9 @@ for nothing:</p>
 <span><span class="co">#&gt; [1] 256 252 197</span></span>
 <span><span class="fu">sizes</span><span class="op">(</span>max_tokens <span class="op">=</span> <span class="fl">300</span>, packing <span class="op">=</span> <span class="st">"balanced"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 229 252 225</span></span></code></pre></div>
-<p>Greedy packing leaves 197 tokens in the last of three chunks;
-balanced packing makes three of 229, 252 and 225. What they do to
-answers is tested with arms:</p>
+<p>Greedy packing leaves 197 tokens in the last of three chunks.
+Balanced packing makes three of 229, 252 and 225. To test what they do
+to answers, use arms:</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"needle"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"paragraph"</span>, max_tokens <span class="op">=</span> <span class="fl">150</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                        <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>packing <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"greedy"</span>, <span class="st">"balanced"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
@@ -727,26 +785,33 @@ answers is tested with arms:</p>
 <span><span class="co">#&gt;   param.packing tokens_in</span></span>
 <span><span class="co">#&gt; 1      balanced       901</span></span>
 <span><span class="co">#&gt; 2        greedy       876</span></span></code></pre></div>
-<p>The two sent different requests here, 901 prompt tokens for
+<p>The two arms sent different requests here, 901 prompt tokens for
 <code>"balanced"</code> against 876 for <code>"greedy"</code>, because
-<code>retrieve</code> picked chunks of different sizes; whether answers
-change is what a benchmark on your own reference measures.</p>
+<code>retrieve</code> picked chunks of different sizes. A benchmark on
+your own reference measures whether answers change.</p>
 </div>
 <div class="section level3">
 <h3 id="set-semantic">Semantic boundaries: <code>semantic_threshold</code><a class="anchor" aria-label="anchor" href="#set-semantic"></a>
 </h3>
-<p><strong>What it controls.</strong> How <code>semantic</code> turns
-the distances between neighbouring windows into cuts.
+<p><strong>What it controls.</strong> <code>semantic_threshold</code>
+sets how <code>semantic</code> turns the distances between neighbouring
+windows into cuts.</p>
+<ul>
+<li>
 <code>"percentile"</code> cuts every gap whose distance reaches the
-<code>semantic_percentile</code> of them all, so about one gap in ten is
-cut whether the text changes topic or not. <code>"texttiling"</code>
-cuts by depth score, the rule of TextTiling (Hearst 1997): it compares
-the <code>semantic_window</code> sentences before each gap with those
-after it, finds the valleys of that similarity, and cuts a valley only
-when it is deep, both by Hearst’s cutoff and by being deeper than the
-similarities spread. A text on one topic then gets at most about one
-cut, and a change of topic gets one. It uses the same embeddings, so it
-sends the same requests.</p>
+<code>semantic_percentile</code> of them all. At the default of 90,
+about one gap in ten is cut whether the text changes topic or not.</li>
+<li>
+<code>"texttiling"</code> cuts by depth score, the rule of
+TextTiling (Hearst 1997). It compares the <code>semantic_window</code>
+sentences before each gap with those after it and finds the valleys of
+that similarity. It cuts a valley only when the valley is deep by two
+tests: Hearst’s cutoff, and a depth greater than the spread of the
+similarities. A text on one topic then gets at most about one cut, and a
+change of topic gets one.</li>
+</ul>
+<p>Both rules use the same embeddings, so they send the same
+requests.</p>
 <p><strong>Signs it needs changing.</strong> Under
 <code>semantic</code>, chunks that end in the middle of an argument on a
 page with no change of subject point to <code>"texttiling"</code>. A
@@ -754,10 +819,10 @@ long document whose sections run together into a few large chunks under
 <code>"texttiling"</code> points back to <code>"percentile"</code>.</p>
 <p><strong>Where the default came from.</strong>
 <code>"percentile"</code> is the rule <code>semantic</code> was written
-with; it has not been compared with <code>"texttiling"</code>
+with. It has not been compared with <code>"texttiling"</code>
 (<code>untested</code>).</p>
-<p><strong>How to test it.</strong> It sends the same embedding request
-either way, so the first test is free: count the cuts.</p>
+<p><strong>How to test it.</strong> Either rule sends the same embedding
+request, so the first test is free: count the cuts.</p>
 <div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">by_rule</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"percentile"</span>, <span class="st">"texttiling"</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">rule</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/gr_segment.html">gr_segment</a></span><span class="op">(</span><span class="va">doc</span>, <span class="fu"><a href="../reference/gr_segment_spec.html">gr_segment_spec</a></span><span class="op">(</span><span class="st">"semantic"</span>, max_tokens <span class="op">=</span> <span class="fl">1200</span>,</span>
@@ -766,10 +831,9 @@ either way, so the first test is free: count the cuts.</p>
 <span><span class="va">by_rule</span></span>
 <span><span class="co">#&gt; percentile texttiling </span></span>
 <span><span class="co">#&gt;          3          2</span></span></code></pre></div>
-<p>The example report has a few short sections, and
-<code>"texttiling"</code> cuts it twice where <code>"percentile"</code>
-cuts it three times. What the cuts do to answers is tested with
-arms:</p>
+<p>The example report has a few short sections.
+<code>"texttiling"</code> cuts it twice, and <code>"percentile"</code>
+three times. To test what the cuts do to answers, use arms:</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"needle"</span><span class="op">)</span>,</span>
 <span>                        <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>semantic_threshold <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"percentile"</span>, <span class="st">"texttiling"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
@@ -778,31 +842,38 @@ arms:</p>
 <span><span class="co">#&gt; 1               percentile       676</span></span>
 <span><span class="co">#&gt; 2               texttiling       675</span></span></code></pre></div>
 <p>Under <code>"needle"</code>, whose chunks are at most 500 tokens, the
-two sent nearly the same prompt tokens here (676 and 675): the packer,
-not the boundaries, sets most of each chunk’s size.</p>
+two arms sent nearly the same prompt tokens here (676 and 675). The
+packer, which holds chunks to the cap, sets most of each chunk’s
+size.</p>
 </div>
 <div class="section level3">
 <h3 id="set-tables">Tables: <code>table_packing</code><a class="anchor" aria-label="anchor" href="#set-tables"></a>
 </h3>
-<p><strong>What it controls.</strong> How <code>paragraph</code> packs
-the rows of a table. <code>"rows"</code> packs them as it packs any
-other blocks, so a long table is cut wherever the cap falls and only its
-first chunk carries the header row. <code>"grouped"</code> packs each
-table on its own and opens every chunk of it with the header row, then
-as many rows as fit. Either way, a document’s blocks and the chunks of a
-document with a table say which table and which rows they hold
-(<code>table_id</code> and <code>table_rows</code>); that is provenance
-only and adds nothing to the text.</p>
-<p><strong>Signs it needs changing.</strong> Answers that read a figure
-from the wrong column of a long table, or that cannot say what a row’s
-numbers are, point to <code>"grouped"</code>, so every chunk of rows
-says what its columns are. Many small tables, each smaller than a chunk,
+<p><strong>What it controls.</strong> <code>table_packing</code> sets
+how <code>paragraph</code> packs the rows of a table.</p>
+<ul>
+<li>
+<code>"rows"</code> packs them as it packs any other blocks, so the
+cap can cut a long table anywhere, and only its first chunk carries the
+header row.</li>
+<li>
+<code>"grouped"</code> packs each table on its own. Every chunk of
+the table opens with the header row, then as many rows as fit.</li>
+</ul>
+<p>Under either value, a document’s blocks and the chunks of a document
+with a table record which table and which rows they hold
+(<code>table_id</code> and <code>table_rows</code>). These columns are
+provenance only and add nothing to the text.</p>
+<p><strong>Signs it needs changing.</strong> Try <code>"grouped"</code>
+when answers read a figure from the wrong column of a long table, or
+cannot say what a row’s numbers are. With it, every chunk of rows
+carries the column names. Many small tables, each smaller than a chunk,
 gain nothing from it.</p>
 <p><strong>Where the default came from.</strong> <code>"rows"</code> is
-how tables were packed before the setting existed; it has not been
+how tables were packed before the setting existed. It has not been
 compared with <code>"grouped"</code> (<code>untested</code>).</p>
-<p><strong>How to test it.</strong> The chunks show what it does, for
-nothing:</p>
+<p><strong>How to test it.</strong> The chunks show what it does, at no
+cost:</p>
 <div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tab</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".md"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"# Sales by region"</span>, <span class="st">""</span>,</span>
@@ -830,16 +901,17 @@ nothing:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">by_packing</span>, <span class="kw">function</span><span class="op">(</span><span class="va">ch</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/startsWith.html" class="external-link">startsWith</a></span><span class="op">(</span><span class="va">ch</span><span class="op">$</span><span class="va">chunks</span><span class="op">$</span><span class="va">text</span>, <span class="st">"| region | units |"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    rows grouped </span></span>
 <span><span class="co">#&gt;       0       4</span></span></code></pre></div>
-<p>Under <code>"rows"</code> the table, which Markdown gives as one
-block, is packed after the heading and cut wherever the cap falls, so no
-chunk opens with the header row and each piece reports the rows of the
+<p>Markdown gives the table as one block. Under <code>"rows"</code> that
+block is packed after the heading and cut wherever the cap falls. No
+chunk opens with the header row, and each piece reports the rows of the
 whole block, <code>"1-31"</code>. Under <code>"grouped"</code> every
-chunk of rows opens with the header, and <code>table_rows</code> says
-which rows each holds. A table from Word or HTML comes one row per
-block, and then <code>"rows"</code> gives each chunk its own range too.
-What it does to answers is tested with arms on a reference whose
-documents have tables, with <code>my_tables</code> that reference and
-<code>my_client</code> your client:</p>
+chunk of rows opens with the header, and <code>table_rows</code> gives
+the rows each chunk holds.</p>
+<p>A table from Word or HTML comes one row per block, and then
+<code>"rows"</code> gives each chunk its own range too. To test what the
+setting does to answers, run arms on a reference whose documents have
+tables. Here <code>my_tables</code> is that reference and
+<code>my_client</code> is your client:</p>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"thorough"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"paragraph"</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                 <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>table_packing <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"rows"</span>, <span class="st">"grouped"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
@@ -852,38 +924,46 @@ documents have tables, with <code>my_tables</code> that reference and
 <code>proposition</code><a class="anchor" aria-label="anchor" href="#set-contextual"></a>
 </h3>
 <p><strong>What they control.</strong> <code>contextual</code> starts
-each chunk with a line saying where it sits, built from the file’s
-metadata for nothing, or written by a model with
-<code>context_source = "llm"</code> (one request per chunk, capped at
-<code>context_reply_tokens</code>, from the first
-<code>context_document_tokens</code> of the document).
+each chunk with a line saying where it sits. The line is built from the
+file’s metadata at no cost, or, with
+<code>context_source = "llm"</code>, written by a model: one request per
+chunk, capped at <code>context_reply_tokens</code>, from the first
+<code>context_document_tokens</code> of the document.
 <code>proposition</code> has a model rewrite the text into standalone
 statements, one request per <code>proposition_batch_tokens</code> of
-text. Both help a chunk retrieved on its own to make sense; both put
-words in the chunk that are not the document’s, which is why quotations
-are checked against <code>source_text</code>.</p>
-<p><strong>Signs they are needed.</strong> Answers that confuse two
-sections that say similar things (“revenue rose” in the 2023 and the
-2024 section), or retrieval that picks a chunk whose subject is a
-pronoun, point to <code>contextual</code>. Dense factual text where each
-sentence leans on the one before points to <code>proposition</code>. A
-segmentation bill that is a large share of the run
-(<code>ctx$trace</code>) points away from the model-written
+text.</p>
+<p>Both help a chunk retrieved on its own to make sense. Both also put
+words in the chunk that are not the document’s, which is why harnessr
+checks quotations against <code>source_text</code>.</p>
+<p><strong>Signs they are needed.</strong> Two signs point to
+<code>contextual</code>: answers that confuse two sections that say
+similar things (“revenue rose” in the 2023 and the 2024 section), and
+retrieval that picks a chunk whose subject is a pronoun. Dense factual
+text where each sentence leans on the one before points to
+<code>proposition</code>. A segmentation bill that is a large share of
+the run (<code>ctx$trace</code>) points away from the model-written
 versions.</p>
-<p><strong>Where the defaults came from.</strong>
-<code>context_source = "metadata"</code> was chosen as the source that
-makes no request, and has not been compared with <code>"llm"</code>. The
-section path <code>"llm"</code> sends and the test that finds an
+<p><strong>Where the defaults came from.</strong></p>
+<ul>
+<li>
+<code>context_source = "metadata"</code> was chosen as the source
+that makes no request. It has not been compared with
+<code>"llm"</code>.</li>
+<li>Two rules were set when they were written, and neither was tuned:
+the section path <code>"llm"</code> sends, and the test that finds an
 invented proposition (every number in the passage, half its words in the
-passage or its context) were set when they were written; neither was
-tuned. <code>proposition_check = "count"</code> keeps every proposition,
+passage or its context).</li>
+<li>
+<code>proposition_check = "count"</code> keeps every proposition,
 and <code>proposition_context_tokens = 0</code> sends each batch alone,
-as before; neither has been compared with the alternatives.
+as before. Neither has been compared with the alternatives.</li>
+<li>
 <code>proposition_batch_tokens</code> (900),
 <code>context_reply_tokens</code> (90),
 <code>context_document_tokens</code> (1500) and
 <code>proposition_reply_tokens</code> (2000) are the values the code had
-as constants; none was tuned (<code>untested</code>).</p>
+as constants. None was tuned (<code>untested</code>).</li>
+</ul>
 <p><strong>How to test them.</strong> Compare <code>contextual</code>
 with the segmenter it builds on:</p>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
@@ -895,10 +975,10 @@ with the segmenter it builds on:</p>
 <span><span class="co">#&gt; 2    paragraph       807</span></span></code></pre></div>
 <p><code>contextual</code> sent 81 fewer prompt tokens here. The room it
 holds back for its lines makes its chunks smaller, 73 tokens on average
-against 81, and the recipe’s eight chunks then hold less text.
-<code>proposition</code> and <code>context_source = "llm"</code> need a
-model that writes real statements, so they run on your own reference and
-client:</p>
+against 81, so the recipe’s eight chunks hold less text.</p>
+<p><code>proposition</code> and <code>context_source = "llm"</code> need
+a model that writes real statements, so run them on your own reference
+and client:</p>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"needle"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"paragraph"</span>, <span class="st">"contextual"</span>, <span class="st">"contextual"</span>, <span class="st">"proposition"</span><span class="op">)</span>,</span>
@@ -906,15 +986,15 @@ client:</p>
 <span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">arms</span>, <span class="va">my_reference</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">my_client</span>, split <span class="op">=</span> <span class="st">"dev"</span>,</span>
 <span>                      scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">correct</span>, <span class="va">usd</span><span class="op">)</span> <span class="op">~</span> <span class="va">param.method</span> <span class="op">+</span> <span class="va">param.context_source</span>, <span class="va">bench</span>, <span class="va">mean</span><span class="op">)</span></span></code></pre></div>
-<p><code>proposition_check = "drop"</code> changes no request, only
-which propositions are kept, so
+<p><code>proposition_check = "drop"</code> sends the same requests and
+changes only which propositions are kept. Before you sweep it,
 <code>$extra$propositions_unsupported</code> on one segmentation shows
-what it would drop before you sweep it.</p>
-<p><code>context_source</code> is stored in the recipe even under a
-segmenter that ignores it, so give it the value the other rows use for
-every row where it does nothing, as above; a row that changes nothing
-else would otherwise be a second arm sending the same requests, which
-<code><a href="../reference/hr_sweep_check.html">hr_sweep_check()</a></code> would then report.</p>
+what it would drop.</p>
+<p>The recipe stores <code>context_source</code> even under a segmenter
+that ignores it. In every row where it does nothing, give it the value
+the other rows use, as above. A row that differs only in an ignored
+<code>context_source</code> would be a second arm sending the same
+requests, which <code><a href="../reference/hr_sweep_check.html">hr_sweep_check()</a></code> would then report.</p>
 </div>
 </div>
 <div class="section level2">
@@ -924,21 +1004,22 @@ else would otherwise be a second arm sending the same requests, which
 segmenter, the reading strategies and the model. For segmentation it
 also sets <code>max_tokens</code>, overlap and minimum chunk size. Its
 “Preview chunking” button shows how the current settings cut the
-document before anything is spent on reading. For a segmenter that calls
-a model, the button says so.</p>
+document before you spend anything on reading. For a segmenter that
+calls a model, the button says so.</p>
 <div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">shiny</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">runApp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"shiny"</span>, package <span class="op">=</span> <span class="st">"harnessr"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><code>GPTREAD_DOC_ROOTS</code> (colon-separated) sets which folders
-the app can read. Unset, it defaults to <code>~/Documents</code>,
-falling back to your entire home directory, so set it before exposing
-the app to anyone else. The app opens only the PDF, Word, text,
-Markdown, HTML and image files under those folders, never hidden files
-or hidden folders. <code>extract</code> and <code>screen</code> are not
-offered, since they read against a protocol; use
-<code><a href="../reference/gr_extract.html">gr_extract()</a></code> and <code><a href="../reference/gr_screen.html">gr_screen()</a></code>
-(<code><a href="../articles/review.html">vignette("review")</a></code>). A blank cost cap leaves
-<code>hr_options("max_cost_usd")</code> in force rather than lifting the
-limit.</p>
+<p><code>GPTREAD_DOC_ROOTS</code> sets which folders the app can read.
+Separate folders with the platform’s path separator: a colon, or a
+semicolon on Windows. Unset, it defaults to <code>~/Documents</code>,
+falling back to your entire home directory, so set it before you expose
+the app to anyone else.</p>
+<p>The app opens only the PDF, Word, text, Markdown, HTML and image
+files under those folders, never hidden files or hidden folders. It does
+not offer <code>extract</code> or <code>screen</code>, since they read
+against a protocol. Use <code><a href="../reference/gr_extract.html">gr_extract()</a></code> and
+<code><a href="../reference/gr_screen.html">gr_screen()</a></code> instead (<code><a href="../articles/review.html">vignette("review")</a></code>). A
+blank cost cap leaves <code>hr_options("max_cost_usd")</code> in force;
+it does not lift the limit.</p>
 </div>
 <div class="section level2">
 <h2 id="your-own-segmenter">Your own segmenter<a class="anchor" aria-label="anchor" href="#your-own-segmenter"></a>

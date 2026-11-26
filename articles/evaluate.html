@@ -91,32 +91,34 @@
     
 <p>Every choice in a pipeline (the recipe, the model, the prompt, the
 reasoning effort) changes the answers, and one run on one document
-cannot say by how much. A model asked the same question five times can
-answer it five ways, and ten questions about one report share that
-report’s quirks, so they are closer to one observation than to ten.
-<code><a href="../reference/gr_compare.html">gr_compare()</a></code> shows what each recipe does to one document
-and is descriptive only. The functions in this guide answer the question
-that follows it: on a labelled set of questions, is configuration A more
-accurate than B, by how much, at what cost, and how sure can you be?</p>
-<p>The guide follows the order of the work: a reference set and its
+cannot tell you by how much. A model asked the same question five times
+can answer it five ways. Ten questions about one report share that
+report’s quirks, so they are closer to one observation than to ten.</p>
+<p><code><a href="../reference/gr_compare.html">gr_compare()</a></code> shows what each recipe does to one
+document, and its output is descriptive only. With the functions in this
+guide you answer the next question: on a labelled set of questions, is
+configuration A more accurate than B, by how much, at what cost, and how
+sure can you be?</p>
+<p>The sections follow the order of the work: a reference set and its
 splits, the arms to compare and the rule that scores them, a benchmark
 held to one spending limit, the report and how to read it, planning the
-size of a comparison before running it, judges, baselines that use no
+size of a comparison before you run it, judges, baselines that use no
 model, drift, and the signals the package records about its own work.
 The statistics functions underneath come last. Measuring a screener
 against people, several reviewers and agreement between extraction
-tables are part of a review and are in <code><a href="../articles/review.html">vignette("review")</a></code>.
-<code><a href="../articles/compare.html">vignette("compare")</a></code> puts these functions to work on worked
-comparisons of readers, segmenters, settings, screening and judges.</p>
+tables belong to a review, so <code><a href="../articles/review.html">vignette("review")</a></code> covers
+them. <code><a href="../articles/compare.html">vignette("compare")</a></code> puts these functions to work on
+worked comparisons of readers, segmenters, settings, screening and
+judges.</p>
 <div class="section level2">
 <h2 id="setting-up">Setting up<a class="anchor" aria-label="anchor" href="#setting-up"></a>
 </h2>
-<p>Everything below runs offline. <code><a href="../reference/hr_mock_client.html">hr_mock_client()</a></code> stands
-in for the model, and <code>embedder = "lexical"</code> keeps retrieval
-free and deterministic. Two mock model ids get prices, so the benchmarks
-below have a cost to compare: <code>mock-small</code> at $0.20 and $0.80
-per million input and output tokens, and <code>mock-large</code> at ten
-times that.</p>
+<p>Every example runs offline. <code><a href="../reference/hr_mock_client.html">hr_mock_client()</a></code> stands in
+for the model, and <code>embedder = "lexical"</code> keeps retrieval
+free and deterministic. The setup gives two mock model ids prices, so
+the benchmarks below have a cost to compare: <code>mock-small</code> at
+$0.20 and $0.80 per million input and output tokens, and
+<code>mock-large</code> at ten times that.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/harnessr" class="external-link">harnessr</a></span><span class="op">)</span></span>
 <span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span>
@@ -129,14 +131,15 @@ times that.</p>
 <div class="section level2">
 <h2 id="references-and-splits">References and splits<a class="anchor" aria-label="anchor" href="#references-and-splits"></a>
 </h2>
-<p>A reference is the labelled set every configuration is scored on.
+<p>A reference is the labelled set you score every configuration on.
 Each item has a payload (what the configuration is given), a label (what
 counts as right), a cluster and a split. The cluster is the unit whose
-items share errors, usually the document: eight questions about one
+items share errors, usually the document. Eight questions about one
 report are not eight independent observations, and every interval in
 this guide is computed with that in mind. <code><a href="../reference/hr_reference.html">hr_reference()</a></code>
-builds one from any items; <code><a href="../reference/gr_qa_reference.html">gr_qa_reference()</a></code> builds one of
-questions about documents, with each question’s acceptable answers:</p>
+builds a reference from any items. <code><a href="../reference/gr_qa_reference.html">gr_qa_reference()</a></code> builds
+one from questions about documents, with each question’s acceptable
+answers:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">reports</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
 <span>  north <span class="op">=</span> <span class="st">"The northern region. Revenue was 45.2 million dollars in fiscal 2024. The plant in Leeds made 12,400 units."</span>,</span>
@@ -160,28 +163,41 @@ questions about documents, with each question’s acceptable answers:</p>
 <span><span class="co">#&gt;   splits: test 8 </span></span>
 <span><span class="co">#&gt;   hash: d64da50d3779</span></span></code></pre></div>
 <p>The eastern report names a chair and no chief executive, so
-<code>e_ceo</code> is marked unanswerable: its label is the not-found
+<code>e_ceo</code> is marked unanswerable. Its label is the not-found
 answer, and a reader is right on it only when it says the document does
-not hold the answer. The flag goes into the label alone; the payload a
-configuration is given holds the question and the document, so it cannot
-tell which questions have no answer. A reference without such items
-never tests whether a reader can tell that an answer is missing. An item
-with neither an answer nor the unanswerable flag has no label, and every
-run on it is scored <code>NA</code>, so it never counts for or against
-an arm.</p>
-<p>Once a benchmark starts scoring a reference, the reference is locked:
-<code><a href="../reference/hr_reference.html">hr_reference_add()</a></code> then refuses to add items to it, or to
-any copy of it, with an error of class <code>hr_reference_locked</code>,
-so no item can be added after the results are seen. The reference also
-carries a SHA-256 hash of its content, which the benchmark checks.</p>
-<p>Splits keep tuning apart from evidence. <code>dev</code> is for
-tuning prompts, settings and margins, and its scores are never reported.
-<code>exploratory</code> holds early experiments,
-<code>calibration</code> is for fitting signal thresholds (below),
-<code>test</code> is what reported comparisons are scored on, and
-<code>final</code>, if used, is held back and run once per release.
-<code><a href="../reference/hr_assign_splits.html">hr_assign_splits()</a></code> assigns whole clusters, so no document
-has questions on both sides of a tuning and a scoring split:</p>
+not hold the answer. The flag goes into the label alone. The payload
+holds the question and the document, so a configuration cannot tell
+which questions have no answer. Without such items, a reference never
+tests whether a reader can tell that an answer is missing.</p>
+<p>An item with neither an answer nor the unanswerable flag has no
+label. Every run on it is scored <code>NA</code>, so it never counts for
+or against an arm.</p>
+<p>A benchmark locks a reference once it starts scoring it. From then on
+<code><a href="../reference/hr_reference.html">hr_reference_add()</a></code> refuses to add items to the reference,
+or to any copy of it, with an error of class
+<code>hr_reference_locked</code>, so no one can add an item after seeing
+the results. The reference also carries a SHA-256 hash of its content,
+and the benchmark checks that hash.</p>
+<p>Splits keep tuning apart from evidence:</p>
+<ul>
+<li>
+<code>dev</code> is for tuning prompts, settings and margins, and
+its scores are never reported.</li>
+<li>
+<code>exploratory</code> holds early experiments.</li>
+<li>
+<code>calibration</code> is for fitting signal thresholds
+(below).</li>
+<li>
+<code>test</code> holds the items reported comparisons are scored
+on.</li>
+<li>
+<code>final</code>, if used, is held back and run once per
+release.</li>
+</ul>
+<p><code><a href="../reference/hr_assign_splits.html">hr_assign_splits()</a></code> assigns whole clusters, so no
+document has questions on both sides of a tuning and a scoring
+split:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">questions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  item_id  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"q%03d"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">120</span><span class="op">)</span>,</span>
@@ -198,14 +214,14 @@ has questions on both sides of a tuning and a scoring split:</p>
 <span><span class="co">#&gt;  calibration    0.3       10    40         0.333      0.333</span></span>
 <span><span class="co">#&gt;         test    0.5       13    52         0.433      0.433</span></span></code></pre></div>
 <p>The default shares are 10% dev, 10% exploratory, 30% calibration and
-50% test. Each cluster’s place comes from the SHA-256 digest of the seed
-and its id, so row order and the session’s random state do not change
-it, and with the default <code>method = "stable"</code> adding or
-dropping a document never moves another. The price is that the shares
-are met only on average: 13 of these 30 documents went to test, not 15.
-<code>method = "balanced"</code> gives each split its share of whole
-clusters, at the cost that a document added later can shift others
-across a boundary, so draw it once and store it:</p>
+50% test. The SHA-256 digest of the seed and a cluster’s id sets that
+cluster’s split, so row order and the session’s random state do not
+change it. With the default <code>method = "stable"</code>, adding or
+dropping a document never moves another. In exchange, the shares hold
+only on average: 13 of these 30 documents went to test, not 15.</p>
+<p><code>method = "balanced"</code> gives each split its share of whole
+clusters. A document added later can then shift others across a
+boundary, so draw the splits once and store them:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_assign_splits.html">hr_assign_splits</a></span><span class="op">(</span><span class="va">questions</span>, seed <span class="op">=</span> <span class="fl">2026</span>, method <span class="op">=</span> <span class="st">"balanced"</span><span class="op">)</span><span class="op">$</span><span class="va">counts</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"split"</span>, <span class="st">"clusters"</span>, <span class="st">"items"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;         split clusters items</span></span>
@@ -213,20 +229,21 @@ across a boundary, so draw it once and store it:</p>
 <span><span class="co">#&gt; 2 exploratory        3    12</span></span>
 <span><span class="co">#&gt; 3 calibration        9    36</span></span>
 <span><span class="co">#&gt; 4        test       15    60</span></span></code></pre></div>
-<p>A split given a share that receives no cluster warns with class
-<code>hr_empty_split</code>, which happens with very few documents.</p>
+<p>With very few documents, a split given a share can receive no
+cluster, and <code><a href="../reference/hr_assign_splits.html">hr_assign_splits()</a></code> then warns with class
+<code>hr_empty_split</code>.</p>
 <div class="section level3">
 <h3 id="label-sheets">Label sheets<a class="anchor" aria-label="anchor" href="#label-sheets"></a>
 </h3>
 <p>Labels come from people. <code><a href="../reference/gr_label_sheet.html">gr_label_sheet()</a></code> writes a CSV
 with one row per item, the columns a person needs to judge it and empty
-columns for their decisions, with an instructions file beside it. It
+columns for their decisions, plus an instructions file beside it. It
 writes six kinds: <code>"qa"</code>, <code>"screening"</code>,
 <code>"extraction"</code>, <code>"calibration"</code>,
 <code>"judge"</code> and <code>"pairwise"</code> (two texts in a blinded
 order, for a pairwise judge; <code><a href="../articles/compare.html">vignette("compare")</a></code> has one).
-A blind sheet, the default, copies only those columns, so a model’s
-answer in <code>items</code> stays out of it:</p>
+Sheets are blind by default: a blind sheet copies only those columns, so
+a model’s answer in <code>items</code> stays out of it:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">to_label</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">sp</span><span class="op">$</span><span class="va">items</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="va">to_label</span><span class="op">$</span><span class="va">model_answer</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"45.2 million"</span>, <span class="st">"Not stated"</span>, <span class="st">"310"</span><span class="op">)</span></span>
@@ -238,10 +255,10 @@ answer in <code>items</code> stays out of it:</p>
 <span><span class="co">#&gt; [6] "quote"      "note"</span></span></code></pre></div>
 <p>The person fills <code>answerable</code>, <code>answer</code> and
 <code>quote</code>. <code><a href="../reference/gr_read_labels.html">gr_read_labels()</a></code> reads the sheet back,
-checks every value and id, and joins the items’ other columns back by
-<code>item_id</code>, renaming one that clashes with a decision column
-(the model’s <code>answer</code> here would come back as
-<code>model_answer</code>):</p>
+checks every value and id, and joins the items’ other columns by
+<code>item_id</code>. It renames a column that clashes with a decision
+column, so a model’s <code>answer</code> here would come back as
+<code>model_answer</code>:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">filled</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">path</span>, fileEncoding <span class="op">=</span> <span class="st">"UTF-8-BOM"</span><span class="op">)</span></span>
 <span><span class="va">filled</span><span class="op">$</span><span class="va">answerable</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"yes"</span>, <span class="st">"no"</span>, <span class="st">"yes"</span><span class="op">)</span></span>
@@ -255,8 +272,9 @@ checks every value and id, and joins the items’ other columns back by
 <span><span class="co">#&gt; 2    q002      FALSE                 &lt;NA&gt;   dev   Not stated</span></span>
 <span><span class="co">#&gt; 3    q003       TRUE                  310   dev          310</span></span></code></pre></div>
 <p>A value it cannot read stops it with an error of class
-<code>gr_bad_labels</code> that names the sheet, the row as a
-spreadsheet counts it and the item, for every bad value at once:</p>
+<code>gr_bad_labels</code>. The error lists every bad value at once,
+each with the sheet, the row number as a spreadsheet counts it, and the
+item:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">filled</span><span class="op">$</span><span class="va">answer</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"Smith &amp; Co"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.csv</a></span><span class="op">(</span><span class="va">filled</span>, <span class="va">path</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span>, na <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
@@ -264,11 +282,11 @@ spreadsheet counts it and the item, for every bad value at once:</p>
 <span>         gr_bad_labels <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; 1 value(s) in the qa sheet cannot be read:</span></span>
 <span><span class="co">#&gt; qa-labels.csv row 3 (item 'q002'): `answerable` is no but `answer` is filled; clear one of them.</span></span></code></pre></div>
-<p>With <code>reviewers = k</code> each person gets a sheet of their
-own, so no one sees another’s decisions. <code><a href="../reference/gr_label_sheet.html">?gr_label_sheet</a></code>
-gives the number of items each kind of set needs for the package’s own
-evaluation: for question answering, about 480 questions over 88
-documents.</p>
+<p>With <code>reviewers = k</code>, each person gets a sheet of their
+own and sees no one else’s decisions. <code><a href="../reference/gr_label_sheet.html">?gr_label_sheet</a></code> gives
+the number of items each kind of set needs for the package’s own
+evaluation: about 480 questions over 88 documents for question
+answering.</p>
 </div>
 </div>
 <div class="section level2">
@@ -277,11 +295,11 @@ documents.</p>
 <p>An arm is one configuration to compare: a function of an item and a
 context that returns the arm’s output for that item. <code>ctx</code>
 carries the benchmark’s client, a trace of this run alone, the governor
-the run is held to and the run’s <code>draw_index</code>;
+the run is held to and the run’s <code>draw_index</code>.
 <code>ctx$call()</code> is <code><a href="../reference/hr_call.html">hr_call()</a></code> with the client, the
-trace and the draw index filled in. Every request an arm makes has to go
-through that trace, since it is how the benchmark counts the run’s
-tokens and dollars and holds it to the limit:</p>
+trace and the draw index filled in. Send every request an arm makes
+through that trace: the benchmark counts the run’s tokens and dollars
+there and holds the run to the limit through it:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ask</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span>, <span class="va">model</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/hr_arm.html">hr_arm</a></span><span class="op">(</span><span class="va">name</span>, <span class="kw">function</span><span class="op">(</span><span class="va">item</span>, <span class="va">ctx</span><span class="op">)</span> <span class="op">{</span></span>
@@ -293,42 +311,43 @@ tokens and dollars and holds it to the limit:</p>
 <span><span class="co">#&gt;   params: model = mock-large </span></span>
 <span><span class="co">#&gt;   hash: 4a659e23a5b4</span></span></code></pre></div>
 <p>The arm records a SHA-256 hash of its name, code, settings and
-<code>version</code>. The code is hashed as text with the values it
-names from the environment it was made in, the workspace included: an
-arm written at top level that reads a global prompt gets a new hash when
-the prompt changes. The same arm has the same hash in every session and
-after <code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code>, and an arm edited after it was built is
-refused rather than run under its old name. Change <code>version</code>
-when the arm’s behaviour changes.</p>
+<code>version</code>. The hash covers the code as text plus the values
+it names from the environment it was made in, the workspace included. An
+arm written at top level that reads a global prompt therefore gets a new
+hash when the prompt changes. The same arm has the same hash in every
+session and after <code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code>. <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code>
+refuses an arm edited after it was built instead of running it under its
+old name. Change <code>version</code> when the arm’s behaviour
+changes.</p>
 <p><code><a href="../reference/gr_arm.html">gr_arm()</a></code> wraps a reading recipe as an arm, and
 <code><a href="../reference/gr_arm.html">gr_arms()</a></code> builds one per recipe. Each run reads the item’s
 document with <code><a href="../reference/answer_document.html">answer_document()</a></code>, or with
 <code><a href="../reference/gr_read.html">gr_read()</a></code> when the document is already chunked, and returns
 the <code>gr_answer</code>. <code>settings</code> takes what
-<code><a href="../reference/answer_document.html">answer_document()</a></code> takes in <code>...</code>; here they make
-the same recipe two arms on two models:</p>
+<code><a href="../reference/answer_document.html">answer_document()</a></code> takes in <code>...</code>. Here the
+settings make one recipe into two arms on two models:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"fast"</span>, settings <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"mock-small"</span><span class="op">)</span>, name <span class="op">=</span> <span class="st">"small"</span><span class="op">)</span>,</span>
 <span>             <span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"fast"</span>, settings <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"mock-large"</span><span class="op">)</span>, name <span class="op">=</span> <span class="st">"large"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>A <code><a href="../reference/gr_arm.html">gr_arm()</a></code>’s version is the package version, since
-readers and prompts change between releases. Every request of a run,
-segmenter and reader requests included, carries the run’s draw index. A
-reader that finds the run’s limits leave it too little room to start
-returns a partial not-found answer noting the limit, which is scored as
-a budget stop rather than an error.</p>
+<p>A <code><a href="../reference/gr_arm.html">gr_arm()</a></code> takes the package version as its version,
+since readers and prompts change between releases. Every request of a
+run carries the run’s draw index, segmenter and reader requests
+included. If the run’s limits leave a reader too little room to start,
+the reader returns a partial not-found answer that notes the limit, and
+that answer is scored as a budget stop, not an error.</p>
 <p>A scorer turns an output and a label into <code>correct</code>, an
 <code>outcome</code> (what it compared) and a <code>failure_kind</code>
 saying why a wrong output was wrong: <code>"parse_failure"</code>,
 <code>"refusal"</code>, <code>"not_in_document"</code>,
 <code>"wrong"</code>, <code>"budget_stop"</code> or
 <code>"error"</code>. <code><a href="../reference/hr_scorer.html">hr_scorer_exact()</a></code>, the default,
-compares text after folding case and white space.
-<code><a href="../reference/gr_scorer_answer.html">gr_scorer_answer()</a></code> is the one for reading recipes: an
-answer is right when it contains any acceptable answer, after folding
-case, white space and thousands separators, with numbers matched whole
-(<code>"12"</code> is not found in <code>".12"</code> or
-<code>"-12"</code>, but is found in <code>"12-15"</code>, and
-<code>"45.2"</code> in <code>"45.2m"</code>):</p>
+compares text after folding case and white space. For reading recipes,
+use <code><a href="../reference/gr_scorer_answer.html">gr_scorer_answer()</a></code>. It counts an answer right when the
+answer contains any acceptable answer, after folding case, white space
+and thousands separators. Numbers are matched whole: <code>"12"</code>
+is not found in <code>".12"</code> or <code>"-12"</code>, but is found
+in <code>"12-15"</code>, and <code>"45.2"</code> in
+<code>"45.2m"</code>:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">item</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>question <span class="op">=</span> <span class="st">"How many units?"</span>, document <span class="op">=</span> <span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
@@ -338,12 +357,12 @@ case, white space and thousands separators, with numbers matched whole
 <span><span class="co">#&gt; [1] FALSE</span></span>
 <span><span class="va">s</span><span class="op">$</span><span class="fu">fn</span><span class="op">(</span><span class="va">item</span>, <span class="st">"Revenue was 45.2 million dollars."</span>, <span class="st">"12400"</span><span class="op">)</span><span class="op">$</span><span class="va">failure_kind</span></span>
 <span><span class="co">#&gt; [1] "wrong"</span></span></code></pre></div>
-<p>On an unanswerable item it is right when <code><a href="../reference/is_not_found.html">is_not_found()</a></code>
-is <code>TRUE</code> and no limit or refusal stopped the run, since a
-reader that ran out of budget did not look. <code><a href="../reference/hr_scorer.html">hr_scorer()</a></code>
-makes a scorer of your own from a function of
-<code>(item, output, label)</code>; its help has one that accepts a
-number within 1% of the label.</p>
+<p>On an unanswerable item it counts an answer right when
+<code><a href="../reference/is_not_found.html">is_not_found()</a></code> is <code>TRUE</code> and no limit or refusal
+stopped the run, since a reader that ran out of budget did not look. To
+write your own scorer, pass a function of
+<code>(item, output, label)</code> to <code><a href="../reference/hr_scorer.html">hr_scorer()</a></code>; its help
+has one that accepts a number within 1% of the label.</p>
 </div>
 <div class="section level2">
 <h2 id="running-a-benchmark">Running a benchmark<a class="anchor" aria-label="anchor" href="#running-a-benchmark"></a>
@@ -351,8 +370,9 @@ number within 1% of the label.</p>
 <p><code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> runs every arm on every item of the
 chosen splits <code>runs</code> times, scores each output, and returns
 one row per cluster, item, arm and run. The stand-in model below knows
-each report’s facts. Asked as <code>mock-small</code> it loses its way
-on 30% of requests; as <code>mock-large</code> it does not:</p>
+each report’s facts. Asked as <code>mock-small</code>, it replies that
+the report is unclear on 30% of requests; asked as
+<code>mock-large</code>, it never does:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">facts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  northern <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>revenue <span class="op">=</span> <span class="st">"Revenue was 45.2 million dollars."</span>, units <span class="op">=</span> <span class="st">"Leeds made 12,400 units."</span><span class="op">)</span>,</span>
@@ -388,27 +408,27 @@ on 30% of requests; as <code>mock-large</code> it does not:</p>
 <span><span class="co">#&gt; 5 n_rev small   5   FALSE        wrong 3.10e-05          5</span></span>
 <span><span class="co">#&gt; 6 n_rev large   1    TRUE         &lt;NA&gt; 3.42e-04          1</span></span></code></pre></div>
 <p>The printed accuracy is the mean over runs within each item, then
-over items, and is descriptive: no interval. The arms run under a
-private random stream started from <code>seed</code> (1 by default),
-which is why the mock’s <code><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif()</a></code> gives the same draws every
-time this guide is built, and the caller’s random state is left as it
-was. Rows on the dev split are marked <code>reportable = FALSE</code>
-and printed apart. Five runs is the default and the expected minimum;
-fewer warns with class <code>hr_few_runs</code>, because with fewer the
-spread from run to run cannot be told from the difference between
-arms.</p>
+over items. It is descriptive and has no interval. The arms run under a
+private random stream started from <code>seed</code> (1 by default), so
+the mock’s <code><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif()</a></code> gives the same draws every time this
+guide is built, and the caller’s random state is left as it was. Rows on
+the dev split are marked <code>reportable = FALSE</code> and printed
+apart.</p>
+<p>Five runs is the default and the expected minimum. Fewer warns with
+class <code>hr_few_runs</code>, because with fewer runs you cannot tell
+the spread from run to run apart from the difference between arms.</p>
 <div class="section level3">
 <h3 id="one-limit-for-the-whole-benchmark">One limit for the whole benchmark<a class="anchor" aria-label="anchor" href="#one-limit-for-the-whole-benchmark"></a>
 </h3>
-<p>The benchmark is one run under one <code><a href="../reference/hr_governor.html">hr_governor()</a></code>. Each
-run’s trace is held to the governor’s limits less what the runs before
-it used, so the limit you set is the most the whole comparison can
-spend. With <code>governor = NULL</code> the limits come from
-<code><a href="../reference/hr_options.html">hr_options()</a></code>, whose default of 400 calls is easy to exceed:
-two arms on 300 items for 5 runs is 3000 calls. A run stopped by a
-refused request is recorded as a <code>"budget_stop"</code>, counted
-wrong, and the runs after it are still started, so every row exists and
-the refusals are visible:</p>
+<p>The whole benchmark is one run under one <code><a href="../reference/hr_governor.html">hr_governor()</a></code>.
+Each run’s trace is held to the governor’s limits less what the runs
+before it used, so the limit you set is the most the whole comparison
+can spend. With <code>governor = NULL</code> the limits come from
+<code><a href="../reference/hr_options.html">hr_options()</a></code>, and its default of 400 calls is easy to
+exceed: two arms on 300 items for 5 runs make 3000 calls. A run stopped
+by a refused request is recorded as a <code>"budget_stop"</code> and
+counted wrong. The runs after it still start, so every row exists and
+you can see the refusals:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">capitals</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_reference.html">hr_reference</a></span><span class="op">(</span>items <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>q1 <span class="op">=</span> <span class="st">"France"</span>, q2 <span class="op">=</span> <span class="st">"Peru"</span>, q3 <span class="op">=</span> <span class="st">"Chad"</span>, q4 <span class="op">=</span> <span class="st">"Fiji"</span><span class="op">)</span>,</span>
 <span>                         labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Paris"</span>, <span class="st">"Lima"</span>, <span class="st">"N'Djamena"</span>, <span class="st">"Suva"</span><span class="op">)</span>,</span>
@@ -427,30 +447,31 @@ the refusals are visible:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; budget_stop        &lt;NA&gt; </span></span>
 <span><span class="co">#&gt;          14           6</span></span></code></pre></div>
-<p>The first six runs were answered, and the other fourteen were refused
-before anything was sent. <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> warns (class
-<code>hr_budget_stopped</code>) whenever a limit stops a run, with the
-number stopped, the limit that stopped them, how many of them count
-against an arm and the first run stopped. When the limits came from
-<code><a href="../reference/hr_options.html">hr_options()</a></code>, the warning gives the values of the options
-that stopped runs and says to pass a governor sized for the
-benchmark.</p>
+<p>The first six runs got answers. The governor refused the other
+fourteen before anything was sent. Whenever a limit stops a run,
+<code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> warns with class
+<code>hr_budget_stopped</code> and gives the number stopped, the limit
+that stopped them, how many of them count against an arm and the first
+run stopped. When the limits came from <code><a href="../reference/hr_options.html">hr_options()</a></code>, the
+warning gives the values of the options that stopped runs and says to
+pass a governor sized for the benchmark.</p>
 </div>
 <div class="section level3">
 <h3 id="repeated-runs-must-be-repeated-draws">Repeated runs must be repeated draws<a class="anchor" aria-label="anchor" href="#repeated-runs-must-be-repeated-draws"></a>
 </h3>
-<p>Run <code>r</code> is given <code>ctx$draw_index = r</code>, and its
+<p>Run <code>r</code> gets <code>ctx$draw_index = r</code>, and its
 <code>ctx$trace</code> carries <code>r</code>, so
 <code>ctx$call()</code> and every stage called with
 <code>trace = ctx$trace</code> send their requests at the run’s draw.
-Under an <code><a href="../reference/hr_cache.html">hr_cache()</a></code> each run is its own cache entry and
+Under an <code><a href="../reference/hr_cache.html">hr_cache()</a></code> each run is its own cache entry, and
 under an <code><a href="../reference/hr_replay_client.html">hr_replay_client()</a></code> its own recorded draw. The
 recorded draw also names the arm, so a replay answers each arm with its
-own replies, whether it replays every arm or a few, in any order. Five
-runs answered from one stored reply would agree perfectly and measure
-nothing, so an arm whose runs come back as copies is refused with an
-error of class <code>hr_duplicate_draw</code>. An arm that sends every
-run’s request at one fixed draw index is one:</p>
+own replies, whether it replays every arm or a few, in any order.</p>
+<p>Five runs answered from one stored reply would agree perfectly and
+measure nothing. <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> therefore refuses an arm
+whose runs come back as copies, with an error of class
+<code>hr_duplicate_draw</code>. An arm that sends every run’s request at
+one fixed draw index is such an arm:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cache</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_cache.html">hr_cache</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">cached</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_cache_client.html">hr_cache_client</a></span><span class="op">(</span><span class="va">geo</span>, <span class="va">cache</span><span class="op">)</span></span>
@@ -463,11 +484,11 @@ run’s request at one fixed draw index is one:</p>
 <span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">fixed_draw</span>, <span class="va">capitals</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">cached</span><span class="op">)</span>,</span>
 <span>         hr_duplicate_draw <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "hr_duplicate_draw"</span></span></code></pre></div>
-<p>A cache is still worth having: running the <code>capital</code>
-benchmark again under the same cache sends no request and costs nothing,
-each run answered from its own entry. An <code><a href="../reference/hr_mock_client.html">hr_mock_client()</a></code>
-keeps no cache, so under it the <code>fixed_draw</code> arm is not
-refused; under a cache it is.</p>
+<p>A cache still saves requests. Run the <code>capital</code> benchmark
+again under the same cache and it sends no request and costs nothing,
+since each run is answered from its own entry. An
+<code><a href="../reference/hr_mock_client.html">hr_mock_client()</a></code> keeps no cache, so under it the
+<code>fixed_draw</code> arm is not refused; under a cache it is.</p>
 </div>
 </div>
 <div class="section level2">
@@ -475,9 +496,9 @@ refused; under a cache it is.</p>
 </h2>
 <p><code><a href="../reference/hr_report.html">hr_report()</a></code> turns the reportable rows into accuracy per
 arm with intervals that keep clusters together, paired differences,
-stability, reliability, cost and failures. <code>B</code> is the number
-of cluster bootstrap resamples, 2000 by default; this guide uses fewer
-so it builds quickly.</p>
+stability, reliability, cost and failures. <code>B</code> sets the
+number of cluster bootstrap resamples, 2000 by default. This guide uses
+fewer so it builds quickly.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rpt</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_report.html">hr_report</a></span><span class="op">(</span><span class="va">bench</span>, B <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span>
 <span><span class="va">rpt</span></span>
@@ -522,75 +543,86 @@ so it builds quickly.</p>
 <span><span class="co">#&gt; Note: Cost, pass^k, frontier share and rank intervals come from the cluster bootstrap, which can undercover below 300 items or 30 clusters; read them as rough. </span></span>
 <span><span class="co">#&gt; Note: Accuracy of large is 0, 1 or the same in every cluster, where the t interval is not defined; its interval is Korn and Graubard's, one-sided from 0 or 1 at those bounds. </span></span>
 <span><span class="co">#&gt; Note: The frontier share (how often an arm is on the cost-accuracy frontier over resamples) is an extension, not a published standard.</span></span></code></pre></div>
-<p>Which interval is used depends on the size of the benchmark, and the
-second line of the print says which and why. With at least 300 items and
-at least 30 clusters, <code>method = "auto"</code> uses a studentised
-cluster bootstrap: each resample draws whole clusters with all their
-items, runs and arms. Below either threshold, as here, it uses a
-cluster-robust t interval on the logit scale, with t quantiles on C - 1
-degrees of freedom for C clusters. Where neither is defined, because
-accuracy is 0 or 1 or the same in every cluster, the arm gets Korn and
-Graubard’s interval, one-sided from that bound; that is why
-<code>large</code> reads [0.561, 1.000] with four clusters behind it,
-and a note says so. No interval treats items or runs as independent
-trials. <code>method = "exact"</code> (Clopper-Pearson on the effective
-number of items) and <code>method = "bayes"</code> (a beta-binomial
-model with a cluster random effect) are there on request.</p>
-<p>These defaults were chosen by simulation. In
+<p>With <code>method = "auto"</code>, <code><a href="../reference/hr_report.html">hr_report()</a></code> picks the
+interval from the size of the benchmark, and the second line of the
+print names it and says why. With at least 300 items and at least 30
+clusters, <code>method = "auto"</code> uses a studentised cluster
+bootstrap: each resample draws whole clusters with all their items, runs
+and arms. Below either threshold, as here, it uses a cluster-robust t
+interval on the logit scale, with t quantiles on C - 1 degrees of
+freedom for C clusters.</p>
+<p>Neither interval is defined when accuracy is 0 or 1 or the same in
+every cluster. The arm then gets Korn and Graubard’s interval, one-sided
+from that bound, and a note says so. That is why <code>large</code>
+reads [0.561, 1.000] with four clusters behind it. No interval treats
+items or runs as independent trials. <code>method = "exact"</code>
+(Clopper-Pearson on the effective number of items) and
+<code>method = "bayes"</code> (a beta-binomial model with a cluster
+random effect) are there on request.</p>
+<p>These defaults come from simulation. In
 <code>dev/sim-coverage.R</code> (2000 replicates) the studentised
 bootstrap covered 95.5% and 95.0% with 386 items in 40 clusters, where
-the BCa bootstrap it replaced covered 93.5%, and the cluster-robust t
+the BCa bootstrap it replaced covered 93.5%. The cluster-robust t
 interval covered 95.7% and 95.8% with 50 items in 10 clusters. The
 workflow <code>validation.yaml</code> reruns that simulation, and the
 one behind <code><a href="../reference/hr_mdd.html">hr_mdd()</a></code>, every night.</p>
 <p>Paired differences are taken item by item, so each one compares the
-arms on the same question, with a cluster-robust t interval at every
-size and simultaneous intervals over all pairs beside it. Arms are
-listed in benchmark order, not ranked; the rank interval is how much the
-order could change over resamples, and <code>small</code> and
-<code>large</code> here are ranked 2 and 1 in every one.</p>
-<p>The stability rows describe each arm against itself. The flip rate is
-the share of items whose correctness changed between runs, TARa the
-share whose scored output was the same on every run, and
-<code>run_sd</code> the spread of whole-run accuracy. <code>small</code>
-flips on 75% of its items, which an accuracy of 0.750 alone would hide.
-Reliability is pass^k, the chance that k runs drawn from an item’s runs
-are all right, estimated without bias: an arm right 75% of the time is
-right on all five runs of an item only 25% of the time here.</p>
-<p>Cost is in dollars and tokens per item and per correct item, since a
-cheap arm that is often wrong can cost more per right answer than it
-looks. An arm whose dollars rest on estimated token counts for more than
-5% of its spend is flagged; the mock reports no token counts, so both
+arms on the same question. Each difference gets a cluster-robust t
+interval at every size, with simultaneous intervals over all pairs
+beside it. The report lists arms in benchmark order and does not rank
+them. The rank interval shows how much the order could change over
+resamples: <code>small</code> and <code>large</code> here rank 2 and 1
+in every one.</p>
+<p>The stability rows compare each arm with itself:</p>
+<ul>
+<li>the flip rate is the share of items whose correctness changed
+between runs;</li>
+<li>TARa is the share whose scored output was the same on every
+run;</li>
+<li>
+<code>run_sd</code> is the spread of whole-run accuracy.</li>
+</ul>
+<p><code>small</code> flips on 75% of its items, and an accuracy of
+0.750 alone would hide that. Reliability is pass^k, the chance that k
+runs drawn from an item’s runs are all right, estimated without bias.
+Here an arm right 75% of the time is right on all five runs of an item
+only 25% of the time.</p>
+<p>Cost comes in dollars and tokens per item and per correct item, since
+a cheap arm that is often wrong can cost more per right answer than it
+looks. The report flags an arm when more than 5% of its spend rests on
+estimated token counts. The mock reports no token counts, so both arms
 are flagged here. The frontier is the set of arms no other arm beats on
 both dollars per item and accuracy, with each arm’s share of resamples
-on it. Failures are counted by kind, every one counted wrong, with
-accuracy recomputed without parse failures and refusals beside it. The
-variance line splits the spread into within-item (run to run) and
-between-item parts; when runs account for more than 10% of it, as here
-at 80%, the report says to use 10 runs.</p>
-<p>Below 5 runs the report is descriptive only, with point estimates and
-no intervals. An item scored on some runs and not others is refused.
-Everything is in the returned list (<code>rpt$accuracy</code>,
-<code>rpt$contrasts</code>, <code>rpt$pass_k</code>,
-<code>rpt$cost</code>, <code>rpt$frontier</code>,
-<code>rpt$failures</code>, <code>rpt$variance</code>,
-<code>rpt$notes</code>), and <code><a href="../reference/as_json.html">as_json()</a></code> writes it out.</p>
+on it.</p>
+<p>Failures are counted by kind, and every one counts as wrong. Beside
+them, the report gives accuracy recomputed without parse failures and
+refusals. The variance line splits the spread into within-item (run to
+run) and between-item parts. When runs account for more than 10% of it,
+as here at 80%, the report says to use 10 runs.</p>
+<p>With fewer than 5 runs the report is descriptive only: point
+estimates and no intervals. The report refuses an item scored on some
+runs and not others. The returned list holds every part
+(<code>rpt$accuracy</code>, <code>rpt$contrasts</code>,
+<code>rpt$pass_k</code>, <code>rpt$cost</code>,
+<code>rpt$frontier</code>, <code>rpt$failures</code>,
+<code>rpt$variance</code>, <code>rpt$notes</code>), and
+<code><a href="../reference/as_json.html">as_json()</a></code> writes it out.</p>
 <div class="section level3">
 <h3 id="set-errcorr">Errors the arms share<a class="anchor" aria-label="anchor" href="#set-errcorr"></a>
 </h3>
 <p><strong>What it controls.</strong>
-<code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code> says how far the arms’ errors go
-together: the phi coefficient between each pair’s errors within strata
-of item difficulty (<code>n_strata</code>, or your own
+<code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code> measures how far the arms’ errors go
+together. It gives the phi coefficient between each pair’s errors within
+strata of item difficulty (<code>n_strata</code>, or your own
 <code>strata</code>), the share of items both got wrong where they gave
 the same wrong answer, and a sample of <code>n_check</code> items every
 arm got wrong, for a person to read. Two arms with good accuracy that
 fail on the same items gain little from being combined, or from checking
-each other. It reads the benchmark’s rows (with
+each other. The function reads the benchmark’s rows (with
 <code>held_out = TRUE</code>, only those that count as evidence) and
-sends nothing. Yen’s Q3, the residual correlation of an item response
-model, is not computed: it needs a mixed-model package harnessr does not
-depend on.</p>
+sends nothing. It does not compute Yen’s Q3, the residual correlation of
+an item response model, since that needs a mixed-model package harnessr
+does not depend on.</p>
 <p><strong>Signs it needs reading.</strong> A plan to vote across arms,
 to use one arm to check another, or to call two arms’ agreement a sign
 of being right; or a benchmark where most errors fall on a few
@@ -627,10 +659,10 @@ with <code><a href="../reference/hr_sweep.html">hr_sweep()</a></code>:</p>
 <span><span class="co">#&gt; 2  q02              no              no              no</span></span>
 <span><span class="co">#&gt; 3  q03              no              no              no</span></span></code></pre></div>
 <p>Every pair is positively correlated, and every pair that is wrong
-together gives the same wrong answer, “no”: the three items every arm
-gets wrong carry most of it. With difficulty strata
-(<code>n_strata = 3</code>, the default) the items are cut by the share
-of runs that got them wrong:</p>
+together gives the same wrong answer, “no”. Most of that comes from the
+three items every arm gets wrong. With difficulty strata
+(<code>n_strata = 3</code>, the default), the function cuts the items by
+the share of runs that got them wrong:</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ec3</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_error_correlation.html">hr_error_correlation</a></span><span class="op">(</span><span class="va">eb</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">ec3</span><span class="op">$</span><span class="va">strata</span><span class="op">)</span></span>
@@ -656,16 +688,22 @@ items of its own, and it comes out negative.</p>
 <h3 id="what-a-reader-keeps-gr_condensation_check">What a reader keeps: <code>gr_condensation_check()</code><a class="anchor" aria-label="anchor" href="#what-a-reader-keeps-gr_condensation_check"></a>
 </h3>
 <p>A reader that carries a running draft through a document, as
-<code>refine</code> does, condenses as it goes, and can lose an early
+<code>refine</code> does, condenses as it goes. It can lose an early
 fact, take a value from a near-namesake, or keep a figure the document
 later corrected. <code><a href="../reference/gr_condensation_check.html">gr_condensation_check()</a></code> builds a benchmark
-that measures each of these without a model judge. It plants facts in a
-document (synthetic filler, or a text of your own), each with a question
-whose answer is the planted value; plants lures, the same measure for a
-near-namesake with another value; and states one fact wrongly near the
-start and corrects it near the end. Each document is given forwards and
-reversed by paragraph (<code><a href="../reference/gr_reverse_text.html">gr_reverse_text()</a></code>), so a fact the
-forward reader meets last, the reverse reader meets first.</p>
+that measures each of these without a model judge. In a document
+(synthetic filler, or a text of your own) it:</p>
+<ul>
+<li>plants facts, each with a question whose answer is the planted
+value;</li>
+<li>plants lures, the same measure for a near-namesake with another
+value;</li>
+<li>states one fact wrongly near the start and corrects it near the
+end.</li>
+</ul>
+<p>Each document is given forwards and reversed by paragraph
+(<code><a href="../reference/gr_reverse_text.html">gr_reverse_text()</a></code>), so the reverse reader meets first the
+fact the forward reader meets last.</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">chk</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_condensation_check.html">gr_condensation_check</a></span><span class="op">(</span>n_facts <span class="op">=</span> <span class="fl">4</span>, n_lures <span class="op">=</span> <span class="fl">1</span>, paragraphs <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span>
 <span><span class="va">chk</span></span>
@@ -682,10 +720,11 @@ forward reader meets last, the reverse reader meets first.</p>
 <span><span class="co">#&gt; 2       &lt;NA&gt;</span></span>
 <span><span class="co">#&gt; 3       &lt;NA&gt;</span></span>
 <span><span class="co">#&gt; 4        264</span></span></code></pre></div>
-<p>The arms differ in how they carry the document. Here a stand-in model
-plays a reader whose draft takes the lure’s value and keeps the
-superseded figure, while a ledger of findings does not; on a real model
-the same code measures what each actually does.</p>
+<p>The two arms below differ in how they carry the document: a running
+draft or a ledger of findings. Here a stand-in model plays a reader
+whose draft takes the lure’s value and keeps the superseded figure,
+while a ledger of findings does neither. On a real model the same code
+measures what each one does.</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">facts</span> <span class="op">&lt;-</span> <span class="va">chk</span><span class="op">$</span><span class="va">items</span></span>
 <span><span class="va">condenser</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
@@ -712,23 +751,33 @@ the same code measures what each actually does.</p>
 <span><span class="co">#&gt; 2         0.5   20</span></span>
 <span><span class="co">#&gt; 3         1.0   20</span></span>
 <span><span class="co">#&gt; 4         1.0   20</span></span></code></pre></div>
-<p><code>fact_recall</code> is the share of runs whose answer holds the
-planted value, <code>lure_rate</code> the share of runs on lure items
-whose answer holds the lure’s, <code>correction_won</code> the share of
-runs on the corrected fact that give the new figure and not the old, and
-<code>late_recall</code> fact recall over the facts in the last third of
-the document as it was read. <code><a href="../reference/hr_report.html">hr_report()</a></code> reads the same
-benchmark with intervals, since the check’s <code>reference</code> and
-<code>scorer</code> are ordinary ones.</p>
+<p>In the summary:</p>
+<ul>
+<li>
+<code>fact_recall</code> is the share of runs whose answer holds the
+planted value;</li>
+<li>
+<code>lure_rate</code> is the share of runs on lure items whose
+answer holds the lure’s;</li>
+<li>
+<code>correction_won</code> is the share of runs on the corrected
+fact that give the new figure and not the old;</li>
+<li>
+<code>late_recall</code> is fact recall over the facts in the last
+third of the document as it was read.</li>
+</ul>
+<p>The check’s <code>reference</code> and <code>scorer</code> are
+ordinary ones, so <code><a href="../reference/hr_report.html">hr_report()</a></code> reads the same benchmark with
+intervals.</p>
 </div>
 </div>
 <div class="section level2">
 <h2 id="planning-the-size-and-non-inferiority">Planning the size, and non-inferiority<a class="anchor" aria-label="anchor" href="#planning-the-size-and-non-inferiority"></a>
 </h2>
-<p>Often the question is whether a cheaper arm is worse than the one in
+<p>Often you want to know whether a cheaper arm is worse than the one in
 use by more than a margin you can live with. That is a non-inferiority
-test. Whether a benchmark can answer it depends on its size, which is
-worth knowing before anyone labels 500 questions.</p>
+test. Whether a benchmark can answer that depends on its size, so check
+the size before anyone labels 500 questions.</p>
 <p><code><a href="../reference/hr_mdd.html">hr_mdd()</a></code> gives the smallest paired difference a
 clustered design can detect. It needs the number of items and clusters,
 the intra-cluster correlation of the paired item difference (ICC_D,
@@ -748,28 +797,30 @@ documents:</p>
 design effect DE = 1 + (m - 1) x ICC_D is 2 here, so 480 questions carry
 the information of 240. With nine confirmatory contrasts, Holm’s first
 step tests at 0.025 / 9, and the detectable difference grows from 8.2 to
-10.7 points. <code><a href="../reference/hr_mdd.html">hr_n_needed()</a></code> turns it round, giving the items
-needed for a margin:</p>
+10.7 points. <code><a href="../reference/hr_mdd.html">hr_n_needed()</a></code> works the other way and gives
+the items needed for a margin:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_mdd.html">hr_n_needed</a></span><span class="op">(</span><span class="fl">0.08</span>, m <span class="op">=</span> <span class="fl">6</span>, icc <span class="op">=</span> <span class="fl">0.2</span>, p_disc <span class="op">=</span> <span class="fl">0.2</span>, n_contrasts <span class="op">=</span> <span class="fl">9</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;hr_n_needed&gt; 8.0 points at 80% power, one-sided alpha 0.002778 (0.025 / 9 contrasts, Holm worst case)</span></span>
 <span><span class="co">#&gt;   n_eff 419 effective items; DE 2, so 840 items in 140 clusters of 6</span></span></code></pre></div>
 <p>Both use t quantiles on C - 1 degrees of freedom, the ones the report
 tests with. In the power simulation <code>dev/sim-power.R</code> the
-formula’s MDD was within 0.25 points of the simulated one; with normal
-quantiles it was up to 0.41 points below it at 80 clusters, which is why
-t quantiles are used.</p>
-<p><code><a href="../reference/hr_contrast.html">hr_contrast()</a></code> states a contrast (the new arm, the
-reference arm, the margin and whether the new arm must also be cheaper)
-and <code><a href="../reference/hr_contrast.html">hr_register_contrasts()</a></code> fixes the contrasts against the
-reference before anything scores it. The help suggests a margin of
-min(0.5 x M1, the loss you would accept in practice), with M1 the
-reference arm’s advantage over a minimal baseline in a pilot. A
-confirmatory margin below the design’s MDD after Holm is refused with
-class <code>hr_margin_below_mdd</code>, since it claims more than the
-items can show; <code>confirmatory = FALSE</code> registers it as
-exploratory instead. A reference a benchmark has already begun to score
-is refused with class <code>hr_registration_after_scoring</code>.</p>
+formula’s MDD came within 0.25 points of the simulated one. With normal
+quantiles it fell up to 0.41 points below it at 80 clusters, so both
+functions use t quantiles.</p>
+<p><code><a href="../reference/hr_contrast.html">hr_contrast()</a></code> states a contrast: the new arm, the
+reference arm, the margin and whether the new arm must also be cheaper.
+<code><a href="../reference/hr_contrast.html">hr_register_contrasts()</a></code> fixes the contrasts against the
+reference before anything scores it. <code><a href="../reference/hr_contrast.html">?hr_contrast</a></code> suggests
+a margin of min(0.5 x M1, the loss you would accept in practice), with
+M1 the reference arm’s advantage over a minimal baseline in a pilot.</p>
+<p><code><a href="../reference/hr_contrast.html">hr_register_contrasts()</a></code> refuses a confirmatory margin
+below the design’s MDD after Holm, with class
+<code>hr_margin_below_mdd</code>, since such a margin claims more than
+the items can show. <code>confirmatory = FALSE</code> registers it as
+exploratory instead. It also refuses a reference a benchmark has already
+begun to score, with class
+<code>hr_registration_after_scoring</code>.</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">300</span></span>
 <span><span class="va">ids</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"q%03d"</span>, <span class="fl">1</span><span class="op">:</span><span class="va">n</span><span class="op">)</span></span>
@@ -779,10 +830,10 @@ is refused with class <code>hr_registration_after_scoring</code>.</p>
 <span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mdd.html">hr_mdd</a></span><span class="op">(</span><span class="va">n</span>, n_clusters <span class="op">=</span> <span class="fl">50</span>, icc <span class="op">=</span> <span class="fl">0.1</span>, p_disc <span class="op">=</span> <span class="fl">0.15</span><span class="op">)</span></span>
 <span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_contrast.html">hr_register_contrasts</a></span><span class="op">(</span><span class="va">plan</span>, <span class="fu"><a href="../reference/hr_contrast.html">hr_contrast</a></span><span class="op">(</span><span class="st">"small"</span>, <span class="st">"large"</span>, margin <span class="op">=</span> <span class="fl">0.10</span><span class="op">)</span>, <span class="va">design</span><span class="op">)</span></span>
 <span><span class="va">reg</span></span>
-<span><span class="co">#&gt; &lt;hr_contrast_registration&gt; 1 contrast(s), 1 confirmatory; registered 2026-11-26T00:30:31.210Z</span></span>
+<span><span class="co">#&gt; &lt;hr_contrast_registration&gt; 1 contrast(s), 1 confirmatory; registered 2026-11-26T00:56:05.967Z</span></span>
 <span><span class="co">#&gt;  contrast       label        margin mdd cost_test</span></span>
 <span><span class="co">#&gt;  small vs large confirmatory 10.0   7.8 yes      </span></span>
-<span><span class="co">#&gt;   Margins and MDD in points; reference d453122a93af; hash b6354df550ef</span></span></code></pre></div>
+<span><span class="co">#&gt;   Margins and MDD in points; reference d453122a93af; hash 687fc3f09395</span></span></code></pre></div>
 <p>Here the stand-in model finds each item easier or harder by document
 and by item, and <code>mock-small</code> is a little worse on every one.
 The governor allows the 3000 calls the benchmark needs:</p>
@@ -810,34 +861,35 @@ The governor allows the 3000 calls the benchmark needs:</p>
 <p>With 300 items in 50 clusters the report switches to the studentised
 bootstrap. A contrast holds only if the one-sided lower bound of the
 accuracy difference is above -margin and, with the cost test, the upper
-bound of the paired cost difference is below 0. Here <code>small</code>
-is 5.3 points less accurate than <code>large</code>, its lower bound is
--8.1 points, inside the margin of 10, and its cost bound is below 0, so
-the verdict is <code>TRUE</code>. The accuracy bound is the
-cluster-robust t bound of the paired differences, so at one-sided 0.025
-it is the lower end of the printed 95% contrast interval. Confirmatory
-contrasts are tested with Holm’s step-down procedure. The design and
-achieved MDD are printed beside the verdict, and Tango’s paired score
-interval sits beside it as a cross-check that does not enter the
-verdict.</p>
+bound of the paired cost difference is below 0.</p>
+<p>Here <code>small</code> is 5.3 points less accurate than
+<code>large</code>. Its lower bound is -8.1 points, inside the margin of
+10, and its cost bound is below 0, so the verdict is <code>TRUE</code>.
+The accuracy bound is the cluster-robust t bound of the paired
+differences, so at one-sided 0.025 it is the lower end of the printed
+95% contrast interval. Confirmatory contrasts are tested with Holm’s
+step-down procedure. The report prints the design and achieved MDD
+beside the verdict, with Tango’s paired score interval as a cross-check
+that does not enter the verdict.</p>
 <p>A report with a registration, or with
-<code>confirmatory = TRUE</code>, is evidence, so any row from the dev,
-exploratory or calibration split is refused with class
-<code>hr_dev_not_evidence</code>, and so is a registration edited after
-it was made.</p>
+<code>confirmatory = TRUE</code>, is evidence. <code><a href="../reference/hr_report.html">hr_report()</a></code>
+then refuses any row from the dev, exploratory or calibration split with
+class <code>hr_dev_not_evidence</code>. It refuses a registration edited
+after it was made too, with class
+<code>hr_registration_changed</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="judges">Judges<a class="anchor" aria-label="anchor" href="#judges"></a>
 </h2>
-<p>Some answers cannot be scored by matching text: a summary, an
-explanation, an answer that is right in other words.
-<code><a href="../reference/hr_judge.html">hr_judge()</a></code> asks a model to choose between candidates
-(<code>"select"</code>), compare two (<code>"pairwise"</code>) or grade
-one against a reference (<code>"grade"</code>). Candidates are shown
-under the letters A, B and so on, never their names, and each item is
-asked in two orders. A verdict that changes with the order, mapped back
-to the candidate it names, is <code>"unresolved"</code>, never a pick.
-This stand-in always picks whatever is shown first:</p>
+<p>Matching text cannot score some answers: a summary, an explanation,
+an answer that is right in other words. <code><a href="../reference/hr_judge.html">hr_judge()</a></code> asks a
+model to choose between candidates (<code>"select"</code>), compare two
+(<code>"pairwise"</code>) or grade one against a reference
+(<code>"grade"</code>). The model sees the candidates under the letters
+A, B and so on, never their names, and gets each item in two orders. A
+verdict that changes with the order, once mapped back to the candidate
+it names, is <code>"unresolved"</code>, never a pick. This stand-in
+always picks whatever is shown first:</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">first</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">'{"verdict": "A", "reason": "It is first."}'</span><span class="op">)</span></span>
 <span><span class="va">j</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_judge.html">hr_judge</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>short <span class="op">=</span> <span class="st">"Revenue was 45.2 million."</span>, long <span class="op">=</span> <span class="st">"Revenue was 51.8 million."</span><span class="op">)</span>,</span>
@@ -848,21 +900,20 @@ This stand-in always picks whatever is shown first:</p>
 <span><span class="co">#&gt;   order      shown verdict value</span></span>
 <span><span class="co">#&gt; 1     1 short,long       A short</span></span>
 <span><span class="co">#&gt; 2     2 long,short       A  long</span></span></code></pre></div>
-<p>The judge’s requests go through the same check as
-<code><a href="../reference/hr_call.html">hr_call()</a></code>, under the labels
-<code>judge.&lt;mode&gt;.o&lt;k&gt;</code>, into a trace of the judge’s
-own. Their cost is in <code>j$judge_cost</code> and never in the trace
-of the run being judged.</p>
+<p>The judge’s requests pass the same check as <code><a href="../reference/hr_call.html">hr_call()</a></code>,
+under the labels <code>judge.&lt;mode&gt;.o&lt;k&gt;</code>, and go into
+a trace of the judge’s own. Their cost is in <code>j$judge_cost</code>
+and never in the trace of the run being judged.</p>
 <p><code><a href="../reference/hr_judge_config.html">hr_judge_config()</a></code> holds everything that decides a
 judge’s answers (model, mode, rubric, the package’s instructions, reply
 schema, orders, how verdicts are combined, the positive grade) with a
 hash of it. <code><a href="../reference/hr_judge_validate.html">hr_judge_validate()</a></code> compares the judge’s
 decisions with blind human labels for one configuration. It refuses
 fewer than 50 human-positive or 50 human-negative items, with class
-<code>hr_judge_too_few_labels</code>, and the minimums cannot be
-lowered: at 10% prevalence, 100 labels hold 10 positives and a
-sensitivity interval of about plus or minus 0.3. The judge’s decisions
-here are simulated as right 90% of the time:</p>
+<code>hr_judge_too_few_labels</code>, and you cannot lower those
+minimums. At 10% prevalence, 100 labels hold 10 positives, and
+sensitivity then has an interval of about plus or minus 0.3. Here the
+judge’s simulated decisions are right 90% of the time:</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"mock-judge"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">4096</span>,</span>
 <span>                  input_usd <span class="op">=</span> <span class="fl">1</span>, output_usd <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
@@ -881,12 +932,12 @@ here are simulated as right 90% of the time:</p>
 <span><span class="co">#&gt;   sensitivity: 0.933 [0.841, 0.974], n = 60, half-width 0.067</span></span>
 <span><span class="co">#&gt;   specificity: 0.917 [0.819, 0.964], n = 60</span></span>
 <span><span class="co">#&gt;   swap inconsistency: 0.017 [0.005, 0.059], 2 of 120</span></span></code></pre></div>
-<p>Items the judge left unresolved count as not called positive, which
-is how the scorer will count them, so the figures describe the judge as
-it will be used. Whether they are good enough for your purpose is a
-decision to make before labelling; the function measures and does not
-admit. The record is keyed by the configuration’s hash, and
-<code><a href="../reference/hr_judge_validate.html">hr_judge_valid()</a></code> says when it no longer holds:</p>
+<p>Items the judge left unresolved count as not called positive, as the
+scorer will count them, so the figures describe the judge as you will
+use it. Decide before labelling what figures are good enough for your
+purpose: the function measures the judge and does not approve it. The
+record is keyed by the configuration’s hash, and
+<code><a href="../reference/hr_judge_validate.html">hr_judge_valid()</a></code> tells you when it no longer holds:</p>
 <div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_judge_validate.html">hr_judge_valid</a></span><span class="op">(</span><span class="va">v</span>, <span class="va">cfg</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span>
@@ -895,12 +946,12 @@ admit. The record is keyed by the configuration’s hash, and
 <span><span class="co">#&gt; attr(,"reason")</span></span>
 <span><span class="co">#&gt; [1] "the judge configuration changed since validation (rubric)"</span></span></code></pre></div>
 <p><code><a href="../reference/hr_scorer_judge.html">hr_scorer_judge()</a></code> is a benchmark scorer that grades each
-output against its label with a grade-mode judge. It refuses to be built
-without a valid record (class <code>hr_judge_unvalidated</code>). An
+output against its label with a grade-mode judge. Without a valid record
+it refuses to build (class <code>hr_judge_unvalidated</code>). An
 unresolved judgement counts as wrong and a failed one as an error, so an
-arm’s accuracy cannot rise on the items the judge could not settle, and
-the judge’s requests stay in the scorer’s own trace, out of the
-benchmark’s cost columns:</p>
+arm’s accuracy cannot rise on the items the judge could not settle. The
+judge’s requests stay in the scorer’s own trace, out of the benchmark’s
+cost columns:</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">grader_judge</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">shown</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">".*Response to grade:"</span>, <span class="st">""</span>, <span class="va">messages</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span><span class="op">)</span></span>
@@ -910,7 +961,7 @@ benchmark’s cost columns:</p>
 <span><span class="va">judge_scorer</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_scorer_judge.html">hr_scorer_judge</a></span><span class="op">(</span><span class="va">cfg</span>, <span class="va">v</span>, <span class="va">grader_judge</span><span class="op">)</span></span>
 <span><span class="va">judge_scorer</span><span class="op">$</span><span class="fu">fn</span><span class="op">(</span><span class="st">"What was revenue?"</span>, <span class="st">"It came to 45.2 million dollars."</span>, <span class="st">"45.2 million"</span><span class="op">)</span><span class="op">$</span><span class="va">correct</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<p>A judge’s accuracy figures carry its own errors.
+<p>Accuracy scored by a judge carries the judge’s own errors.
 <code><a href="../reference/hr_judge_ppi.html">hr_judge_ppi()</a></code> corrects judge-scored accuracy with human
 labels on a sample, by prediction-powered inference (PPI++ by default).
 Here a lenient judge passes 30% of wrong answers on 1000 items, and
@@ -927,9 +978,9 @@ people label 150 of them:</p>
 <span><span class="co">#&gt; 1 0.5668593 0.5053991 0.6283196      0.698</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">truth</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 0.594</span></span></code></pre></div>
-<p>The judge alone says 0.698. Corrected with the 150 labels the
+<p>The judge alone gives 0.698. Corrected with the 150 labels, the
 estimate is 0.567, and its interval, 0.505 to 0.628, holds the true
-share of 0.594. When the labelled items were drawn with unequal
+share of 0.594. If the labelled items were drawn with unequal
 probabilities, pass <code>inclusion_prob</code> and the correction is
 inverse probability weighted. The interval is a normal approximation and
 runs narrow with few labels at small inclusion probabilities.</p>
@@ -937,21 +988,21 @@ runs narrow with few labels at small inclusion probabilities.</p>
 <div class="section level2">
 <h2 id="checks-that-run-a-program">Checks that run a program<a class="anchor" aria-label="anchor" href="#checks-that-run-a-program"></a>
 </h2>
-<p>A benchmark can score what a program says about an output, not only
-what a label or a judge says. <code><a href="../reference/hr_step_command.html">hr_step_command()</a></code> builds a
-step that runs one program you name, such as <code>Rscript</code> on a
-test file, and reads its result as <code>"passed"</code> or
-<code>"failed"</code>. Put it in a chain (see
-<code><a href="../articles/compose.html">vignette("compose")</a></code>) after the step that writes what it
-checks. The step runs the program with your own privileges, through
-<code><a href="https://rdrr.io/r/base/system2.html" class="external-link">system2()</a></code>: each element of <code>argv</code> is one
-argument, never split on spaces, there is no default command, and a
-command is never taken from a model’s reply. The API key is unset for
-the call; the rest of the environment is inherited. A command step sends
-no request, so it adds no cost.</p>
+<p>Besides a label or a judge, a benchmark can score what a program says
+about an output. <code><a href="../reference/hr_step_command.html">hr_step_command()</a></code> builds a step that runs
+one program you name, such as <code>Rscript</code> on a test file, and
+reads its result as <code>"passed"</code> or <code>"failed"</code>. Put
+it in a chain (see <code><a href="../articles/compose.html">vignette("compose")</a></code>) after the step that
+writes what it checks.</p>
+<p>The step runs the program with your own privileges, through
+<code><a href="https://rdrr.io/r/base/system2.html" class="external-link">system2()</a></code>. Each element of <code>argv</code> is one
+argument, never split on spaces. There is no default command, and the
+step never takes a command from a model’s reply. The API key is unset
+for the call, and the program inherits the rest of the environment. A
+command step sends no request, so it adds no cost.</p>
 <p>The examples below run the R that builds this guide, so they work
-offline. The draft step writes a small R file for each item, as a
-model’s draft would; the check runs it:</p>
+offline. The draft step writes a small R file for each item in place of
+a model’s draft, and the check runs it:</p>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rscript</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Rhome.html" class="external-link">R.home</a></span><span class="op">(</span><span class="st">"bin"</span><span class="op">)</span>, <span class="st">"Rscript"</span><span class="op">)</span></span>
 <span><span class="va">tasks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_reference.html">hr_reference</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>t1 <span class="op">=</span> <span class="st">"1 + 1 == 2"</span>, t2 <span class="op">=</span> <span class="st">"1 + 1 == 3"</span><span class="op">)</span>,</span>
@@ -976,11 +1027,11 @@ model’s draft would; the check runs it:</p>
 </h3>
 <p><strong>What it controls.</strong> <code>timeout</code> is the number
 of seconds the program may run before it is stopped. A program stopped
-there has the status <code>"timeout"</code> and the degradation
+at the limit gets the status <code>"timeout"</code> and the degradation
 <code>"command_timeout"</code>, and counts as neither passed nor failed.
-The program is ended there, but processes it started in the background
-(or that ignore the signal) can keep running, on any platform; on
-Windows, any process it started can.</p>
+The step ends the program, but processes it started in the background
+(or that ignore the signal) can keep running on any platform. On
+Windows, any process it started can keep running.</p>
 <p><strong>Signs it needs changing.</strong> Runs whose status is
 <code>"timeout"</code> on items that pass when run by hand (the limit is
 too short for the machine), or a benchmark that takes far longer than
@@ -988,9 +1039,9 @@ its checks should (a stuck program is waiting out a long limit).</p>
 <p><strong>Where the default came from.</strong> Sixty seconds, enough
 for a small test file, set when the step was written and not tuned. It
 is <code>untested</code>.</p>
-<p><strong>How to test it.</strong> Sweep it by path. The configuration
-changes with it, so each value is its own arm; here both are long
-enough, and the outcomes agree:</p>
+<p><strong>How to test it.</strong> Sweep it by path. Each value changes
+the configuration, so each value is its own arm. Here both values are
+long enough, and the outcomes agree:</p>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">chain</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_chain.html">hr_chain</a></span><span class="op">(</span>draft <span class="op">=</span> <span class="va">draft</span>,</span>
 <span>                  check <span class="op">=</span> <span class="fu"><a href="../reference/hr_step_command.html">hr_step_command</a></span><span class="op">(</span><span class="st">"check"</span>, <span class="va">run_file</span>, held <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
@@ -1011,19 +1062,19 @@ the exit code: 0 is <code>"passed"</code>, anything else
 <code>"failed"</code>. <code>parse = "testthat"</code> reads the last
 <code>[ FAIL n | WARN n | SKIP n | PASS n ]</code> line the program
 printed: <code>"failed"</code> when <code>FAIL</code> is above 0, and
-<code>"error"</code> when there is no such line. The exit code alone is
-not enough for testthat, because <code><a href="https://testthat.r-lib.org/reference/test_file.html" class="external-link">testthat::test_file()</a></code>
-exits with 0 when a test fails unless it is given
+<code>"error"</code> when there is no such line. For testthat the exit
+code alone falls short, because <code><a href="https://testthat.r-lib.org/reference/test_file.html" class="external-link">testthat::test_file()</a></code> exits
+with 0 when a test fails unless you give it
 <code>stop_on_failure = TRUE</code>.</p>
 <p><strong>Signs it needs changing.</strong> A check that runs a test
 file and reports <code>"passed"</code> for drafts that fail their tests:
 it is reading the exit code of a run that does not stop on failure. With
 <code>"testthat"</code>, a status of <code>"error"</code> on every run
-means no summary line is printed, so the command is not running the
-tests.</p>
+means the program prints no summary line, so the command is not running
+the tests.</p>
 <p><strong>Where the default came from.</strong> <code>"exit"</code>
-reads what every program reports. It is a choice, not a tuned value, and
-is <code>untested</code>.</p>
+reads what every program reports. It was chosen, never tuned, and is
+<code>untested</code>.</p>
 <p><strong>How to test it.</strong> Run the same test file both ways.
 Without <code>stop_on_failure = TRUE</code> the exit code is 0, so
 <code>"exit"</code> passes what <code>"testthat"</code> fails:</p>
@@ -1057,13 +1108,13 @@ attaches the result as <code>attr(output, "hr_held")</code> for the
 scorer. A held step must come last in its chain: <code><a href="../reference/hr_chain.html">hr_chain()</a></code>
 refuses a step that is not held after one that is.</p>
 <p><strong>Signs it needs changing.</strong> A chain whose revise step
-sees the very check that scores it: the check is then a target, not a
-measure, and its pass rate says little about drafts the check never saw.
-Hold that check back, and use a separate visible check for the revise
-step.</p>
-<p><strong>Where the default came from.</strong> Off, so the result is
-visible to the steps after it. A choice for the chain, not a tuned
-value, and <code>untested</code>.</p>
+sees the check that scores it. The check then becomes a target for the
+revise step, and its pass rate says little about drafts the check never
+saw. Hold that check back, and use a separate visible check for the
+revise step.</p>
+<p><strong>Where the default came from.</strong> Off, so the steps after
+it see the result. It was chosen for the chain, never tuned, and is
+<code>untested</code>.</p>
 <p><strong>How to test it.</strong> Sweep it on the last step. The
 outcomes agree, since nothing after the check reads it, but only the
 held arm records the signal:</p>
@@ -1106,8 +1157,9 @@ a held check scores the result:</p>
 <span><span class="co">#&gt; 3 checked   t1 command.check passed</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">tf</span><span class="op">)</span></span></code></pre></div>
 <p>The revised chain passes every draft, so it is scored wrong on
-<code>t2</code>, whose label says the draft should fail. The step is
-only as good as the command: the package never chooses one.</p>
+<code>t2</code>, whose label says the draft should fail. A command step
+checks only what its command checks, and the package never chooses the
+command.</p>
 </div>
 </div>
 <div class="section level2">
@@ -1115,10 +1167,10 @@ only as good as the command: the package never chooses one.</p>
 </h2>
 <p>A configuration that calls a model should beat one that does not.
 <code><a href="../reference/hr_baseline_classifier.html">hr_baseline_classifier()</a></code> fits a ridge logistic regression
-on tf-idf features (<code><a href="../reference/hr_tfidf.html">hr_tfidf()</a></code>) and cross-fits it, so every
-item is predicted by a model that never saw it, with the vocabulary
-fitted on each training fold only. Folds are stratified by label, or
-keep each <code>cluster</code> whole:</p>
+on tf-idf features (<code><a href="../reference/hr_tfidf.html">hr_tfidf()</a></code>) and cross-fits it, so a
+model that never saw an item predicts it, with the vocabulary fitted on
+each training fold only. Folds are stratified by label, or keep each
+<code>cluster</code> whole:</p>
 <div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">words</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">pool</span>, <span class="va">n</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="va">pool</span>, <span class="fl">6</span>, <span class="cn">TRUE</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">" "</span><span class="op">)</span>, <span class="st">""</span><span class="op">)</span></span>
@@ -1154,9 +1206,9 @@ order, and says when prioritised screening may stop;
 </h2>
 <p>A provider can change a model behind the same name.
 <code><a href="../reference/hr_drift_check.html">hr_drift_check()</a></code> reruns an arm live on the items of a
-frozen benchmark and compares the two item by item, with
-<code>alpha</code> and an optional <code>alert</code> fixed in the call
-before anything is rerun. Here the model has since learned two capitals
+frozen benchmark and compares the two item by item. You fix
+<code>alpha</code> and an optional <code>alert</code> in the call,
+before anything is rerun. Here the model now gets two capitals
 wrong:</p>
 <div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">six</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_reference.html">hr_reference</a></span><span class="op">(</span></span>
@@ -1188,17 +1240,19 @@ wrong:</p>
 <span><span class="co">#&gt; Note: 6 items in 3 clusters fall short of 300 items and 30 clusters, where the cluster bootstrap can undercover; read the tests as approximate.</span></span></code></pre></div>
 <p>Test (a) is the change in accuracy, live minus frozen, by a cluster
 bootstrap over documents, with the clustered McNemar test beside it.
-Test (b) asks whether frozen and live runs disagree more than replicate
-runs disagree among themselves; per item it estimates the squared
-change, so it also sees losses and gains that cancel in accuracy. Here
-(a) finds the two lost items, a change of -0.333 with an interval that
-lies wholly beyond the alert of 0.1. Test (b) does not reject: with
-three clusters its one-sided bound reaches 0. The live rerun is in
-<code>drift$live</code>, an <code>hr_bench</code> you can report or keep
-as the next frozen sample. Fewer than 5 frozen runs, a changed arm,
-another reference or scorer, and a live rerun answered from a cache or a
-recording are refused: that last one would be the frozen reply again,
-not the model today.</p>
+Test (b) checks whether frozen and live runs disagree more than
+replicate runs disagree among themselves. Per item it estimates the
+squared change, so it also catches losses and gains that cancel in
+accuracy.</p>
+<p>Here (a) finds the two lost items: a change of -0.333 with an
+interval that lies wholly beyond the alert of 0.1. Test (b) does not
+reject, since with three clusters its one-sided bound reaches 0. The
+live rerun is in <code>drift$live</code>, an <code>hr_bench</code> you
+can report or keep as the next frozen sample.</p>
+<p><code><a href="../reference/hr_drift_check.html">hr_drift_check()</a></code> refuses fewer than 5 frozen runs, a
+changed arm, another reference or scorer, and a live rerun answered from
+a cache or a recording. That last one would return the frozen reply
+again instead of the model’s answer today.</p>
 </div>
 <div class="section level2">
 <h2 id="signals-calibration-and-gate-thresholds">Signals, calibration and gate thresholds<a class="anchor" aria-label="anchor" href="#signals-calibration-and-gate-thresholds"></a>
@@ -1207,8 +1261,9 @@ not the model today.</p>
 reader says at each step whether it can answer, <code>preview</code>
 says which sections its plan would skip, and <code>ensemble</code> says
 how it settled its members. <code><a href="../reference/hr_signal.html">hr_signal()</a></code> records such a
-value as a local step in the trace, which sends no request and changes
-no cache key, and <code><a href="../reference/hr_signal.html">hr_signals()</a></code> reads them back:</p>
+value as a local step in the trace. That step sends no request and
+changes no cache key. <code><a href="../reference/hr_signal.html">hr_signals()</a></code> reads the values
+back:</p>
 <div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">reader</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="st">'{"can_answer": true, "answer": "45.2 million dollars", "next_query": ""}'</span></span>
@@ -1219,14 +1274,15 @@ no cache key, and <code><a href="../reference/hr_signal.html">hr_signals()</a></
 <span><span class="co">#&gt;                    signal value score        refs</span></span>
 <span><span class="co">#&gt; 1 gr.iterative.can_answer  TRUE     1 {"round":1}</span></span></code></pre></div>
 <p>A signal is advisory. Nothing in the package acts on one, and a
-signal may gate an action only after it has been measured against items
-whose right answer is known. <code><a href="../reference/hr_calibrate_signal.html">hr_calibrate_signal()</a></code> does
-that on a graded set, which must include unanswerable items: a signal
-measured only on answerable questions has never been asked about the
-case where “I can answer” is most often wrong. It fits a map from the
-signal to a probability on half of each cluster’s items and measures it
-on the other half, with the Brier score, type-2 AUROC, the area under
-the risk-coverage curve and a debiased calibration error, each with a
+signal may gate an action only after you measure it against items whose
+right answer is known. <code><a href="../reference/hr_calibrate_signal.html">hr_calibrate_signal()</a></code> takes that
+measure on a graded set, which must include unanswerable items. A signal
+measured only on answerable questions has never been tested on the case
+where “I can answer” is most often wrong.</p>
+<p><code><a href="../reference/hr_calibrate_signal.html">hr_calibrate_signal()</a></code> fits a map from the signal to a
+probability on half of each cluster’s items and measures it on the other
+half. It reports the Brier score, type-2 AUROC, the area under the
+risk-coverage curve and a debiased calibration error, each with a
 cluster bootstrap interval. The record is keyed by the served model, its
 version, the task, format, prompt hash, effort, module and contract
 version. The graded set here is simulated, 1200 items in 120
@@ -1254,16 +1310,15 @@ documents:</p>
 <span><span class="co">#&gt;   ece     0.0695  [0.0264, 0.1021]</span></span>
 <span><span class="co">#&gt;   advisory: no gate threshold has been set</span></span></code></pre></div>
 <p>A new record is always advisory. <code><a href="../reference/hr_gate_threshold.html">hr_gate_threshold()</a></code>
-looks for the loosest threshold at which acting on the items at or above
-it keeps a risk below <code>alpha</code> with confidence 1 -
-<code>delta</code>, by Learn-then-Test: thresholds are tested from
-strict to loose with a one-sided Clopper-Pearson bound, and the sequence
-stops at the first that fails. Errors from one document go together, so
-the bound is taken on an effective number of items,
-<code>n / deff</code>, where the design effect <code>deff</code> is
-measured over the calibration half’s clusters at each threshold.
-<code>alpha</code> has no default, since it is a decision about the
-task:</p>
+uses Learn-then-Test to find the loosest threshold at which acting on
+the items at or above it keeps a risk below <code>alpha</code> with
+confidence 1 - <code>delta</code>. It tests thresholds from strict to
+loose with a one-sided Clopper-Pearson bound and stops at the first that
+fails. Errors from one document go together, so the bound is taken on an
+effective number of items, <code>n / deff</code>, where the design
+effect <code>deff</code> is measured over the calibration half’s
+clusters at each threshold. <code>alpha</code> has no default, since you
+set it for the task:</p>
 <div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cal</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_gate_threshold.html">hr_gate_threshold</a></span><span class="op">(</span><span class="va">cal</span>, <span class="st">"stop"</span>, alpha <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">cal</span><span class="op">$</span><span class="va">gate</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"threshold"</span>, <span class="st">"n"</span>, <span class="st">"k"</span>, <span class="st">"deff"</span>, <span class="st">"ucb"</span>, <span class="st">"coverage"</span>, <span class="st">"status"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
@@ -1274,15 +1329,21 @@ task:</p>
 <p>At the threshold kept, 147 items of the calibration half are acted
 on, 7 of them wrongly. The design effect is 1.26, so the bound counts
 them as about 117 independent items, and the upper bound on the error
-among them is 0.094 (0.088 if the items were independent). A record
-becomes <code>"gating"</code> only with a passing threshold, at least
-100 wrong items in the graded set, a map that rises with the signal and
-a calibration error over at least 5 bins. Items with the same
-<code>p</code> share a bin, so a signal with fewer than 5 values, such
-as a logical one, stays advisory. A graded set with a <code>split</code>
-column, as <code><a href="../reference/hr_assign_splits.html">hr_assign_splits()</a></code> gives, is calibrated on its
-<code>calibration</code> rows alone. Even then the signal gates only
-through a policy, and only for a run whose key matches the record:</p>
+among them is 0.094 (0.088 if the items were independent).</p>
+<p>A record becomes <code>"gating"</code> only when it has all four of
+these:</p>
+<ul>
+<li>a passing threshold;</li>
+<li>at least 100 wrong items in the graded set;</li>
+<li>a map that rises with the signal;</li>
+<li>a calibration error over at least 5 bins.</li>
+</ul>
+<p>Items with the same <code>p</code> share a bin, so a signal with
+fewer than 5 values, such as a logical one, stays advisory. A graded set
+with a <code>split</code> column, as <code><a href="../reference/hr_assign_splits.html">hr_assign_splits()</a></code>
+gives, is calibrated on its <code>calibration</code> rows alone. Even
+with a gating record, the signal gates only through a policy, and only
+for a run whose key matches the record:</p>
 <div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">policy</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_signal_policy.html">hr_signal_policy</a></span><span class="op">(</span><span class="st">"gr.iterative.can_answer"</span>, <span class="st">"stop"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/hr_signal_policy.html">hr_apply_signal</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.95</span>, <span class="fl">0.4</span><span class="op">)</span>, <span class="va">policy</span>, <span class="va">cal</span>, <span class="va">key</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"value"</span>, <span class="st">"p"</span>, <span class="st">"gated"</span>, <span class="st">"act"</span>, <span class="st">"route"</span><span class="op">)</span><span class="op">]</span></span>
@@ -1297,15 +1358,16 @@ through a policy, and only for a run whose key matches the record:</p>
 <span><span class="co">#&gt; [1] "served_model"</span></span>
 <span><span class="fu"><a href="../reference/hr_signal_policy.html">hr_apply_signal</a></span><span class="op">(</span><span class="fl">0.95</span>, <span class="va">policy</span>, <span class="va">cal</span>, <span class="va">later</span><span class="op">)</span><span class="op">$</span><span class="va">reason</span></span>
 <span><span class="co">#&gt; [1] "the record does not hold for this run (served_model differs)"</span></span></code></pre></div>
-<p>When the signal cannot gate, the item is routed by
-<code>on_fail</code>: to a check (the default), to a person, or nowhere.
-No reader calls <code><a href="../reference/hr_signal_policy.html">hr_apply_signal()</a></code> yet, so in this release
-nothing gates on a signal.</p>
+<p>If the signal cannot gate, <code>on_fail</code> routes the item: to a
+check (the default), to a person, or nowhere. No reader calls
+<code><a href="../reference/hr_signal_policy.html">hr_apply_signal()</a></code> yet, so in this release nothing gates on
+a signal.</p>
 </div>
 <div class="section level2">
 <h2 id="the-statistics-underneath">The statistics underneath<a class="anchor" aria-label="anchor" href="#the-statistics-underneath"></a>
 </h2>
-<p>The functions above rest on five that can be used on their own.</p>
+<p>The functions above rest on five that you can also use on their
+own.</p>
 <p><code><a href="../reference/hr_prop_ci.html">hr_prop_ci()</a></code> gives Wilson, Clopper-Pearson or Jeffreys
 intervals for a proportion. Use Wilson for a descriptive rate and
 Clopper-Pearson for an “at least” or “at most” claim, read as a
@@ -1323,8 +1385,9 @@ interval, the prevalence and bias indices, PABAK, Gwet’s AC1, and
 sensitivity, specificity, PPV and NPV when <code>positive</code> is
 given. Kappa is never reported alone, since it moves with prevalence as
 much as with agreement. For a matrix of coders, or an ordinal, interval
-or ratio level, it reports Krippendorff’s alpha instead, and only
-percent agreement below 30 items.</p>
+or ratio level, it reports Krippendorff’s alpha instead. Below 30 items
+that can be paired, alpha is <code>NA</code> and only percent agreement
+is reported.</p>
 <div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">screener</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"keep"</span>, <span class="st">"drop"</span>, <span class="st">"keep"</span>, <span class="st">"drop"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">40</span>, <span class="fl">9</span>, <span class="fl">6</span>, <span class="fl">45</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">person</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"keep"</span>, <span class="st">"keep"</span>, <span class="st">"drop"</span>, <span class="st">"drop"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">40</span>, <span class="fl">9</span>, <span class="fl">6</span>, <span class="fl">45</span><span class="op">)</span><span class="op">)</span></span>
@@ -1336,11 +1399,11 @@ percent agreement below 30 items.</p>
 <span><span class="co">#&gt; 4                AC1 0.7007481 0.0713518 0.5591707 0.8423256</span></span></code></pre></div>
 <p><code><a href="../reference/hr_ht_estimate.html">hr_ht_estimate()</a></code> estimates a total, a mean or a ratio
 from a sample drawn with known inclusion probabilities, optionally by
-stratum; it is how screening recall is weighted on a stacked reference.
+stratum. Screening recall on a stacked reference is weighted with it.
 <code><a href="../reference/hr_ppi.html">hr_ppi()</a></code> is the prediction-powered estimate behind
 <code><a href="../reference/hr_judge_ppi.html">hr_judge_ppi()</a></code>. <code><a href="../reference/hr_alt_test.html">hr_alt_test()</a></code> runs the
 alternative annotator test of Calderon, Reichart and Dror (2025), which
-asks whether a model’s labels can stand in for those of three or more
+tests whether a model’s labels can stand in for those of three or more
 people, with the margin set by the people’s declared expertise
 (<code>expertise</code> has no default):</p>
 <div class="sourceCode" id="cb42"><pre class="downlit sourceCode r">
@@ -1354,8 +1417,9 @@ people, with the margin set by the people’s declared expertise
 <span><span class="va">alt</span><span class="op">$</span><span class="va">passed</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <p>The model here wins against each of the four annotators, so the
-winning rate omega is 1 and the test passes; it needs at least 30 items
-with two or more human labels, and warns below 50.</p>
+winning rate omega is 1 and the test passes. The test needs at least 30
+items with two or more human labels, and <code><a href="../reference/hr_alt_test.html">hr_alt_test()</a></code>
+warns below 50.</p>
 </div>
 <div class="section level2">
 <h2 id="next">Next<a class="anchor" aria-label="anchor" href="#next"></a>

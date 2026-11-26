@@ -1,16 +1,16 @@
 # Cutting documents into chunks
 
-A model reads a long document in pieces, called *chunks*, and chunking
-decides what it can see together. A figure in one chunk and the sentence
-that explains it in the next may never be read side by side. This guide
-covers the nine ways harnessr cuts a document, the settings every one of
-them shares, and how to compare chunkings before you pay for any
-reading.
+A model reads a long document in pieces, called *chunks*, and the
+chunking decides what it sees together. Put a figure in one chunk and
+the sentence that explains it in the next, and the model may never read
+them side by side. This guide covers the nine ways harnessr cuts a
+document, the settings all nine share, and how to compare chunkings
+before you pay for any reading.
 
-Six of the nine segmenters make no model calls, and a seventh makes none
-by default, so you can try them for nothing.
+Six of the nine segmenters make no model calls. A seventh makes none by
+default. At their defaults, you can try all seven for nothing.
 [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
-introduces the package and the ideas used here, and
+introduces the package and the ideas this guide uses, and
 [`vignette("ingest")`](https://elkronos.github.io/harnessr/articles/ingest.md)
 covers the step before this one.
 
@@ -20,10 +20,9 @@ library(harnessr)
 old <- hr_options(verbose = FALSE, embedder = "lexical")
 ```
 
-`embedder = "lexical"` makes the one segmenter that embeds text,
-`semantic`, use hashed bag-of-words vectors rather than an embeddings
-endpoint, so this guide runs offline and gives the same chunks every
-time.
+Only one segmenter embeds text: `semantic`. With `embedder = "lexical"`
+it uses hashed bag-of-words vectors instead of an embeddings endpoint,
+so this guide runs offline and gives the same chunks every time.
 
 ## What segmentation produces
 
@@ -64,18 +63,21 @@ ch$chunks[, c("chunk_id", "tokens", "page", "section", "block_id")]
 #> 8        8     39   NA                                 References       17
 ```
 
-`page` is `NA` here because the example is Markdown, which has no pages;
-a PDF fills it in. `block_id` is `NA` on a chunk built from several
-blocks, and so is `page` on a chunk that runs from one page onto the
-next. A chunk that is not from one place says so rather than naming the
-first place it touches. This provenance is what `ans$evidence` reports
-for every chunk an answer rests on.
+`page` is `NA` here because the example is Markdown, which has no pages.
+A PDF fills it in. Two other cases also give `NA`:
+
+- `block_id` on a chunk built from several blocks;
+- `page` on a chunk that runs from one page onto the next.
+
+A chunk that spans places gets `NA` instead of the first place it
+touches. `ans$evidence` reports this provenance for every chunk an
+answer rests on.
 
 You rarely call
 [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
 yourself.
 [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
-does it, using the `segment` part of a recipe:
+calls it with the `segment` part of a recipe:
 
 ``` r
 
@@ -90,8 +92,8 @@ gr_recipe("survey")$segment[c("method", "max_tokens", "overlap_tokens")]
 #> [1] 0
 ```
 
-To change it, build a recipe of your own with
-`gr_recipe(segment = list(...))`;
+To change it, build your own recipe with
+`gr_recipe(segment = list(...))`.
 [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
 covers recipes.
 
@@ -111,8 +113,8 @@ Each segmenter is a different hypothesis about where meaning breaks:
 | `contextual` | chunks prefixed with where they sit | free, or 1 call/chunk | only for `context_source = "llm"` | page, section, block |
 | `proposition` | rewrite into standalone factual statements | 1 call per ~900-token batch | yes | none |
 
-The cost and client columns come from the registry, so you can check
-them rather than trust them:
+The cost and client columns are read from the registry, so you can check
+them yourself:
 
 ``` r
 
@@ -130,27 +132,30 @@ gr_segmenters()[, c("name", "cost", "needs_client", "calls")]
 ```
 
 `paragraph` is the default. It packs the author’s paragraphs, in order,
-into chunks up to the cap. `sentence` packs sentences instead, which
-gives more, smaller chunks with cleaner edges. `structural` never lets a
-chunk cross a heading, and by default (`prefix_section = TRUE`) starts
-every chunk with its section’s heading, so the fourth chunk of a long
-“Methods” section still says it is about methods. When the extractor
-found no sections, `structural` finds headings itself: a Markdown `#`
-line, or a short line that is numbered or written in capitals. `page`
-makes one chunk per page, splitting only a page too long for the cap,
-and says so when it does.
+into chunks up to the cap. `sentence` packs sentences instead, for more,
+smaller chunks with cleaner edges.
+
+`structural` never lets a chunk cross a heading. By default
+(`prefix_section = TRUE`) it also starts every chunk with its section’s
+heading, so the fourth chunk of a long “Methods” section still names its
+subject. If the extractor found no sections, `structural` finds headings
+itself: a Markdown `#` line, or a short line that is numbered or written
+in capitals.
+
+`page` makes one chunk per page. It splits only a page too long for the
+cap, and prints a message when it does.
 
 `fixed` cuts the text into windows of equal size and ignores its
-structure, which makes it the baseline to measure the others against.
-`recursive` splits on the strongest separator that still gives pieces
-under the cap: by default blank lines, then line breaks, then sentence
-ends, semicolons, commas and spaces. Set your own cascade, strongest
-first, with `separators`.
+structure, so it serves as the baseline for the others. `recursive`
+splits on the strongest separator that still gives pieces under the cap.
+By default the cascade runs from blank lines to line breaks, then
+sentence ends, semicolons, commas and spaces. Set your own cascade,
+strongest first, with `separators`.
 
-`fixed` and `recursive` work on the whole document joined into one
-string, by design, so their chunks carry no page or section. That is the
-cost of ignoring structure, and it is reported as `NA` rather than
-guessed at:
+By design, `fixed` and `recursive` work on the whole document joined
+into one string, so their chunks carry no page or section. That is the
+cost of ignoring structure. harnessr reports it as `NA` instead of
+guessing:
 
 ``` r
 
@@ -162,14 +167,15 @@ fx$chunks[1:3, c("chunk_id", "page", "section", "block_id")]
 #> 3        3   NA    <NA>       NA
 ```
 
-The last three segmenters, `semantic`, `contextual` and `proposition`,
-are covered below, under the settings and model calls they add.
+The sections below cover the last three segmenters, `semantic`,
+`contextual` and `proposition`, with the settings and model calls they
+add.
 
 ## When a segmenter cannot run as asked
 
-A segmenter that cannot do what was asked falls back to one that can,
-warns, and records the change. `page` on a source with no page numbers
-falls back to `paragraph`:
+If a segmenter cannot do what you asked, harnessr falls back to one that
+can, warns, and records the change. `page` on a source with no page
+numbers falls back to `paragraph`:
 
 ``` r
 
@@ -178,34 +184,36 @@ pg$method
 #> [1] "page->paragraph"
 ```
 
-`semantic` without a client falls back to `paragraph`, and `proposition`
-without one falls back to `sentence`. The fallback shows in `$method`
-(`"semantic->paragraph"`, `"proposition->sentence"`) and in the `method`
-column of
+Without a client, `semantic` falls back to `paragraph` and `proposition`
+to `sentence`. The fallback shows in `$method` (`"semantic->paragraph"`,
+`"proposition->sentence"`) and in the `method` column of
 [`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md),
-so a comparison never reports a chunking that did not run. `contextual`
-keeps its name when `context_source = "llm"` has no client, because only
-the source of its context lines changed; `$extra$context_source` records
-`"metadata"`, the one that ran.
+so a comparison never reports a chunking that did not run.
 
-Every one of these warnings has the class `gr_segment_fallback`, and it
-is carried onto the answer of any read that uses the chunks.
+`contextual` keeps its name when `context_source = "llm"` has no client,
+because only the source of its context lines changed.
+`$extra$context_source` records the source that ran, `"metadata"`.
+
+Each of these warnings has the class `gr_segment_fallback`. harnessr
+carries the warning onto the answer of any read that uses the chunks.
 
 ## Chunk size
 
-`max_tokens` is the cap on a chunk’s size, and every segmenter is held
-to it, including one you register yourself. After a segmenter returns,
+`max_tokens` caps a chunk’s size.
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
+holds every segmenter to it, including one you register yourself. After
+a segmenter returns,
 [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
 splits any chunk over the cap (at sentences, then words, then
-characters) and counts how many it had to split in
-`$extra$cap_enforced`. The pieces keep the page, section and block of
-the chunk they came from. If the active tokenizer counts a single
-character as more than the cap,
+characters) and counts the chunks it split in `$extra$cap_enforced`.
+Each piece keeps the page, section and block of its original chunk.
+
+If the active tokenizer counts a single character as more than the cap,
 [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
-stops with an error of class `gr_cap_unenforceable` rather than send a
+stops with an error of class `gr_cap_unenforceable` instead of sending a
 chunk the model will reject.
 
-A setting out of range is corrected and the correction is announced:
+harnessr corrects a setting out of range and warns about the correction:
 
 ``` r
 
@@ -217,18 +225,19 @@ tryCatch(gr_segment_spec("paragraph", max_tokens = 100, overlap_tokens = 500),
 `max_tokens` is held to between 32 and 1,000,000, `overlap_tokens` to
 less than `max_tokens`, and `min_tokens` to no more than `max_tokens`.
 
-What the right size is depends on the reader. A reader that sends every
-chunk pays for each request, so small chunks multiply the bill; one that
-picks the best few chunks needs chunks small enough that the best few
-hold the answer and little else.
+The right size depends on the reader. A reader that sends every chunk
+pays for each request, so small chunks multiply the bill. A reader that
+picks the best few chunks needs chunks small enough that those few hold
+the answer and little else.
 [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
-compares them.
+compares the readers.
 
 ## Overlap
 
-Without overlap, an answer that straddles a boundary is split between
-two chunks and may be lost by both. `overlap_tokens` copies the end of
-each chunk into the start of the next. It costs duplicated tokens, which
+Without overlap, a boundary can split an answer between two chunks, and
+neither chunk may hold enough of it. `overlap_tokens` copies the end of
+each chunk into the start of the next. You pay for the duplicated
+tokens, which
 [`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md)
 shows as a larger `total_tokens`:
 
@@ -243,20 +252,25 @@ do.call(rbind, lapply(c(0, 30, 60), function(ov)
 #> 3 sentence 9          863  79   94.0 95.9 109        0
 ```
 
-The document is the same 534 tokens each time: at 60 tokens of overlap
-the model would be sent 863, about 60% more. The carried text is cut at
-a sentence boundary when one is close, otherwise at a word; text written
-without spaces (Chinese, Japanese, Thai) is cut by characters. The
-overlap is trimmed so that the chunk it opens still fits the cap.
+The document is the same 534 tokens each time. At 60 tokens of overlap
+the model would be sent 863, about 60% more.
 
-Provenance counts the overlap. A chunk that opens with a sentence
-carried from page 3 and goes on to page 4 reports page `NA`, since it is
-not wholly from either.
+harnessr cuts the carried text at a sentence boundary when one is close,
+and otherwise at a word. Text written without spaces (Chinese, Japanese,
+Thai) is cut by characters. The overlap is trimmed so that the chunk it
+opens still fits the cap.
 
-Overlap applies to every segmenter except `page`, where the page is the
-unit, and `proposition`, whose statements are written to stand alone, so
-its overlap is always 0. `structural` applies it within a section, never
-across a heading.
+Provenance counts the overlap. Say a chunk opens with a sentence carried
+from page 3 and goes on to page 4. It reports page `NA`, since it is not
+wholly from either.
+
+Overlap applies to every segmenter with two exceptions:
+
+- `page`, where the page is the unit;
+- `proposition`, whose statements are written to stand alone, so its
+  overlap is always 0.
+
+`structural` applies overlap within a section, never across a heading.
 
 ## Minimum size
 
@@ -264,7 +278,7 @@ across a heading.
 so a one-line paragraph between two headings does not become a request
 of its own. The merge happens only when the result still fits the cap.
 With a cap of 60 tokens the example’s paragraphs give fourteen chunks,
-the smallest of 8 tokens; `min_tokens = 30` folds one of them away:
+the smallest of 8 tokens. `min_tokens = 30` folds one of them away:
 
 ``` r
 
@@ -276,9 +290,9 @@ do.call(rbind, lapply(c(0, 30), function(m)
 #> 2 paragraph 13          562  21   45.0 43.2  57        0
 ```
 
-`fixed` and `page` ignore `min_tokens`. `structural` applies it within a
-section only, because it never merges across headings: its 16-token
-first chunk, the report’s title, stays as it is whatever you set.
+`fixed` and `page` ignore `min_tokens`. `structural` never merges across
+headings, so it applies `min_tokens` within a section only. Its 16-token
+first chunk, the report’s title, stays as it is whatever you set:
 
 ``` r
 
@@ -290,12 +304,12 @@ gr_chunk_stats(gr_segment(doc, list(method = "structural", max_tokens = 120,
 
 ## Context lines
 
-A chunk retrieved on its own can be hard to place: “it rose 17 percent”
+A chunk retrieved on its own can be hard to place. “It rose 17 percent”
 means little without the section it came from. `contextual` packs
 paragraphs as `paragraph` does, then starts each chunk with a bracketed
 line saying where it sits. By default (`context_source = "metadata"`)
-the line is built from the file name, section, page and position, for
-nothing:
+harnessr builds the line from the file name, section, page and position,
+at no cost:
 
 ``` r
 
@@ -309,13 +323,13 @@ cat(ctx$chunks$text[2])
 #> before.
 ```
 
-With `context_source = "llm"` a model writes the line instead, one call
-per chunk, from the chunk, the document’s first 1,500 tokens and the
-chunk’s section path from the document’s headings
-(`"Report > Results"`), so a chunk from deep in a long document can be
-placed. It makes one request per chunk and never more: `$extra$cost`
-declares `calls` and `calls_max` as the number of chunks. The mock
-client below stands in for that model:
+With `context_source = "llm"` a model writes the line instead. Each call
+sends the chunk, the document’s first 1,500 tokens and the chunk’s
+section path from the document’s headings (`"Report > Results"`), so the
+model can place a chunk from deep in a long document. `contextual` makes
+one request per chunk and never more: `$extra$cost` declares `calls` and
+`calls_max` as the number of chunks. The mock client below stands in for
+that model:
 
 ``` r
 
@@ -330,20 +344,24 @@ cat(ctx_llm$chunks$text[2])
 #> percent.
 ```
 
-Room for the line is held back from each chunk before packing (90 tokens
-for `"llm"`, the longest header the document could need for
-`"metadata"`, never more than half of `max_tokens`), so adding the line
-never pushes a chunk over the cap. A line that still does not fit is
-shortened; the document text is not.
+Before packing, `contextual` holds back room for the line from each
+chunk, so adding the line never pushes a chunk over the cap. The room
+is:
 
-When a context call fails or is skipped at the run’s limits, the chunk
+- for `"llm"`, `context_reply_tokens` (90 by default);
+- for `"metadata"`, the longest header the document could need;
+- in both cases, never more than half of `max_tokens`.
+
+A line that still does not fit is shortened. The document text is not.
+
+If a context call fails or is skipped at the run’s limits, the chunk
 keeps its text without a line. `$extra$blurbs_missing` counts those
-chunks, and a `gr_segment_fallback` warning says so.
+chunks, and a `gr_segment_fallback` warning reports them.
 
 The context line is not the document’s text, and a model may have
-written it. So the chunk also keeps its body alone in a `source_text`
-column, and a quotation from the chunk is checked against that, never
-against the line:
+written it. The chunk therefore keeps its body alone in a `source_text`
+column. harnessr checks a quotation from the chunk against that column,
+never against the line:
 
 ``` r
 
@@ -360,29 +378,34 @@ Three segmenters spend something, and each takes a `client`:
 
 - `semantic` embeds the text a few sentences at a time
   (`semantic_window`, default 2) and cuts where two neighbouring windows
-  differ most: at distances above the `semantic_percentile` (default 90;
-  higher gives fewer, larger chunks), or, with
-  `semantic_threshold = "texttiling"`, at the deep valleys of the
-  similarity between neighbouring windows (see below). The packer then
-  holds the pieces to the cap and the minimum.
+  differ most. By default it cuts at distances above the
+  `semantic_percentile` (default 90; higher gives fewer, larger chunks).
+  With `semantic_threshold = "texttiling"` it cuts at the deep valleys
+  of the similarity between neighbouring windows (see below). The packer
+  then holds the pieces to the cap and the minimum.
 - `contextual` with `context_source = "llm"` makes one call per chunk,
   as above.
 - `proposition` sends the document in batches of about
-  `proposition_batch_tokens` (default 900) and has the model rewrite
-  each into standalone factual statements, with pronouns resolved and
-  numbers kept as written. With `proposition_context_tokens` above 0,
-  each batch’s request also carries that many tokens from the end of the
-  batch before it, so what it refers back to can be resolved. Its chunks
-  are the model’s words, so `source_text` holds the passage each was
-  written from, and quotes are checked against that; each chunk keeps
-  the page and section of its passage. A proposition with no support in
-  its passage (a number the passage does not give, or most of its words
-  absent) is counted in `$extra$propositions_unsupported`; with
-  `proposition_check = "drop"` it is also dropped as invented, counted
-  in `$extra$propositions_dropped`, with a `gr_proposition_dropped`
-  warning. A batch that cannot be rewritten is kept as written rather
-  than dropped, with a warning, and counted in
-  `$extra$batches_kept_as_written`.
+  `proposition_batch_tokens` (default 900). The model rewrites each
+  batch into standalone factual statements, with pronouns resolved and
+  numbers kept as written.
+
+With `proposition_context_tokens` above 0, each `proposition` request
+also carries that many tokens from the end of the batch before it, so
+the model can resolve what the batch refers back to. The chunks are the
+model’s words, so `source_text` holds the passage each was written from,
+and harnessr checks quotes against that passage. Each chunk keeps the
+page and section of its passage. Three counts in `$extra` track what the
+check and the model did:
+
+- `propositions_unsupported` counts propositions with no support in
+  their passage: a number the passage does not give, or most of the
+  words absent. With `proposition_check = "drop"`, harnessr also drops
+  each one as invented, counts it in `propositions_dropped`, and warns
+  with class `gr_proposition_dropped`.
+- `batches_kept_as_written` counts batches the model could not rewrite.
+  harnessr keeps such a batch as written instead of dropping it, and
+  warns.
 
 ``` r
 
@@ -395,10 +418,11 @@ sem$extra$embedding_source
 #> [1] "lexical"
 ```
 
-`embedding_source` is `"lexical"` here, so the boundaries reflect shared
-words, not meaning, and `$method` says so: `"semantic->lexical"`. With a
-real embeddings endpoint it is `"api"`, and the method is `"semantic"`.
-The label is all that differs; the chunks and the requests are the same.
+`embedding_source` is `"lexical"` here, so the boundaries follow shared
+words instead of meaning, and `$method` says so: `"semantic->lexical"`.
+With a real embeddings endpoint, `embedding_source` is `"api"` and the
+method is `"semantic"`. The `->lexical` suffix is a label only: it
+changes neither the chunks nor the requests.
 
 These requests count against the run’s limits,
 `hr_options(max_calls =, max_cost_usd =)`, like any other. Called
@@ -420,7 +444,7 @@ covers limits and traces.
 ## Comparing segmentations
 
 [`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md)
-sums a chunk set up in one row, so comparing chunkings is an
+sums up a chunk set in one row, so you compare chunkings with
 [`rbind()`](https://rdrr.io/r/base/cbind.html):
 
 ``` r
@@ -434,19 +458,27 @@ do.call(rbind, lapply(c("fixed", "paragraph", "sentence", "structural"),
 #> 4 structural 8          557  16   76.5  69.6 102        0
 ```
 
-`n` is the number of chunks, which is the number of requests for a
-reader that sends every chunk. `total_tokens` grows with overlap and
-with text a segmenter adds, such as the headings `structural` puts at
-the top of its chunks. `over_cap` is 0 for anything
-[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
-returns, since the cap is enforced; it is there for chunk sets built
-some other way. `method` names any fallback.
+The columns:
 
-To compare what different chunkings do to an answer, give
+- `n` is the number of chunks, and so the number of requests for a
+  reader that sends every chunk.
+- `total_tokens` grows with overlap and with text a segmenter adds, such
+  as the headings `structural` puts at the top of its chunks.
+- `over_cap` is 0 for anything
+  [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
+  returns, since
+  [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
+  enforces the cap. The column is there for chunk sets built some other
+  way.
+- `method` names any fallback.
+
+To see what different chunkings do to an answer, give
 [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
-recipes that differ only in their `segment`. It extracts the document
-once and reuses a segmentation across recipes whose segment settings
-match, so only the reading is paid for more than once:
+recipes that differ only in their `segment`.
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
+extracts the document once and reuses a segmentation across recipes
+whose segment settings match, so you pay more than once only for the
+reading:
 
 ``` r
 
@@ -463,28 +495,34 @@ cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "chunks_used")]
 
 ## Choosing the settings
 
-Each walkthrough below takes one segmentation setting or group: what it
-controls and what it trades off, the signs in your results that point to
-changing it, where its default came from, and how to test a change.
+Each walkthrough below takes one segmentation setting or group of
+settings and covers four things:
+
+- what it controls and what it trades off;
+- the signs in your results that point to changing it;
+- where its default came from;
+- how to test a change.
+
 [`vignette("settings")`](https://elkronos.github.io/harnessr/articles/settings.md)
 lists every segmentation setting with its default.
 
-The free statistics above
-([`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md),
-and
+Test a chunking first with the free statistics:
+[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md)
+above, and
 [`gr_seg_recall()`](https://elkronos.github.io/harnessr/reference/gr_seg_recall.md)
 and
 [`gr_seg_pk()`](https://elkronos.github.io/harnessr/reference/gr_seg_pk.md)
 in
-[`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md))
-are the first test of a chunking, since they cost nothing. What a
-chunking does to answers is tested with arms:
+[`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md).
+To test what a chunking does to answers, use arms:
 [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
 builds one arm per value and
 [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
-runs them on a reference. Here the arms run on one question and a
-stand-in model that always answers correctly, so the examples show how a
-sweep is built and read, not which value is better.
+runs them on a reference.
+
+Here the arms run on one question and a stand-in model that always
+answers correctly. The examples therefore show how to build and read a
+sweep; they do not show which value is better.
 [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)
 runs a grid of segmenters and chunk sizes on dev, then compares one
 choice on test with intervals.
@@ -503,24 +541,24 @@ sweep <- function(arms) {
 
 ### Which segmenter
 
-**What it controls.** `method` is where the cuts fall: on a ruler
+**What it controls.** `method` sets where the cuts fall: on a ruler
 (`fixed`), at the author’s paragraphs, sentences or headings, at pages,
 or where the embeddings shift (`semantic`). Each is a guess about where
 meaning breaks. A cut through the middle of a table or an argument
-separates the parts a model needs together; chunks that keep whole
-sections are larger and fewer.
+separates parts a model needs together. Chunks that keep whole sections
+are larger and fewer.
 
-**Signs it needs changing.** An answer that gives half a figure, or a
-quotation that stops mid-sentence, points to cuts in the wrong places:
-look at the chunks around it with `chunks$chunks$text`.
+**Signs it needs changing.** Suspect cuts in the wrong places when an
+answer gives half a figure or a quotation stops mid-sentence. Look at
+the chunks around it with `chunks$chunks$text`. The same sign, measured,
+is
 [`gr_seg_recall()`](https://elkronos.github.io/harnessr/reference/gr_seg_recall.md)
 reporting the answer outside the top chunks for one segmenter and inside
-for another is the same sign, measured. A document with headings that a
-`paragraph` chunking runs across is a candidate for `structural`; a form
-or invoice for `page`.
+for another. Try `structural` on a document with headings that a
+`paragraph` chunking runs across, and `page` on a form or invoice.
 
 **Where the default came from.** `paragraph` was chosen because it needs
-no model or embedder; it has not been compared with the others
+no model or embedder. It has not been compared with the others
 (`untested`). Each recipe sets its own: `"needle"` uses `semantic`,
 `"precise"` uses `sentence`.
 
@@ -537,28 +575,30 @@ aggregate(tokens_in ~ param.method, bench, mean)
 #> 3   structural       690
 ```
 
-All three sent different requests here (`hr_sweep_check(bench)` has no
-rows), and `structural` sent the most, 690 prompt tokens against 667 for
+All three arms sent different requests here (`hr_sweep_check(bench)` has
+no rows). `structural` sent the most, 690 prompt tokens against 667 for
 `sentence`, because its chunks carry their headings.
 
 ### Chunk size: `max_tokens`
 
-**What it controls.** `max_tokens` caps every chunk. Smaller chunks make
-more requests for a reader that sends every chunk, and let a reader that
-picks the best few send less text around the answer; larger chunks keep
-more context together and cost fewer requests.
+**What it controls.** `max_tokens` caps every chunk. Smaller chunks mean
+more requests for a reader that sends every chunk. They also let a
+reader that picks the best few send less text around the answer. Larger
+chunks keep more context together and cost fewer requests.
 
 **Signs it needs changing.** Under `map_reduce` or `skim`, a cost
 dominated by the number of requests
 ([`hr_trace_summary()`](https://elkronos.github.io/harnessr/reference/hr_trace_summary.md))
-points to larger chunks. Under `retrieve`, an answer that is right but
-rests on long chunks of unrelated text points to smaller ones, and an
-answer split across two chunks, of which only one was picked, points to
-larger ones or to overlap.
+points to larger chunks. Under `retrieve`:
 
-**Where the default came from.** 1200 tokens was set when the segmenters
-were written and not tuned (`untested`). The recipes set their own, from
-500 (`"needle"`) to 4000 (`"fast"`).
+- a right answer that rests on long chunks of unrelated text points to
+  smaller chunks;
+- an answer split across two chunks, of which `retrieve` picked only
+  one, points to larger chunks or to overlap.
+
+**Where the default came from.** The 1200-token default was set when the
+segmenters were written and not tuned (`untested`). The recipes set
+their own, from 500 (`"needle"`) to 4000 (`"fast"`).
 
 **How to test it.**
 
@@ -572,29 +612,29 @@ aggregate(tokens_in ~ param.max_tokens, bench, mean)
 #> 3              500       676
 ```
 
-Under `retrieve`, smaller chunks sent more here, 829 prompt tokens at
+Under `retrieve`, smaller chunks sent more here: 829 prompt tokens at
 100 against 676 at 500. At 100 the report became eight chunks holding
-704 tokens, since each repeats the recipe’s 50 tokens of overlap, and
-`retrieve` sent all eight (the recipe’s `top_k` is 8); at 500 it became
-two chunks of 563 tokens. Whether the answers change is what a benchmark
-on your own reference measures.
+704 tokens, since each repeats the recipe’s 50 tokens of overlap.
+`retrieve` sent all eight, because the recipe’s `top_k` is 8. At 500 the
+report became two chunks of 563 tokens. A benchmark on your own
+reference measures whether the answers change.
 
 ### Overlap: `overlap_tokens`
 
 **What it controls.** `overlap_tokens` copies the end of each chunk into
 the start of the next, so a sentence near a cut is whole in at least one
-chunk. It costs duplicated tokens in every request that carries both
-chunks, and for a reader that sends every chunk, in every request (see
-“Overlap” above).
+chunk. You pay for duplicated tokens in every request that carries both
+chunks. For a reader that sends every chunk, that means every request
+(see “Overlap” above).
 
 **Signs it needs changing.** An answer that needs the end of one chunk
 and the start of the next, such as a figure in one and its unit in the
 other, points to more overlap. A bill that grew with no change in
 answers points to less.
 
-**Where the default came from.** 0, so no text is sent twice; it has not
-been compared with other values (`untested`). Several recipes set 10% of
-their chunk size.
+**Where the default came from.** The default is 0, so no text is sent
+twice. It has not been compared with other values (`untested`). Several
+recipes set 10% of their chunk size.
 
 **How to test it.**
 
@@ -614,26 +654,28 @@ than none (829 against 669).
 
 ### Packing: `packing`, `min_tokens` and `runt_merge`
 
-**What they control.** How units (paragraphs, sentences, pieces) are
-packed into chunks under the cap. `packing = "greedy"` fills each chunk
-to `max_tokens` and leaves the remainder in the last chunk; `"balanced"`
-keeps the same number of chunks and evens their sizes. `min_tokens`
-merges a chunk smaller than it into the chunk before it;
-`runt_merge = "both"` also merges a first chunk smaller than it forward
-into the second, which the backward rule cannot reach, since nothing
-comes before it.
+**What they control.** These settings decide how units (paragraphs,
+sentences, pieces) are packed into chunks under the cap.
 
-**Signs they need changing.** A last chunk much smaller than the others,
-in a reader that weighs chunks alike (`retrieve` scoring, `map_reduce`
-notes), points to `"balanced"`. A document whose first chunk is only its
-title, sent as a request of its own, points to `min_tokens` with
-`runt_merge = "both"`.
+- `packing = "greedy"` fills each chunk to `max_tokens` and leaves the
+  remainder in the last chunk. `"balanced"` keeps the same number of
+  chunks and evens their sizes.
+- `min_tokens` merges a chunk smaller than it into the chunk before it.
+- `runt_merge = "both"` also merges a first chunk smaller than
+  `min_tokens` forward into the second. The backward rule cannot reach a
+  first chunk, since nothing comes before it.
+
+**Signs they need changing.** Try `"balanced"` when the last chunk is
+much smaller than the others and the reader weighs chunks alike
+(`retrieve` scoring, `map_reduce` notes). Try `min_tokens` with
+`runt_merge = "both"` when a document’s first chunk is only its title,
+sent as a request of its own.
 
 **Where the defaults came from.** `"greedy"`, `min_tokens = 0` and
-`"backward"` are how chunks were packed before these settings existed;
-none has been compared with the alternatives (`untested`).
+`"backward"` reproduce how harnessr packed chunks before these settings
+existed. None has been compared with the alternatives (`untested`).
 
-**How to test them.** The chunk sizes show what they do, for nothing:
+**How to test them.** The chunk sizes show what they do, at no cost:
 
 ``` r
 
@@ -647,9 +689,9 @@ sizes(max_tokens = 300, packing = "balanced")
 #> [1] 229 252 225
 ```
 
-Greedy packing leaves 197 tokens in the last of three chunks; balanced
-packing makes three of 229, 252 and 225. What they do to answers is
-tested with arms:
+Greedy packing leaves 197 tokens in the last of three chunks. Balanced
+packing makes three of 229, 252 and 225. To test what they do to
+answers, use arms:
 
 ``` r
 
@@ -661,24 +703,27 @@ aggregate(tokens_in ~ param.packing, bench, mean)
 #> 2        greedy       876
 ```
 
-The two sent different requests here, 901 prompt tokens for `"balanced"`
-against 876 for `"greedy"`, because `retrieve` picked chunks of
-different sizes; whether answers change is what a benchmark on your own
-reference measures.
+The two arms sent different requests here, 901 prompt tokens for
+`"balanced"` against 876 for `"greedy"`, because `retrieve` picked
+chunks of different sizes. A benchmark on your own reference measures
+whether answers change.
 
 ### Semantic boundaries: `semantic_threshold`
 
-**What it controls.** How `semantic` turns the distances between
-neighbouring windows into cuts. `"percentile"` cuts every gap whose
-distance reaches the `semantic_percentile` of them all, so about one gap
-in ten is cut whether the text changes topic or not. `"texttiling"` cuts
-by depth score, the rule of TextTiling (Hearst 1997): it compares the
-`semantic_window` sentences before each gap with those after it, finds
-the valleys of that similarity, and cuts a valley only when it is deep,
-both by Hearst’s cutoff and by being deeper than the similarities
-spread. A text on one topic then gets at most about one cut, and a
-change of topic gets one. It uses the same embeddings, so it sends the
-same requests.
+**What it controls.** `semantic_threshold` sets how `semantic` turns the
+distances between neighbouring windows into cuts.
+
+- `"percentile"` cuts every gap whose distance reaches the
+  `semantic_percentile` of them all. At the default of 90, about one gap
+  in ten is cut whether the text changes topic or not.
+- `"texttiling"` cuts by depth score, the rule of TextTiling (Hearst
+  1997). It compares the `semantic_window` sentences before each gap
+  with those after it and finds the valleys of that similarity. It cuts
+  a valley only when the valley is deep by two tests: Hearst’s cutoff,
+  and a depth greater than the spread of the similarities. A text on one
+  topic then gets at most about one cut, and a change of topic gets one.
+
+Both rules use the same embeddings, so they send the same requests.
 
 **Signs it needs changing.** Under `semantic`, chunks that end in the
 middle of an argument on a page with no change of subject point to
@@ -686,11 +731,11 @@ middle of an argument on a page with no change of subject point to
 large chunks under `"texttiling"` points back to `"percentile"`.
 
 **Where the default came from.** `"percentile"` is the rule `semantic`
-was written with; it has not been compared with `"texttiling"`
+was written with. It has not been compared with `"texttiling"`
 (`untested`).
 
-**How to test it.** It sends the same embedding request either way, so
-the first test is free: count the cuts.
+**How to test it.** Either rule sends the same embedding request, so the
+first test is free: count the cuts.
 
 ``` r
 
@@ -703,9 +748,9 @@ by_rule
 #>          3          2
 ```
 
-The example report has a few short sections, and `"texttiling"` cuts it
-twice where `"percentile"` cuts it three times. What the cuts do to
-answers is tested with arms:
+The example report has a few short sections. `"texttiling"` cuts it
+twice, and `"percentile"` three times. To test what the cuts do to
+answers, use arms:
 
 ``` r
 
@@ -717,31 +762,35 @@ aggregate(tokens_in ~ param.semantic_threshold, bench, mean)
 #> 2               texttiling       675
 ```
 
-Under `"needle"`, whose chunks are at most 500 tokens, the two sent
-nearly the same prompt tokens here (676 and 675): the packer, not the
-boundaries, sets most of each chunk’s size.
+Under `"needle"`, whose chunks are at most 500 tokens, the two arms sent
+nearly the same prompt tokens here (676 and 675). The packer, which
+holds chunks to the cap, sets most of each chunk’s size.
 
 ### Tables: `table_packing`
 
-**What it controls.** How `paragraph` packs the rows of a table.
-`"rows"` packs them as it packs any other blocks, so a long table is cut
-wherever the cap falls and only its first chunk carries the header row.
-`"grouped"` packs each table on its own and opens every chunk of it with
-the header row, then as many rows as fit. Either way, a document’s
-blocks and the chunks of a document with a table say which table and
-which rows they hold (`table_id` and `table_rows`); that is provenance
-only and adds nothing to the text.
+**What it controls.** `table_packing` sets how `paragraph` packs the
+rows of a table.
 
-**Signs it needs changing.** Answers that read a figure from the wrong
-column of a long table, or that cannot say what a row’s numbers are,
-point to `"grouped"`, so every chunk of rows says what its columns are.
-Many small tables, each smaller than a chunk, gain nothing from it.
+- `"rows"` packs them as it packs any other blocks, so the cap can cut a
+  long table anywhere, and only its first chunk carries the header row.
+- `"grouped"` packs each table on its own. Every chunk of the table
+  opens with the header row, then as many rows as fit.
+
+Under either value, a document’s blocks and the chunks of a document
+with a table record which table and which rows they hold (`table_id` and
+`table_rows`). These columns are provenance only and add nothing to the
+text.
+
+**Signs it needs changing.** Try `"grouped"` when answers read a figure
+from the wrong column of a long table, or cannot say what a row’s
+numbers are. With it, every chunk of rows carries the column names. Many
+small tables, each smaller than a chunk, gain nothing from it.
 
 **Where the default came from.** `"rows"` is how tables were packed
-before the setting existed; it has not been compared with `"grouped"`
+before the setting existed. It has not been compared with `"grouped"`
 (`untested`).
 
-**How to test it.** The chunks show what it does, for nothing:
+**How to test it.** The chunks show what it does, at no cost:
 
 ``` r
 
@@ -773,15 +822,16 @@ sapply(by_packing, function(ch) sum(startsWith(ch$chunks$text, "| region | units
 #>       0       4
 ```
 
-Under `"rows"` the table, which Markdown gives as one block, is packed
-after the heading and cut wherever the cap falls, so no chunk opens with
-the header row and each piece reports the rows of the whole block,
+Markdown gives the table as one block. Under `"rows"` that block is
+packed after the heading and cut wherever the cap falls. No chunk opens
+with the header row, and each piece reports the rows of the whole block,
 `"1-31"`. Under `"grouped"` every chunk of rows opens with the header,
-and `table_rows` says which rows each holds. A table from Word or HTML
-comes one row per block, and then `"rows"` gives each chunk its own
-range too. What it does to answers is tested with arms on a reference
-whose documents have tables, with `my_tables` that reference and
-`my_client` your client:
+and `table_rows` gives the rows each chunk holds.
+
+A table from Word or HTML comes one row per block, and then `"rows"`
+gives each chunk its own range too. To test what the setting does to
+answers, run arms on a reference whose documents have tables. Here
+`my_tables` is that reference and `my_client` is your client:
 
 ``` r
 
@@ -795,34 +845,39 @@ hr_report(bench)
 ### Context lines and propositions: `contextual` and `proposition`
 
 **What they control.** `contextual` starts each chunk with a line saying
-where it sits, built from the file’s metadata for nothing, or written by
-a model with `context_source = "llm"` (one request per chunk, capped at
-`context_reply_tokens`, from the first `context_document_tokens` of the
-document). `proposition` has a model rewrite the text into standalone
-statements, one request per `proposition_batch_tokens` of text. Both
-help a chunk retrieved on its own to make sense; both put words in the
-chunk that are not the document’s, which is why quotations are checked
-against `source_text`.
+where it sits. The line is built from the file’s metadata at no cost,
+or, with `context_source = "llm"`, written by a model: one request per
+chunk, capped at `context_reply_tokens`, from the first
+`context_document_tokens` of the document. `proposition` has a model
+rewrite the text into standalone statements, one request per
+`proposition_batch_tokens` of text.
 
-**Signs they are needed.** Answers that confuse two sections that say
-similar things (“revenue rose” in the 2023 and the 2024 section), or
-retrieval that picks a chunk whose subject is a pronoun, point to
-`contextual`. Dense factual text where each sentence leans on the one
+Both help a chunk retrieved on its own to make sense. Both also put
+words in the chunk that are not the document’s, which is why harnessr
+checks quotations against `source_text`.
+
+**Signs they are needed.** Two signs point to `contextual`: answers that
+confuse two sections that say similar things (“revenue rose” in the 2023
+and the 2024 section), and retrieval that picks a chunk whose subject is
+a pronoun. Dense factual text where each sentence leans on the one
 before points to `proposition`. A segmentation bill that is a large
 share of the run (`ctx$trace`) points away from the model-written
 versions.
 
-**Where the defaults came from.** `context_source = "metadata"` was
-chosen as the source that makes no request, and has not been compared
-with `"llm"`. The section path `"llm"` sends and the test that finds an
-invented proposition (every number in the passage, half its words in the
-passage or its context) were set when they were written; neither was
-tuned. `proposition_check = "count"` keeps every proposition, and
-`proposition_context_tokens = 0` sends each batch alone, as before;
-neither has been compared with the alternatives.
-`proposition_batch_tokens` (900), `context_reply_tokens` (90),
-`context_document_tokens` (1500) and `proposition_reply_tokens` (2000)
-are the values the code had as constants; none was tuned (`untested`).
+**Where the defaults came from.**
+
+- `context_source = "metadata"` was chosen as the source that makes no
+  request. It has not been compared with `"llm"`.
+- Two rules were set when they were written, and neither was tuned: the
+  section path `"llm"` sends, and the test that finds an invented
+  proposition (every number in the passage, half its words in the
+  passage or its context).
+- `proposition_check = "count"` keeps every proposition, and
+  `proposition_context_tokens = 0` sends each batch alone, as before.
+  Neither has been compared with the alternatives.
+- `proposition_batch_tokens` (900), `context_reply_tokens` (90),
+  `context_document_tokens` (1500) and `proposition_reply_tokens` (2000)
+  are the values the code had as constants. None was tuned (`untested`).
 
 **How to test them.** Compare `contextual` with the segmenter it builds
 on:
@@ -839,9 +894,10 @@ aggregate(tokens_in ~ param.method, bench, mean)
 
 `contextual` sent 81 fewer prompt tokens here. The room it holds back
 for its lines makes its chunks smaller, 73 tokens on average against 81,
-and the recipe’s eight chunks then hold less text. `proposition` and
-`context_source = "llm"` need a model that writes real statements, so
-they run on your own reference and client:
+so the recipe’s eight chunks hold less text.
+
+`proposition` and `context_source = "llm"` need a model that writes real
+statements, so run them on your own reference and client:
 
 ``` r
 
@@ -853,14 +909,15 @@ bench <- hr_benchmark(arms, my_reference, runs = 5, client = my_client, split = 
 aggregate(cbind(correct, usd) ~ param.method + param.context_source, bench, mean)
 ```
 
-`proposition_check = "drop"` changes no request, only which propositions
-are kept, so `$extra$propositions_unsupported` on one segmentation shows
-what it would drop before you sweep it.
+`proposition_check = "drop"` sends the same requests and changes only
+which propositions are kept. Before you sweep it,
+`$extra$propositions_unsupported` on one segmentation shows what it
+would drop.
 
-`context_source` is stored in the recipe even under a segmenter that
-ignores it, so give it the value the other rows use for every row where
-it does nothing, as above; a row that changes nothing else would
-otherwise be a second arm sending the same requests, which
+The recipe stores `context_source` even under a segmenter that ignores
+it. In every row where it does nothing, give it the value the other rows
+use, as above. A row that differs only in an ignored `context_source`
+would be a second arm sending the same requests, which
 [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
 would then report.
 
@@ -870,7 +927,7 @@ The bundled app has a control for every axis: cleaning and OCR, the
 segmenter, the reading strategies and the model. For segmentation it
 also sets `max_tokens`, overlap and minimum chunk size. Its “Preview
 chunking” button shows how the current settings cut the document before
-anything is spent on reading. For a segmenter that calls a model, the
+you spend anything on reading. For a segmenter that calls a model, the
 button says so.
 
 ``` r
@@ -878,18 +935,22 @@ button says so.
 shiny::runApp(system.file("shiny", package = "harnessr"))
 ```
 
-`GPTREAD_DOC_ROOTS` (colon-separated) sets which folders the app can
-read. Unset, it defaults to `~/Documents`, falling back to your entire
-home directory, so set it before exposing the app to anyone else. The
-app opens only the PDF, Word, text, Markdown, HTML and image files under
-those folders, never hidden files or hidden folders. `extract` and
-`screen` are not offered, since they read against a protocol; use
+`GPTREAD_DOC_ROOTS` sets which folders the app can read. Separate
+folders with the platform’s path separator: a colon, or a semicolon on
+Windows. Unset, it defaults to `~/Documents`, falling back to your
+entire home directory, so set it before you expose the app to anyone
+else.
+
+The app opens only the PDF, Word, text, Markdown, HTML and image files
+under those folders, never hidden files or hidden folders. It does not
+offer `extract` or `screen`, since they read against a protocol. Use
 [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 and
 [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
+instead
 ([`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md)).
-A blank cost cap leaves `hr_options("max_cost_usd")` in force rather
-than lifting the limit.
+A blank cost cap leaves `hr_options("max_cost_usd")` in force; it does
+not lift the limit.
 
 ## Your own segmenter
 

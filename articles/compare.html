@@ -89,20 +89,20 @@
 
     
     
-<p>Should this corpus be read with <code>retrieve</code> or
-<code>map_reduce</code>? Do smaller chunks help? Is
-<code>top_k = 1</code> enough? Does the screener need to see more of
-each record? Each of these is a comparison between configurations, and
-each can be answered the same way: build one arm per configuration, run
-them all on the same labelled questions several times, and read the
-report with its intervals.</p>
-<p><code><a href="../articles/evaluate.html">vignette("evaluate")</a></code> explains the machinery: references
-and splits, arms, scorers, benchmarks, reports, judges. This guide puts
-it to work on five comparisons: readers, segmenters and chunk sizes, one
+<p>Several choices come down to a comparison between configurations:
+<code>retrieve</code> against <code>map_reduce</code> for a corpus,
+smaller chunks against larger, <code>top_k = 1</code> against more, and
+how much of each record the screener sees. You settle each one the same
+way. Build one arm per configuration, run all the arms on the same
+labelled questions several times, and read the report with its
+intervals.</p>
+<p><code><a href="../articles/evaluate.html">vignette("evaluate")</a></code> explains the parts: references and
+splits, arms, scorers, benchmarks, reports and judges. This guide uses
+them for five comparisons: readers, segmenters and chunk sizes, one
 setting swept over its values, screening settings, and a judge against
-people’s labels. Each runs offline here on a stand-in model, and each
-ends in a report and what it does and does not show. The last section
-repeats the steps on your own documents.</p>
+people’s labels. Each runs offline on a stand-in model and ends in a
+report, with what that report shows and what it leaves open. The last
+section repeats the steps on your own documents.</p>
 <div class="section level2">
 <h2 id="setting-up">Setting up<a class="anchor" aria-label="anchor" href="#setting-up"></a>
 </h2>
@@ -112,12 +112,13 @@ repeats the steps on your own documents.</p>
 <span><span class="va">op</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>digits <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"mock-model"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">16384</span>,</span>
 <span>                  input_usd <span class="op">=</span> <span class="fl">1</span>, output_usd <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></code></pre></div>
-<p>The stand-in model’s id is <code>mock-model</code>; the price gives
-the benchmarks a cost to compare. The corpus is twelve short annual
-reports. Each has six paragraphs, one topic each, and four questions are
-asked of each report. Some sentences share a question’s words without
-answering it (“Export revenue rose with prices”), as real reports do, so
-ranking chunks by the question’s words can pick the wrong one:</p>
+<p>The stand-in model’s id is <code>mock-model</code>, and its price
+gives each benchmark a cost you can compare. The corpus is twelve short
+annual reports. Each has six paragraphs, one topic each, and four
+questions about it. As in real reports, some sentences share a
+question’s words without answering it (“Export revenue rose with
+prices”), so ranking chunks by the question’s words can pick the wrong
+one:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">co</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  place   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Ashford"</span>, <span class="st">"Bexley"</span>, <span class="st">"Carlow"</span>, <span class="st">"Dunmore"</span>, <span class="st">"Elstow"</span>, <span class="st">"Fenwick"</span>,</span>
@@ -165,17 +166,16 @@ ranking chunks by the question’s words can pick the wrong one:</p>
 <span><span class="co">#&gt; &lt;hr_reference&gt; 48 item(s) in 12 cluster(s)</span></span>
 <span><span class="co">#&gt;   splits: dev 16, test 32 </span></span>
 <span><span class="co">#&gt;   hash: c3a742404b80</span></span></code></pre></div>
-<p>The first four reports are the dev split, kept for tuning; the other
-eight are the test split, which every reported comparison is scored on.
-Each report is one cluster, since four questions about one report share
-its quirks. <code><a href="../reference/hr_assign_splits.html">hr_assign_splits()</a></code> draws the split for a set of
-your own.</p>
-<p>The stand-in reader answers from what it is shown. It finds the
-sentence that answers the question in its prompt and returns it, or
-<code>NOT_IN_DOCUMENT</code> when the prompt does not hold it. Like a
-real model it gets worse as its prompt grows: it misses a sentence it
-was shown with probability equal to the prompt’s length in characters
-over 6000.</p>
+<p>The first four reports form the dev split, kept for tuning. The other
+eight form the test split, and every reported comparison is scored on
+it. Each report is one cluster, because its four questions share its
+quirks. For a set of your own, <code><a href="../reference/hr_assign_splits.html">hr_assign_splits()</a></code> draws the
+split.</p>
+<p>The stand-in reader answers from its prompt. It returns the sentence
+there that answers the question, or <code>NOT_IN_DOCUMENT</code> if the
+prompt lacks one. Like a real model, it does worse as its prompt grows:
+it misses a sentence it was shown with probability equal to the prompt’s
+length in characters over 6000.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pattern</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>revenue <span class="op">=</span> <span class="st">"Revenue was [0-9.]+ million dollars in fiscal 2024"</span>,</span>
 <span>             units <span class="op">=</span> <span class="st">"made [0-9,]+ units"</span>, staff <span class="op">=</span> <span class="st">"Staff numbered [0-9]+"</span>,</span>
@@ -194,9 +194,9 @@ over 6000.</p>
 <div class="section level2">
 <h2 id="which-settings-there-are">Which settings there are<a class="anchor" aria-label="anchor" href="#which-settings-there-are"></a>
 </h2>
-<p>Every setting a reader, segmenter or ingest step takes is declared in
-a schema, with its type, default, range, tier and the evidence behind
-its default. <code><a href="../reference/gr_settings.html">gr_settings()</a></code> returns the schema; printed, it
+<p>A schema declares every setting a reader, segmenter or ingest step
+takes, with its type, default, range, tier and the evidence behind its
+default. <code><a href="../reference/gr_settings.html">gr_settings()</a></code> returns the schema, and its print
 shows each setting’s tier and evidence status:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_settings.html">gr_settings</a></span><span class="op">(</span><span class="st">"segment"</span><span class="op">)</span></span>
@@ -221,11 +221,11 @@ shows each setting’s tier and evidence status:</p>
 <span><span class="co">#&gt;   proposition_context_tokens integer       advanced  untested  [0, 2000]</span></span>
 <span><span class="co">#&gt;   packing                    enum          advanced  untested  greedy|balanced</span></span>
 <span><span class="co">#&gt;   runt_merge                 enum          advanced  untested  backward|both</span></span></code></pre></div>
-<p><code>basic</code> marks the few settings most comparisons vary; the
-read schema’s are <code>reader</code>, <code>model</code>,
-<code>top_k</code>, <code>cite</code> and <code>verify</code>.
-<code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> adds the default and where it came
-from:</p>
+<p>The <code>basic</code> tier marks the few settings most comparisons
+vary. In the read schema those are <code>reader</code>,
+<code>model</code>, <code>top_k</code>, <code>cite</code> and
+<code>verify</code>. <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> adds each default and
+where it came from:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_settings.html">gr_settings</a></span><span class="op">(</span><span class="st">"read"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">rs</span><span class="op">[</span><span class="va">rs</span><span class="op">$</span><span class="va">name</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"top_k"</span>, <span class="st">"lexical_blend"</span>, <span class="st">"bm25_k1"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"default"</span>, <span class="st">"status"</span>, <span class="st">"source"</span><span class="op">)</span><span class="op">]</span></span>
@@ -237,40 +237,39 @@ from:</p>
 <span><span class="co">#&gt; 13                                                                                         A common starting value for retrieval; not tuned here.</span></span>
 <span><span class="co">#&gt; 31 Robertson and Zaragoza (2009), "The Probabilistic Relevance Framework: BM25 and Beyond", give k1 between 1.2 and 2.0 as usual; not tuned here.</span></span>
 <span><span class="co">#&gt; 33                                                                                          An even blend, set when the offline path was written.</span></span></code></pre></div>
-<p>Most defaults are <code>untested</code>: they were chosen, not
-measured. That is what makes them worth comparing. Any setting in these
-schemas can be given to <code><a href="../reference/gr_arm.html">gr_arm()</a></code> in <code>settings</code>,
-which takes what <code><a href="../reference/answer_document.html">answer_document()</a></code> takes in
-<code>...</code>.</p>
+<p>Most defaults are <code>untested</code>: someone picked them without
+measuring them, which makes them worth comparing. You can give any
+setting in these schemas to <code><a href="../reference/gr_arm.html">gr_arm()</a></code> in
+<code>settings</code>, which takes what <code><a href="../reference/answer_document.html">answer_document()</a></code>
+takes in <code>...</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="the-rules-every-comparison-here-follows">The rules every comparison here follows<a class="anchor" aria-label="anchor" href="#the-rules-every-comparison-here-follows"></a>
 </h2>
 <ul>
 <li>
-<strong>Tune on dev, report on test.</strong> Settings are chosen by
-looking at dev results, which are never reported. A setting chosen on
-the test split and then reported on it is fitted to those questions, and
-its advantage is partly luck. <code><a href="../reference/hr_report.html">hr_report()</a></code> leaves dev rows
+<strong>Tune on dev, report on test.</strong> Choose settings by
+their dev results, and never report those results. A setting chosen on
+the test split and then reported on it is fitted to those questions, so
+part of its advantage is luck. <code><a href="../reference/hr_report.html">hr_report()</a></code> leaves dev rows
 out.</li>
 <li>
 <strong>At least five runs, and ten when the report asks.</strong> A
 model asked the same question twice can answer differently. With fewer
 than five runs, <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> warns and
-<code><a href="../reference/hr_report.html">hr_report()</a></code> gives no intervals. When run-to-run variance is
+<code><a href="../reference/hr_report.html">hr_report()</a></code> gives no intervals. If run-to-run variance is
 above 10% of the total, the report’s notes say “use runs = 10”.</li>
 <li>
 <strong>One governor for the whole benchmark.</strong> The default
-limits are for one read (400 calls). Size <code><a href="../reference/hr_governor.html">hr_governor()</a></code> for
-arms x items x runs x calls per run, and check afterwards how much of it
-was used.</li>
+limits fit one read (400 calls). Size <code><a href="../reference/hr_governor.html">hr_governor()</a></code> for
+arms x items x runs x calls per run, and afterwards check how much of it
+the benchmark used.</li>
 <li>
-<strong>Intervals, not point estimates.</strong> An arm ahead by 5
-points with an interval from -3 to 13 has not been shown to be
-better.</li>
+<strong>Read intervals.</strong> An arm ahead by 5 points with an
+interval from -3 to 13 has not been shown to be better.</li>
 <li>
-<strong>Know the smallest difference the design can see.</strong>
-<code><a href="../reference/hr_mdd.html">hr_mdd()</a></code> gives it before anything is run.</li>
+<strong>Know the smallest difference the design can detect.</strong>
+<code><a href="../reference/hr_mdd.html">hr_mdd()</a></code> gives it before you run anything.</li>
 </ul>
 <p>The test split here is 32 questions in 8 reports. If the two arms
 disagree on about 15% of questions and questions in one report are
@@ -283,19 +282,26 @@ correlated at 0.1:</p>
 <span><span class="fu"><a href="../reference/hr_mdd.html">hr_n_needed</a></span><span class="op">(</span><span class="fl">0.05</span>, m <span class="op">=</span> <span class="fl">4</span>, icc <span class="op">=</span> <span class="fl">0.1</span>, p_disc <span class="op">=</span> <span class="fl">0.15</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;hr_n_needed&gt; 5.0 points at 80% power, one-sided alpha 0.025</span></span>
 <span><span class="co">#&gt;   n_eff 477 effective items; DE 1.3, so 624 items in 156 clusters of 4</span></span></code></pre></div>
-<p>So no comparison below is designed to detect a difference smaller
-than about 25.5 points, and a 5 point difference would need about 624
-questions in 156 reports. A difference the report calls uncertain at
-this size is not evidence that the arms are the same.</p>
+<p>No comparison below is designed to detect a difference smaller than
+about 25.5 points. A 5 point difference would need about 624 questions
+in 156 reports. At this size, a difference the report calls uncertain is
+not evidence that the arms are the same.</p>
 </div>
 <div class="section level2">
 <h2 id="readers-on-the-same-questions">Readers on the same questions<a class="anchor" aria-label="anchor" href="#readers-on-the-same-questions"></a>
 </h2>
-<p>Three readers, each with the segmentation it is usually paired with:
-<code>stuff</code> sends the whole report in one request,
-<code>map_reduce</code> reads 60-token chunks one by one and merges the
-answers, and <code>retrieve</code> sends the two 60-token chunks of
-sentences that rank highest:</p>
+<p>Three readers run here, each with the segmentation it is usually
+paired with:</p>
+<ul>
+<li>
+<code>stuff</code> sends the whole report in one request.</li>
+<li>
+<code>map_reduce</code> reads 60-token chunks one by one and merges
+the answers.</li>
+<li>
+<code>retrieve</code> sends the two 60-token chunks of sentences
+that rank highest.</li>
+</ul>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">readers</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"fast"</span>, name <span class="op">=</span> <span class="st">"stuff"</span><span class="op">)</span>,</span>
@@ -315,12 +321,12 @@ sentences that rank highest:</p>
 <span><span class="fu"><a href="../reference/hr_trace_summary.html">hr_trace_summary</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">b_read</span>, <span class="st">"trace"</span><span class="op">)</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"calls"</span>, <span class="st">"tokens_in"</span>, <span class="st">"tokens_out"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   calls tokens_in tokens_out</span></span>
 <span><span class="co">#&gt; 1  1920    304730      26029</span></span></code></pre></div>
-<p>Each arm runs 10 times, not 5. With <code>runs = 5</code> the
-report’s notes said “Run-to-run variance is 81% of the total, above 10%:
-use runs = 10.”, and the rule below is to do what that line says. The
-governor allows 8 calls per run for each of 3 arms, 32 questions and 10
-runs, 7,680 in all, which is more than <code>map_reduce</code> needs on
-reports this short; the trace shows 1,920 used.</p>
+<p>Each arm runs 10 times. With <code>runs = 5</code> the report’s notes
+said “Run-to-run variance is 81% of the total, above 10%: use runs =
+10.”, and the rule on runs is to follow that note. The governor allows 8
+calls per run for each of 3 arms, 32 questions and 10 runs: 7,680 in
+all. That is more than <code>map_reduce</code> needs on reports this
+short, and the trace records 1,920 calls.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">r_read</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_report.html">hr_report</a></span><span class="op">(</span><span class="va">b_read</span>, B <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span>
 <span><span class="va">r_read</span><span class="op">$</span><span class="va">accuracy</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"arm"</span>, <span class="st">"estimate"</span>, <span class="st">"lower"</span>, <span class="st">"upper"</span><span class="op">)</span><span class="op">]</span></span>
@@ -343,47 +349,49 @@ reports this short; the trace shows 1,920 used.</p>
 <span><span class="co">#&gt; 1      stuff     0.000304             268</span></span>
 <span><span class="co">#&gt; 2 map_reduce     0.000759             588</span></span>
 <span><span class="co">#&gt; 3   retrieve     0.000214             178</span></span></code></pre></div>
-<p><code>map_reduce</code> has the highest estimate, 0.906 against 0.894
-for <code>retrieve</code> and 0.847 for <code>stuff</code>. The
-intervals below do not show that it is more accurate than either.
-<code>contrasts</code> gives each pair its own 95% interval. For
+<p><code>map_reduce</code> has the highest estimate, 0.906, against
+0.894 for <code>retrieve</code> and 0.847 for <code>stuff</code>. The
+intervals below do not show that it is more accurate than either.</p>
+<p><code>contrasts</code> gives each pair its own 95% interval. For
 <code>stuff</code> against <code>map_reduce</code> that interval, -0.114
-to -0.005, just excludes 0, but three pairs were compared, and with
-three intervals at 95% each the chance that at least one excludes 0 by
-luck is higher than 5%. <code>simultaneous</code> gives intervals that
-hold for all three pairs at once (max-t). Its <code>critical</code>
-column is the multiplier of the standard error, 2.92 here, larger than
-the one a single pair’s interval uses, so each interval is wider. There
-the same difference runs from -0.127 to 0.008, which includes 0. So this
-design has not shown that <code>stuff</code> is worse. When more than
-two arms are compared and no one pair was named before the run, read
+to -0.005, narrowly excludes 0. But three pairs were compared, and with
+three intervals at 95% each, the chance that at least one excludes 0 by
+luck is higher than 5%.</p>
+<p><code>simultaneous</code> gives intervals that hold for all three
+pairs at once (max-t). Its <code>critical</code> column is the
+multiplier of the standard error, 2.92 here. A single pair’s interval
+uses a smaller one, so each simultaneous interval is wider. There the
+same difference runs from -0.127 to 0.008, which includes 0, and this
+design has not shown that <code>stuff</code> is worse. If you compare
+more than two arms and named no one pair before the run, read
 <code>simultaneous</code>.</p>
 <p><code>map_reduce</code> against <code>retrieve</code> is 0.013, from
--0.091 to 0.116 at once: no difference is shown. The minimum detectable
-difference is 25.5 points: a true difference that size would be shown
-80% of the time. A true difference of 1 point would be shown much less
-often, though not never, so this result does not say the two readers are
-equally accurate. The cost difference is large: <code>map_reduce</code>
-sends 588 tokens per question against 178 for <code>retrieve</code>, and
-costs 3.5 times as much. Whether an unproven point is worth that is a
-decision the report informs and does not make. The stand-in is built to
-miss more in long prompts, so these figures say nothing about any real
-model; they show how to read the report.</p>
+-0.091 to 0.116 at once, so no difference is shown. The minimum
+detectable difference is 25.5 points: this design would show a true
+difference of that size 80% of the time. It would show a true difference
+of 1 point much less often, though not never, so this result does not
+say the two readers are equally accurate.</p>
+<p>The cost gap is large. <code>map_reduce</code> sends 588 tokens per
+question against 178 for <code>retrieve</code>, and costs 3.5 times as
+much. You decide whether an unproven point is worth that; the report
+informs the decision and does not make it. The stand-in is built to miss
+more in long prompts, so these figures say nothing about any real model.
+They show how to read the report.</p>
 </div>
 <div class="section level2">
 <h2 id="segmenters-and-chunk-sizes">Segmenters and chunk sizes<a class="anchor" aria-label="anchor" href="#segmenters-and-chunk-sizes"></a>
 </h2>
-<p>A segmenter is tested first for nothing, then with a model. Two free
+<p>Test a segmenter first at no cost, then with a model. Two free
 measures come before any benchmark.</p>
 <div class="section level3">
 <h3 id="boundaries-against-the-topics">Boundaries against the topics<a class="anchor" aria-label="anchor" href="#boundaries-against-the-topics"></a>
 </h3>
-<p>Each report’s six paragraphs are its topics, so the paragraphs are a
-reference segmentation. <code><a href="../reference/gr_seg_boundaries.html">gr_seg_boundaries()</a></code> maps a
-segmentation to sentence boundaries, and <code><a href="../reference/gr_seg_pk.html">gr_seg_pk()</a></code> and
+<p>Each report’s six paragraphs are its topics, so the paragraphs serve
+as a reference segmentation. <code><a href="../reference/gr_seg_boundaries.html">gr_seg_boundaries()</a></code> maps a
+segmentation to sentence boundaries. <code><a href="../reference/gr_seg_pk.html">gr_seg_pk()</a></code> and
 <code><a href="../reference/gr_seg_pk.html">gr_seg_windowdiff()</a></code> measure how far a chunking’s boundaries
 fall from the reference’s: 0 means the same boundaries, and lower is
-better. The settings form a grid of three segmenters at two sizes:</p>
+better. The grid crosses three segmenters with two sizes:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">seg_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"fixed"</span>, <span class="st">"sentence"</span>, <span class="st">"paragraph"</span><span class="op">)</span>,</span>
 <span>                        max_tokens <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">40</span>, <span class="fl">80</span><span class="op">)</span>, stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
@@ -406,24 +414,24 @@ better. The settings form a grid of three segmenters at two sizes:</p>
 <span><span class="co">#&gt; fixed.1         fixed_80 0.500      0.500</span></span>
 <span><span class="co">#&gt; sentence.1   sentence_80 0.556      0.556</span></span>
 <span><span class="co">#&gt; paragraph.1 paragraph_80 0.278      0.278</span></span></code></pre></div>
-<p>A paragraph here is about 30 tokens, so at 40 tokens the paragraph
+<p>A paragraph here is about 30 tokens. At 40 tokens the paragraph
 segmenter makes most chunks one paragraph and has the lowest error, Pk
 0.194. At 80 tokens it packs two paragraphs into a chunk and misses the
 boundary between them (0.278). The sentence segmenter packs sentences
-across paragraph ends and does worst, 0.722 at 40 tokens, worse than
-fixed windows (0.444), which ignore the text. The two measures differ
-only for <code>paragraph_40</code> (0.194 and 0.222): WindowDiff also
-counts a window in which both have a boundary but not the same number.
-Both say where chunk edges fall, not whether a reader will find the
-answer.</p>
+across paragraph ends and does worst: 0.722 at 40 tokens, worse than
+fixed windows (0.444), which ignore the text.</p>
+<p>The two measures differ only for <code>paragraph_40</code> (0.194 and
+0.222), because WindowDiff also counts a window in which both have a
+boundary but not the same number. Both measure where chunk edges fall.
+Neither tells you whether a reader will find the answer.</p>
 </div>
 <div class="section level3">
 <h3 id="whether-the-answer-is-in-the-chunks-retrieved">Whether the answer is in the chunks retrieved<a class="anchor" aria-label="anchor" href="#whether-the-answer-is-in-the-chunks-retrieved"></a>
 </h3>
 <p><code><a href="../reference/gr_seg_recall.html">gr_seg_recall()</a></code> ranks each segmentation’s chunks for
-each question as the <code>retrieve</code> reader does and counts the
-questions whose answer is in the first <code>k</code> chunks. It calls
-no model with the lexical embedder:</p>
+each question the way the <code>retrieve</code> reader does, then counts
+the questions whose answer is in the first <code>k</code> chunks. With
+the lexical embedder it calls no model:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">seg_specs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">seg_grid</span><span class="op">)</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="va">seg_grid</span><span class="op">$</span><span class="va">method</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, max_tokens <span class="op">=</span> <span class="va">seg_grid</span><span class="op">$</span><span class="va">max_tokens</span><span class="op">[</span><span class="va">i</span><span class="op">]</span><span class="op">)</span></span>
@@ -439,19 +447,19 @@ no model with the lexical embedder:</p>
 <span><span class="co">#&gt; 11 paragraph_80   12        16   0.75        0    3.0</span></span></code></pre></div>
 <p>With one chunk retrieved, four settings put the answer first for 12
 of the 16 dev questions, and <code>fixed_40</code> and
-<code>sentence_80</code> for 8. <code>no_chunk</code> is 0 throughout,
-so no chunk edge cut an answer in two: the misses are in the ranking,
-where a chunk that shares the question’s words (such as “Export revenue
-rose with prices”) can outrank the one that answers it.
+<code>sentence_80</code> do so for 8. <code>no_chunk</code> is 0
+throughout, so no chunk edge cut an answer in two. The misses come from
+the ranking: a chunk that shares the question’s words (such as “Export
+revenue rose with prices”) can outrank the one that answers it.
 <code>attr(rec, "ranks")</code> gives the rank of the answering chunk
 for every question. Neither measure called a model.</p>
 </div>
 <div class="section level3">
 <h3 id="a-grid-of-arms-on-dev-then-one-comparison-on-test">A grid of arms on dev, then one comparison on test<a class="anchor" aria-label="anchor" href="#a-grid-of-arms-on-dev-then-one-comparison-on-test"></a>
 </h3>
-<p>The same grid becomes arms, one per row, each the
-<code>retrieve</code> reader with <code>top_k = 1</code>, and runs on
-the dev split:</p>
+<p>Next the same grid becomes arms, one per row. Each arm is the
+<code>retrieve</code> reader with <code>top_k = 1</code> and that row’s
+segmenter and size, and the arms run on the dev split:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">seg_arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">seg_grid</span><span class="op">)</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"fast"</span>, settings <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>reader <span class="op">=</span> <span class="st">"retrieve"</span>, top_k <span class="op">=</span> <span class="fl">1</span>,</span>
@@ -473,14 +481,13 @@ the dev split:</p>
 <span><span class="co">#&gt;  paragraph_80 -        0.688 80   5     20     0           0.0158</span></span>
 <span><span class="co">#&gt;   480 row(s) on the dev split are not reportable; their accuracy is the dev column alone.</span></span>
 <span><span class="co">#&gt;   Descriptive only: accuracy is the mean over runs within each item, then over labelled items, with no interval.</span></span></code></pre></div>
-<p>The dev column is the only accuracy printed, and
-<code><a href="../reference/hr_report.html">hr_report()</a></code> would refuse these rows. On dev
-<code>paragraph_40</code> scores highest, 0.725, just above
-<code>sentence_40</code> at 0.713, and the two arms whose recall at 1
-was 0.50 score lowest (0.475 and 0.500). The best of six close dev
-scores is partly luck, which is why it is confirmed on test. The
-comparison there is with the paragraph segmenter at 80 tokens, the other
-size of the same segmenter:</p>
+<p>The print shows accuracy only in the dev column, and
+<code><a href="../reference/hr_report.html">hr_report()</a></code> would refuse these rows. On dev,
+<code>paragraph_40</code> scores highest at 0.725, narrowly above
+<code>sentence_40</code> at 0.713. The two arms whose recall at 1 was
+0.50 score lowest (0.475 and 0.500). The best of six close dev scores is
+partly luck, so you confirm it on test. There it faces the paragraph
+segmenter at 80 tokens, the other size of the same segmenter:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">b_seg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">seg_arms</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"paragraph_40"</span>, <span class="st">"paragraph_80"</span><span class="op">)</span>, <span class="va">seg_grid</span><span class="op">$</span><span class="va">name</span><span class="op">)</span><span class="op">]</span>, <span class="va">qa</span>,</span>
 <span>                      runs <span class="op">=</span> <span class="fl">10</span>, client <span class="op">=</span> <span class="va">reader</span>, scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -493,22 +500,22 @@ size of the same segmenter:</p>
 <span><span class="va">r_seg</span><span class="op">$</span><span class="va">contrasts</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"arm1"</span>, <span class="st">"arm2"</span>, <span class="st">"estimate"</span>, <span class="st">"lower"</span>, <span class="st">"upper"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;           arm1         arm2 estimate  lower upper</span></span>
 <span><span class="co">#&gt; 1 paragraph_40 paragraph_80    0.131 0.0132 0.249</span></span></code></pre></div>
-<p>This benchmark also runs 10 times: at 5 runs its notes said
-run-to-run variance was 15% of the total. On test,
+<p>This benchmark also runs 10 times, since at 5 runs its notes put
+run-to-run variance at 15% of the total. On test,
 <code>paragraph_40</code> scores 0.834 and <code>paragraph_80</code>
-0.703, and the difference of 0.131 has an interval from 0.013 to 0.249,
-which excludes 0. It can be reported because it is one contrast, and
-both arms were chosen on dev before their test results were seen. It
-still carries the width of 8 reports: the gain could be anything from 1
-to 25 points.</p>
+0.703. The difference of 0.131 has an interval from 0.013 to 0.249,
+which excludes 0. You can report it because it is one contrast, and both
+arms were chosen on dev before anyone saw their test results. The
+interval still has the width that 8 reports allow: the gain could be
+anything from 1 to 25 points.</p>
 </div>
 </div>
 <div class="section level2">
 <h2 id="one-setting-swept-over-its-values">One setting swept over its values<a class="anchor" aria-label="anchor" href="#one-setting-swept-over-its-values"></a>
 </h2>
-<p><code>top_k</code> is how many chunks <code>retrieve</code> sends.
-More chunks make it likelier the answer is among them and the prompt
-longer. The sweep runs on dev:</p>
+<p><code>top_k</code> sets how many chunks <code>retrieve</code> sends.
+More chunks raise the chance that the answer is among them, and they
+make the prompt longer. The sweep runs on dev:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">top_k_arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">4</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">k</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"fast"</span>, settings <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>reader <span class="op">=</span> <span class="st">"retrieve"</span>, top_k <span class="op">=</span> <span class="va">k</span>, method <span class="op">=</span> <span class="st">"sentence"</span>,</span>
@@ -525,11 +532,11 @@ longer. The sweep runs on dev:</p>
 <span><span class="co">#&gt;  top_k_4 -        0.912 80   7      0     0           0.0199</span></span>
 <span><span class="co">#&gt;   240 row(s) on the dev split are not reportable; their accuracy is the dev column alone.</span></span>
 <span><span class="co">#&gt;   Descriptive only: accuracy is the mean over runs within each item, then over labelled items, with no interval.</span></span></code></pre></div>
-<p><code>top_k = 2</code> is highest on dev, 0.950.
-<code>top_k = 1</code> misses the questions whose answer ranks second,
-and <code>top_k = 4</code> gives the stand-in a longer prompt, which it
-reads worse. On test the choice is compared with <code>top_k = 4</code>,
-the value nearer the default of 6:</p>
+<p><code>top_k = 2</code> is highest on dev, at 0.950.
+<code>top_k = 1</code> misses the questions whose answer ranks second.
+<code>top_k = 4</code> gives the stand-in a longer prompt, which it
+reads worse. On test the chosen value faces <code>top_k = 4</code>, the
+value nearer the default of 6:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">b_k</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">top_k_arms</span><span class="op">[</span><span class="fl">2</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span>, <span class="va">qa</span>, runs <span class="op">=</span> <span class="fl">10</span>, client <span class="op">=</span> <span class="va">reader</span>,</span>
 <span>                    scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -544,25 +551,27 @@ the value nearer the default of 6:</p>
 <span><span class="co">#&gt; 2 top_k_4     0.000250             213</span></span></code></pre></div>
 <p>With 10 runs (at 5, the notes put run-to-run variance at 79% of the
 total), <code>top_k = 2</code> is 6.9 points more accurate than
-<code>top_k = 4</code> on test, with an interval from 1.8 to 12.0
-points, and sends 155 tokens per question instead of 213. The difference
-is far below the 25.5-point minimum detectable difference above, and the
-interval still excludes 0. That is not a contradiction. The 25.5 points
-is the true difference this design would detect 80% of the time, on an
-assumed disagreement of 15% and a correlation of 0.1; it is not the
-width of an interval and not a floor under what can be shown. A smaller
-true difference is detected less often, not never. The interval rests on
-what these two arms did. Plan with values measured in a pilot on dev,
-and read the result from the report.</p>
+<code>top_k = 4</code> on test. The interval runs from 1.8 to 12.0
+points, and <code>top_k = 2</code> sends 155 tokens per question instead
+of 213.</p>
+<p>The difference is far below the 25.5-point minimum detectable
+difference above, and the interval still excludes 0. The two figures do
+not contradict each other. The 25.5 points is the true difference this
+design would detect 80% of the time, on an assumed disagreement of 15%
+and a correlation of 0.1. It is neither the width of an interval nor a
+floor under what can be shown: a smaller true difference is detected
+less often, not never. The interval rests on what these two arms did.
+Plan with values measured in a pilot on dev, and read the result from
+the report.</p>
 </div>
 <div class="section level2">
 <h2 id="screening-settings">Screening settings<a class="anchor" aria-label="anchor" href="#screening-settings"></a>
 </h2>
-<p>An arm can be any function, so a screening setting is compared the
-same way. Here 16 records of hand-hygiene studies are screened for
+<p>An arm can be any function, so you compare a screening setting the
+same way. Here a screener checks 16 records of hand-hygiene studies for
 randomised comparisons. Every record opens with the same background, and
-the sentence that settles it comes in the second, third or fourth
-sentence, so a screener shown too little of a record cannot decide:</p>
+the sentence that settles it comes second, third or fourth, so a
+screener shown too little of a record cannot decide:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rec_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"compare-records"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">rec_dir</span>, showWarnings <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
@@ -589,10 +598,10 @@ sentence, so a screener shown too little of a record cannot decide:</p>
 <span><span class="va">screens</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_reference.html">hr_reference</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">as.list</a></span><span class="op">(</span><span class="va">paths</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"s%02d"</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                        labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"randomly"</span>, <span class="va">design</span><span class="op">)</span>, <span class="st">"include"</span>, <span class="st">"exclude"</span><span class="op">)</span>,</span>
 <span>                        cluster <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"batch%d"</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, each <span class="op">=</span> <span class="fl">4</span><span class="op">)</span><span class="op">)</span>, split <span class="op">=</span> <span class="st">"test"</span><span class="op">)</span></span></code></pre></div>
-<p>The stand-in screener decides from the allocation sentence when it is
-in the excerpt it was shown, and says <code>unclear</code> otherwise.
-One arm per value of <code>screen_tokens</code>, the cap on what the
-screener is shown; each run screens one record through
+<p>The stand-in screener decides from the allocation sentence if the
+excerpt it was shown holds that sentence, and says <code>unclear</code>
+otherwise. Each value of <code>screen_tokens</code>, the cap on what the
+screener is shown, gets one arm. Each run screens one record through
 <code><a href="../reference/gr_screen.html">gr_screen()</a></code>, on the run’s trace and at its draw index:</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">screener</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
@@ -633,24 +642,25 @@ screener is shown; each run screens one record through
 <span><span class="co">#&gt; 2 tokens_80     0.000585             363</span></span></code></pre></div>
 <p>At 40 tokens the allocation sentence fits in the excerpt for 3 of the
 16 records, and the screener says <code>unclear</code> about the other
-13: accuracy 0.188, with an interval from 0.059 to 0.460, against 1.000
-at 80 tokens. That interval, 0.714 to 1.000, is Korn and Graubard’s,
-one-sided because every run was right. The cap saves little, 352 tokens
-per record against 363, since the instructions and criteria are most of
-each request. An <code>unclear</code> decision is counted wrong here. It
-is not an exclusion, since a person settles it, but it costs that person
-a look; a scorer that counts it another way is a few lines with
+13. Accuracy is 0.188, with an interval from 0.059 to 0.460, against
+1.000 at 80 tokens. That second interval, 0.714 to 1.000, is Korn and
+Graubard’s, one-sided because every run was right. The cap saves little,
+352 tokens per record against 363, since the instructions and criteria
+are most of each request.</p>
+<p>This guide counts an <code>unclear</code> decision as wrong. It is
+not an exclusion, since a person settles it, but it costs that person a
+look. A scorer that counts it another way takes a few lines with
 <code><a href="../reference/hr_scorer.html">hr_scorer()</a></code>.</p>
 </div>
 <div class="section level2">
 <h2 id="a-judge-against-peoples-labels">A judge against people’s labels<a class="anchor" aria-label="anchor" href="#a-judge-against-peoples-labels"></a>
 </h2>
-<p>Some outputs need a judge, and a judge is a model whose decisions
-have to be checked against people before its scores mean anything. A
-pairwise judge says which of two texts answers better. Its labels come
-from a pairwise sheet: two texts per row, in an order drawn for that
-row, with the order kept in an opaque key so that the person cannot tell
-which text is which candidate.</p>
+<p>Some outputs need a judge. A judge is a model, and you check its
+decisions against people before its scores mean anything. A pairwise
+judge says which of two texts answers better. Its labels come from a
+pairwise sheet: two texts per row, in an order drawn for that row. An
+opaque key keeps the order, so the person labelling cannot tell which
+text is which candidate.</p>
 <p>Here 180 pairs set the right sentence against a wrong one (the 2026
 forecast in place of the 2024 figure), or two right sentences against
 each other:</p>
@@ -680,8 +690,8 @@ each other:</p>
 <span><span class="co">#&gt; 2 pkca3ed8308d8da28a3560dd6164f3362c8c59210c37c6614e</span></span>
 <span><span class="co">#&gt; 3 pk861aaaba18ad688ed514afc499ed67224d091e42cf6b22f9</span></span></code></pre></div>
 <p>A person fills <code>preferred</code> with 1, 2 or tie for each row
-as shown. Here the filling is simulated: the text with the 2024 figure
-is preferred, and two right texts are a tie.</p>
+as shown. Here the code below simulates the filling: the text with the
+2024 figure is preferred, and two right texts are a tie.</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">filled</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">sheet_path</span>, fileEncoding <span class="op">=</span> <span class="st">"UTF-8-BOM"</span><span class="op">)</span></span>
 <span><span class="va">has_2024</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"fiscal 2024"</span>, <span class="va">x</span><span class="op">)</span></span>
@@ -694,13 +704,13 @@ is preferred, and two right texts are a tie.</p>
 <span><span class="co">#&gt; shown_first  A  B tie</span></span>
 <span><span class="co">#&gt;           A 28 25  29</span></span>
 <span><span class="co">#&gt;           B 32 35  31</span></span></code></pre></div>
-<p><code><a href="../reference/gr_read_labels.html">gr_read_labels()</a></code> turns each answer back into candidate
-order with the key: <code>preferred</code> is <code>A</code>,
+<p><code><a href="../reference/gr_read_labels.html">gr_read_labels()</a></code> uses the key to turn each answer back
+into candidate order, so <code>preferred</code> is <code>A</code>,
 <code>B</code> or <code>tie</code> whichever text was shown first. A key
 that was edited, lost or pasted onto another row is an error of class
 <code>gr_bad_labels</code>.</p>
 <p>The judge sees each pair in both orders. This stand-in judge prefers
-the text with the 2024 figure but, a quarter of the time, simply picks
+the text with the 2024 figure, but a quarter of the time it picks
 whichever text it was shown first:</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">judge_cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
@@ -726,7 +736,7 @@ whichever text it was shown first:</p>
 <p>A verdict that changes with the order is <code>unresolved</code>,
 recorded as <code>NA</code>. With <code>positive = "A"</code>,
 <code><a href="../reference/hr_judge_validate.html">hr_judge_validate()</a></code> measures how well the judge finds the
-pairs where candidate A is better; a tie and a B both count as
+pairs where candidate A is better. A tie and a B both count as
 negative:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cfg_pair</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_judge_config.html">hr_judge_config</a></span><span class="op">(</span><span class="st">"mock-judge"</span>, <span class="va">rubric</span>, mode <span class="op">=</span> <span class="st">"pairwise"</span><span class="op">)</span></span>
@@ -740,24 +750,24 @@ negative:</p>
 <span><span class="co">#&gt;   specificity: 1.000 [0.969, 1.000], n = 120</span></span>
 <span><span class="co">#&gt;   swap inconsistency: 0.322 [0.258, 0.394], 58 of 180</span></span></code></pre></div>
 <p>The judge finds 0.767 of the 60 pairs where people preferred A, with
-an interval from 0.646 to 0.856, and never prefers A where they did not
+an interval from 0.646 to 0.856. It never prefers A where they did not
 (specificity 1.000). Its swap inconsistency is 0.322: on 58 of 180 pairs
-the verdict changed with the order. Those count as not preferring A,
-which is how a scorer would count them, and they are why sensitivity is
-low; a judge that changes its mind on a third of pairs needs a better
-rubric or model before its scores are used. With
-<code>positive = "A"</code> a tie is negative, so a judge that calls a
-tie where people preferred A has missed it.</p>
+the verdict changed with the order. Those pairs count as not preferring
+A, as a scorer would count them, and they are why sensitivity is low. A
+judge whose verdict changes on a third of pairs needs a better rubric or
+model before you use its scores. With <code>positive = "A"</code> a tie
+is negative, so a judge that calls a tie where people preferred A has
+missed it.</p>
 <div class="section level3">
 <h3 id="when-the-judge-is-the-model-it-grades">When the judge is the model it grades<a class="anchor" aria-label="anchor" href="#when-the-judge-is-the-model-it-grades"></a>
 </h3>
 <p>A model grading its own answers can favour them.
 <code><a href="../reference/hr_scorer_judge.html">hr_scorer_judge()</a></code> takes the judge’s model in
-<code>judge_model</code> (the configuration’s by default), and
+<code>judge_model</code> (the configuration’s by default).
 <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> marks each run whose requests went to that
-same model in <code>self_judged</code>. Nothing is refused, and the
+same model in <code>self_judged</code>. It refuses no run, and the
 report says so. Here the grade judge runs on <code>mock-model</code>,
-the model the arm reads with; its validation record is simulated, as in
+the model the arm reads with. Its validation record is simulated, as in
 <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code>:</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cfg_grade</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_judge_config.html">hr_judge_config</a></span><span class="op">(</span><span class="st">"mock-model"</span>, <span class="st">"Does the response give the reference's answer?"</span>,</span>
@@ -784,22 +794,22 @@ the model the arm reads with; its validation record is simulated, as in
 <span><span class="co">#&gt; More than 5% of the cost of retrieve rests on estimated token counts; read its cost as approximate.</span></span>
 <span><span class="co">#&gt; Cost, pass^k, frontier share and rank intervals come from the cluster bootstrap, which can undercover below 300 items or 30 clusters; read them as rough.</span></span>
 <span><span class="co">#&gt; The frontier share (how often an arm is on the cost-accuracy frontier over resamples) is an extension, not a published standard.</span></span></code></pre></div>
-<p>All 320 runs, 32 questions times 10, are marked
+<p>All 320 runs (32 questions times 10) are marked
 <code>self_judged</code>, and the first note says so. At 5 runs the
 notes put run-to-run variance at 82% of the total and asked for 10, so
-this benchmark runs 10 times; at 10 the notes no longer ask for
+this benchmark runs 10 times. At 10 runs the notes no longer ask for
 more.</p>
 <p><code>judge_model = "mock-judge"</code> would mark the same runs
-<code>FALSE</code>, and a run with no model request is <code>NA</code>.
-The match is exact, so give the served model id when the provider names
-its model differently from the one asked for.</p>
+<code>FALSE</code>. A run with no model request is <code>NA</code>. The
+match is exact: if the provider names its model differently from the one
+you asked for, give the served model id.</p>
 </div>
 </div>
 <div class="section level2">
 <h2 id="reading-a-comparison-honestly">Reading a comparison honestly<a class="anchor" aria-label="anchor" href="#reading-a-comparison-honestly"></a>
 </h2>
-<p>The five comparisons above end in reports, and each has the same
-limits.</p>
+<p>Each of the five comparisons above ends in a report, and the reports
+share the same limits.</p>
 <ul>
 <li>
 <strong>Read the interval of the difference, not the two
@@ -807,42 +817,45 @@ accuracies.</strong> A contrast whose interval covers 0 has not shown a
 difference. With more than two arms, read <code>simultaneous</code>
 unless one pair was named before the run.</li>
 <li>
-<strong>Hold the result against the minimum detectable
-difference.</strong> At 32 questions in 8 reports, a real gain of 5
-points would usually be missed. <code><a href="../reference/hr_mdd.html">hr_n_needed()</a></code> says how many
-questions would show it.</li>
+<strong>Compare the result with the minimum detectable
+difference.</strong> At 32 questions in 8 reports, this design would
+usually miss a real gain of 5 points. <code><a href="../reference/hr_mdd.html">hr_n_needed()</a></code> gives
+the number of questions that would show it.</li>
 <li>
 <strong>Report only test results.</strong> The grids and sweeps
-above were read on dev, one setting was chosen there, and only that
-setting and one comparator were run on test: <code>paragraph_40</code>
+above were read on dev. One setting was chosen there, and only that
+setting and one comparator ran on test: <code>paragraph_40</code>
 against <code>paragraph_80</code>, and <code>top_k = 2</code> against
-<code>top_k = 4</code>. Reporting the best of six dev arms as if it were
-one planned comparison overstates it.</li>
+<code>top_k = 4</code>. If you report the best of six dev arms as if it
+were one planned comparison, you overstate it.</li>
 <li>
-<strong>Five runs is the minimum.</strong> When the report’s notes
-say run-to-run variance is more than 10% of the total, use 10. The
-reader, segmenter, <code>top_k</code> and judge benchmarks on test all
-said so at 5 runs (81%, 15%, 79% and 82%), so they run 10 times.</li>
+<strong>Five runs is the minimum.</strong> If the report’s notes say
+run-to-run variance is more than 10% of the total, use 10. At 5 runs the
+notes for the reader, segmenter, <code>top_k</code> and judge benchmarks
+on test all said so (81%, 15%, 79% and 82%), so those benchmarks run 10
+times.</li>
 <li>
 <strong>Size the governor for the whole benchmark</strong> and
 compare its limit with the calls the trace records. A run stopped by a
 limit is counted wrong.</li>
 <li>
-<strong>The free measures are not the outcome.</strong> Pk,
-WindowDiff and recall at k say why an arm may do well; only the
-benchmark says whether it does.</li>
+<strong>Treat the free measures as clues.</strong> Pk, WindowDiff
+and recall at k suggest why an arm may do well. Only the benchmark shows
+whether it does.</li>
 <li>
-<strong>A judge’s scores are as good as its validation.</strong>
-Validate it against blind labels, say when it graded its own model, and
-correct judge-scored accuracy with <code><a href="../reference/hr_judge_ppi.html">hr_judge_ppi()</a></code>.</li>
+<strong>Trust a judge’s scores only as far as its
+validation.</strong> Validate the judge against blind labels, say when
+it graded its own model, and correct judge-scored accuracy with
+<code><a href="../reference/hr_judge_ppi.html">hr_judge_ppi()</a></code>.</li>
 </ul>
 </div>
 <div class="section level2">
 <h2 id="on-your-own-documents">On your own documents<a class="anchor" aria-label="anchor" href="#on-your-own-documents"></a>
 </h2>
-<p>The same steps on real documents and a real model. Nothing here runs
-when the guide is built. Results go to a directory you name; this uses
-the per-user data directory, never the package’s own folder:</p>
+<p>Here are the same steps on real documents with a real model. Nothing
+in this section runs when the guide is built. Results go to a directory
+you name. This example uses the per-user data directory, never the
+package’s own folder:</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu">tools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/tools/userdir.html" class="external-link">R_user_dir</a></span><span class="op">(</span><span class="st">"harnessr"</span>, <span class="st">"data"</span><span class="op">)</span>, <span class="st">"compare"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">out</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, showWarnings <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
@@ -888,7 +901,7 @@ the per-user data directory, never the package’s own folder:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">test</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">out</span>, <span class="st">"test-bench.rds"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="fu"><a href="../reference/as_json.html">as_json</a></span><span class="op">(</span><span class="va">rpt</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">out</span>, <span class="st">"test-report.json"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><code>max_calls</code> and <code>max_cost_usd</code> above are
-examples: set them from the number of arms, test questions, runs and
+examples. Set them from the number of arms, test questions, runs and
 calls per run (<code><a href="../reference/gr_readers.html">gr_readers()</a></code> lists each reader’s calls),
 with room to spare.</p>
 </div>
