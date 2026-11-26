@@ -62,6 +62,10 @@ test_that("every description is read from the help pages, one sentence each", {
   s <- gr_settings_table()
   expect_false(anyNA(s$description))
   expect_false(any(grepl("^As [a-z_]+\\(\\)", s$description)))
+  # vignettes/settings.Rmd escapes < for the page, which would show as "&lt;"
+  # inside a code span.
+  spans <- unlist(regmatches(s$description, gregexpr("`[^`]*`", s$description)))
+  expect_false(any(grepl("<", spans, fixed = TRUE)))
   rd <- s$description[s$where == "gr_extract()" & s$name == "resolve"]
   expect_identical(rd, paste0("What to do when two parts of one document give different ",
                               "values for the same field."))
