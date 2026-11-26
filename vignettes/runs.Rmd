@@ -619,7 +619,8 @@ prices you pay, and harnessr uses them for every cost it reports and for
 `max_cost_usd`.
 
 The prices below are illustrative. Use your provider's current prices, in US
-dollars per million tokens.
+dollars per million tokens. `vignette("models")` covers the registry, prices
+and token counts in full.
 
 ### What harnessr knows about a model
 
@@ -639,7 +640,8 @@ prices, it is the month of the prices.
 `hr_model_info()` looks up one model. Its `source` says where the entry came
 from, and `certain` is `FALSE` when harnessr guessed the model from its name
 or fell back to its default. An id the registry does not know warns with
-`gr_unknown_model` and gets a 128k context window and no price. Its cost then
+`gr_unknown_model` and gets the limits of a family pattern its name matches,
+or else a 128k context window, and no price. Its cost then
 shows as `NA` rather than a wrong figure.
 
 ```{r}

@@ -859,6 +859,8 @@ hr_options(old)
 
 ## Next
 
+- `vignette("models")`: the model registry, setting prices, cost estimates and
+  token counts.
 - `vignette("runs")`: limits, the governor, caching across sessions, replaying
   a whole run, and model prices.
 - `vignette("compose")`: steps and chains built from calls like these, and a
