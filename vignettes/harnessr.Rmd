@@ -578,7 +578,7 @@ table(factor(settings$stage, unique(settings$stage)))
 | extract | 10 | the arguments of `gr_extract()` | `vignette("review")` |
 | synthesise | 29 | the arguments of `gr_synthesise()` and the functions beside it | `vignette("review")` |
 | evaluate | 30 | the arguments of `hr_benchmark()`, `hr_report()` and `hr_judge()` | `vignette("evaluate")`, `vignette("compare")` |
-| options | 35 | `hr_options()`, for the whole session | `vignette("runs")` |
+| options | 35 | `hr_options()`, for the whole session | `vignette("core")`, `vignette("models")`, `vignette("context")`, `vignette("effort")`, `vignette("runs")` |
 
 Most runs change a few of them, and `gr_settings_table()` marks those `basic`.
 Here are the ones that matter first, with their defaults and when to change each:
@@ -639,7 +639,8 @@ The core guides:
   and what is cut when it does not fit.
 - `vignette("effort")`: how hard a reasoning model reasons, by stage or raised
   only when a stage goes wrong, and what that costs.
-- `vignette("runs")`: cost, limits, the trace, caching and replaying a run.
+- `vignette("runs")`: limits and the governor, caching a run so you pay for it
+  once, and replaying it.
 - `vignette("compose")`: building a run of your own from steps, and comparing
   it with the recipes.
 - `vignette("evaluate")` and `vignette("compare")`: benchmarks, judges and

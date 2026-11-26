@@ -1,8 +1,8 @@
 ---
-title: "Cost, limits and reproducible runs"
+title: "Limits, caching and replay"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Cost, limits and reproducible runs}
+  %\VignetteIndexEntry{Limits, caching and replay}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
