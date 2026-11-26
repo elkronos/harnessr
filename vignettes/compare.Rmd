@@ -153,9 +153,9 @@ which makes them worth comparing. You can give any setting in these schemas to
   `hr_benchmark()` warns and `hr_report()` gives no intervals. If run-to-run
   variance is above 10% of the total, the report's notes say "use runs = 10".
 - **One governor for the whole benchmark** ("The governor of a benchmark or a
-  batch" in `vignette("runs")`). The default limits fit one read (400 calls). Size
-  `hr_governor()` for arms x items x runs x calls per run, and afterwards check
-  how much of it the benchmark used.
+  batch" in `vignette("runs")`). The default limits fit one read (400
+  calls). Size `hr_governor()` for arms x items x runs x calls per run, and
+  afterwards check how much of it the benchmark used.
 - **Read intervals.** An arm ahead by 5 points with an interval from -3 to 13
   has not been shown to be better.
 - **Know the smallest difference the design can detect.** `hr_mdd()` gives

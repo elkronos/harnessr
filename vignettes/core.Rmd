@@ -989,8 +989,9 @@ hr_options(prev)
 
 Every reading function in the document layer makes its chat requests with
 `hr_call()` and its embedding requests with `hr_embed()`, and records them in a
-trace, so everything above applies to a whole document. `answer_document()` takes the same clients and returns the trace of
-its run in `$trace`; `vignette("harnessr")` starts there.
+trace, so everything above applies to a whole document. `answer_document()`
+takes the same clients and returns the trace of its run in `$trace`;
+`vignette("harnessr")` starts there.
 
 ```{r include = FALSE}
 hr_options(old)

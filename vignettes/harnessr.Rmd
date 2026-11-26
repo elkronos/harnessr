@@ -208,8 +208,8 @@ with `hr_options(old)`.
 
 Every chat request harnessr makes goes through `hr_call()`, and every embedding
 request through `hr_embed()`, whether a document reader sends it or your own
-code does. You can use the core with no document at all. The parts below each link to the core guide that covers them in
-depth.
+code does. You can use the core with no document at all. The parts below each
+link to the core guide that covers them in depth.
 
 ### A call
 
