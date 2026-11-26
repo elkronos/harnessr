@@ -1,6 +1,14 @@
 # Builds the website (the README, the guides, the reference and NEWS) with
 # pkgdown, and publishes it to the gh-pages branch, which GitHub Pages serves.
 #
+# Only a run on main (or master) publishes, so the site always comes from the
+# newest main. A push to main builds and publishes, unless a newer push to
+# main replaces it while it waits. A run started by hand (workflow_dispatch)
+# on main publishes too; started on any other branch or tag, it builds the
+# site without publishing it. A release does not start this workflow: a
+# release tag can point at an old commit, and its site would replace the
+# current one.
+#
 # Pull requests build the site without publishing it, so a guide that fails to
 # knit shows up before it is merged. The guides run offline with a stand-in
 # model, so no API key is needed; OPENAI_API_KEY is set empty to make sure of it.
@@ -8,8 +16,7 @@
 # A pull request builds the site only when it changes a file the site is made
 # from: the code and its help pages, the guides, the installed files they
 # read, LICENSE, and every top-level Markdown page pkgdown renders (README,
-# NEWS, CONTRIBUTING, CONTRACT, NOTES-primitives). A push to main builds and
-# publishes, unless a newer push to main replaces it while it waits.
+# NEWS, CONTRIBUTING, CONTRACT, NOTES-primitives).
 on:
   push:
     branches: [main, master]
@@ -27,8 +34,6 @@ on:
       - 'NAMESPACE'
       - '_pkgdown.yml'
       - '.github/workflows/pkgdown.yaml'
-  release:
-    types: [published]
   workflow_dispatch:
 
 name: pkgdown
@@ -40,13 +45,14 @@ jobs:
     runs-on: ubuntu-latest
     # A slow package mirror once held a successful build for 64 minutes.
     timeout-minutes: 75
-    # One publishing run at a time. A running publish is never cancelled; if
-    # several pushes arrive while it runs, only the newest waits and
-    # publishes. A pull request does not publish: a new push to it cancels its
-    # older build.
+    # One run at a time per branch or pull request. On main a running publish
+    # is never cancelled; if several pushes arrive while it runs, only the
+    # newest waits and publishes. A run that does not publish (a pull request,
+    # or a run by hand on another branch) is cancelled by a newer run on the
+    # same pull request or branch, and never shares a group with main.
     concurrency:
-      group: pkgdown-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'true' }}
-      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+      group: pkgdown-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref }}
+      cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master' }}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       OPENAI_API_KEY: ''
@@ -71,7 +77,9 @@ jobs:
         shell: Rscript {0}
 
       - name: Deploy to GitHub Pages
-        if: github.event_name != 'pull_request'
+        if: >-
+          github.event_name != 'pull_request' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         uses: JamesIves/github-pages-deploy-action@v4.5.0
         with:
           clean: false
