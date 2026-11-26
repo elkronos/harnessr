@@ -35,12 +35,14 @@ A judge's accuracy figures are biased by its own errors. Given the judge's
 score on every item and human labels on a sample of them, this returns the
 prediction-powered estimate of the human-scored mean (Angelopoulos et al.
 2023), through \code{\link[=hr_ppi]{hr_ppi()}}:
-}
-\details{
+
 \if{html}{\out{<div class="sourceCode">}}\preformatted{estimate = mean(judge on unlabelled) + mean(human - judge on labelled)
 }\if{html}{\out{</div>}}
 
-with PPI++ tuning by default. When \code{inclusion_prob} varies, the labelled
+with PPI++ tuning by default.
+}
+\details{
+When \code{inclusion_prob} varies, the labelled
 items were drawn with unequal probabilities and the correction is
 inverse-probability weighted, the design-based supervised learning form
 (Egami et al. 2023):

@@ -943,6 +943,7 @@ hr_scorer_judge <- function(judge_config, validation, client, governor = NULL,
 
 #' Judge-scored accuracy corrected with human labels
 #'
+#' @description
 #' A judge's accuracy figures are biased by its own errors. Given the judge's
 #' score on every item and human labels on a sample of them, this returns the
 #' prediction-powered estimate of the human-scored mean (Angelopoulos et al.
@@ -950,7 +951,10 @@ hr_scorer_judge <- function(judge_config, validation, client, governor = NULL,
 #'
 #'     estimate = mean(judge on unlabelled) + mean(human - judge on labelled)
 #'
-#' with PPI++ tuning by default. When `inclusion_prob` varies, the labelled
+#' with PPI++ tuning by default.
+#'
+#' @details
+#' When `inclusion_prob` varies, the labelled
 #' items were drawn with unequal probabilities and the correction is
 #' inverse-probability weighted, the design-based supervised learning form
 #' (Egami et al. 2023):
