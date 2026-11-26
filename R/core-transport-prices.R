@@ -79,3 +79,71 @@ warn_stale_price <- function(model, info) {
     model, info$as_of, format(age, scientific = FALSE), format(max_age, scientific = FALSE)),
     class = "hr_stale_price", model = model, as_of = info$as_of)
 }
+
+# Where a cost's prices came from. Every report of a cost in dollars shows,
+# for each model it prices, whether the model has a price, the month of that
+# price and whether the registry entry is a fact or a guess, so a reader can
+# tell a figure from current prices from one from old prices, and a cost of
+# NA from a cost of nothing.
+
+#' For each of `models`: `priced` (whether it has an input price), `as_of`
+#' (the month of its prices, `NA` when it has none) and `certain` (whether
+#' its registry entry is a fact rather than a family guess or the default).
+#' Quiet: a model that is not in the registry is unpriced and not certain,
+#' and neither warns nor stops, since the run that used it has already been
+#' told.
+#' @noRd
+price_status <- function(models) {
+  models <- as.character(models)
+  # Looked up once per model: a trace has a row per request.
+  ids <- unique(models)
+  rows <- lapply(ids, function(m) {
+    info <- tryCatch(suppressWarnings(hr_model_info(m), classes = "gr_unknown_model"),
+                     error = function(e) NULL)
+    if (is.null(info)) return(list(FALSE, NA_character_, FALSE))
+    priced <- !is.na(as_num1(info$input_usd))
+    list(priced, if (priced) as_chr1(info$as_of, NA_character_) else NA_character_,
+         isTRUE(info$certain))
+  })
+  at <- match(models, ids)
+  data.frame(model = models,
+             priced = vapply(rows, function(r) r[[1]], logical(1))[at],
+             as_of = vapply(rows, function(r) r[[2]], character(1))[at],
+             certain = vapply(rows, function(r) r[[3]], logical(1))[at],
+             stringsAsFactors = FALSE)
+}
+
+#' One row's price columns for a cost that covers several models: `priced`
+#' when every one of them has a price, `as_of` the oldest month among their
+#' prices (the one to check first), `certain` when every entry is a fact.
+#' All `NA` when the cost covers no model.
+#' @noRd
+price_summary <- function(models) {
+  models <- unique(as.character(models[!is.na(models)]))
+  if (!length(models)) {
+    return(list(priced = NA, as_of = NA_character_, certain = NA))
+  }
+  st <- price_status(models)
+  months <- st$as_of[st$priced & !is.na(st$as_of)]
+  list(priced = all(st$priced),
+       as_of = if (length(months)) min(months) else NA_character_,
+       certain = all(st$certain))
+}
+
+#' "prices as of 2026-11", or "prices as of 2026-08 to 2026-11" when the
+#' months differ; "" with none.
+#' @noRd
+price_as_of_text <- function(months) {
+  months <- sort(unique(months[!is.na(months)]))
+  if (!length(months)) return("")
+  if (length(months) == 1L) return(sprintf("prices as of %s", months))
+  sprintf("prices as of %s to %s", months[1], months[length(months)])
+}
+
+#' "no price set for a, b (set one with hr_register_model() or
+#' hr_load_models())", for the printed cost of a model with no price.
+#' @noRd
+price_missing_text <- function(models) {
+  sprintf("no price set for %s (set one with hr_register_model() or hr_load_models())",
+          paste(unique(models), collapse = ", "))
+}

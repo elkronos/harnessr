@@ -309,13 +309,36 @@ hr_models <- function() {
 #'   `hr_options("price_max_age_days")` (120 days by default, counted from the
 #'   first day of their `as_of` month), the first figure computed from them in
 #'   a session warns with class `hr_stale_price`.
+#'
+#'   With `detail = TRUE`, a one-row data frame instead: `model`, `usd` (the
+#'   same figure), `priced` (whether the model has a price), `as_of` (the
+#'   month of its prices, `NA` without one) and `certain` (`FALSE` when the
+#'   model's registry entry is a family guess or the default; see
+#'   [hr_model_info()]).
+#' @param detail `FALSE` (the default) for the figure alone; `TRUE` for a
+#'   data frame that also says where the prices came from.
 #' @seealso [hr_model_info()], [hr_register_model()], [hr_trace_summary()]
 #' @family cost and token functions
 #' @export
 #' @examples
 #' hr_estimate_cost("gpt-4o", input_tokens = 120000, output_tokens = 4000)
 #' hr_estimate_cost("a-model-with-no-pricing", 1000, 100)
-hr_estimate_cost <- function(model, input_tokens, output_tokens = 0, cached_input_tokens = 0) {
+#'
+#' # Where the figure's prices came from. The prices are illustrative: use
+#' # your provider's current ones.
+#' hr_register_model("gpt-4o", input_usd = 2.50, output_usd = 10)
+#' hr_estimate_cost("gpt-4o", 120000, 4000, detail = TRUE)
+hr_estimate_cost <- function(model, input_tokens, output_tokens = 0, cached_input_tokens = 0,
+                             detail = FALSE) {
+  if (!is.logical(detail) || length(detail) != 1L || is.na(detail)) {
+    gr_abort("`detail` must be TRUE or FALSE.", class = "gr_bad_setting")
+  }
+  if (detail) {
+    usd <- hr_estimate_cost(model, input_tokens, output_tokens, cached_input_tokens)
+    return(data.frame(model = as_chr1(model), usd = usd,
+                      price_status(as_chr1(model))[c("priced", "as_of", "certain")],
+                      stringsAsFactors = FALSE))
+  }
   info <- hr_model_info(model)
   if (is.na(info$input_usd)) return(NA_real_)
   # An UNKNOWN token count is not a zero one. `sum(na.rm = TRUE)` made

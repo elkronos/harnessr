@@ -162,6 +162,10 @@ one sent none. Present only when some request in the trace carried one
 reasoning and cached input tokens the provider reported and the model
 it said answered, \code{NA} where it did not. Each is present only when some
 request in the trace has it.}
+\item{\code{priced}, \code{as_of}, \code{certain}}{Last, where \code{usd}'s price came from, as in
+\code{\link[=hr_trace_cost]{hr_trace_cost()}}: whether the model has a price, the month of its
+prices (\code{NA} without one), and whether its registry entry is a fact
+rather than a guess.}
 }
 A request's \code{usd} prices its cached input tokens at the model's cached
 input rate when \code{\link[=hr_register_model]{hr_register_model()}} gave it one, and at the input rate

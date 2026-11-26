@@ -22,6 +22,15 @@
 #'   unpriced model is impossible. The exception is a model whose every request
 #'   failed without sending a token (an embeddings request to an endpoint that
 #'   has none, say): that cost nothing, priced or not, so it contributes 0.
+#'
+#'   Three more columns say where each row's prices came from: `priced`
+#'   (whether the model has a price), `as_of` (the month of its prices, `NA`
+#'   without one) and `certain` (`FALSE` when the model's registry entry is a
+#'   family guess or the default; see [hr_model_info()]). They describe the
+#'   registry when you call this, which is also what `usd` is priced at.
+#'   Printed, a trace shows the cost with the month of its prices, and names
+#'   each model with no price; a total over models of which some have no
+#'   price says it covers only the priced ones.
 #' @seealso [hr_trace_summary()], [hr_estimate_cost()], [hr_cache()],
 #'   [gr_read_many()]
 #' @export
@@ -46,6 +55,7 @@ hr_trace_cost <- function(trace) {
     return(data.frame(model = character(0), calls = integer(0), paid_calls = integer(0),
                       paid_in = integer(0), paid_out = integer(0), usd = numeric(0),
                       paid_reasoning = integer(0), paid_cached_in = integer(0),
+                      priced = logical(0), as_of = character(0), certain = logical(0),
                       stringsAsFactors = FALSE))
   }
   model <- vapply(steps, function(s) as_chr1(s$model, "unknown"), character(1))
@@ -68,7 +78,10 @@ hr_trace_cost <- function(trace) {
   free <- !vapply(steps, function(s) isTRUE(s$ok), logical(1)) &
     tin %in% 0L & tout %in% 0L
 
-  do.call(rbind, lapply(sort(unique(model)), function(m) {
+  models <- sort(unique(model))
+  prices <- price_status(models)
+  do.call(rbind, lapply(seq_along(models), function(k) {
+    m <- models[k]
     i <- model == m
     pin <- sum(tin[i & paid]); pout <- sum(tout[i & paid]); pcach <- sum(tcach[i & paid])
     data.frame(
@@ -85,22 +98,44 @@ hr_trace_cost <- function(trace) {
                           gr_unknown_model = function(w) NA_real_),
       paid_reasoning = as.integer(sum(treas[i & paid])),
       paid_cached_in = as.integer(pcach),
+      # Where the prices came from: added last, so the columns above keep
+      # their places.
+      priced = prices$priced[k], as_of = prices$as_of[k], certain = prices$certain[k],
       stringsAsFactors = FALSE)
   }))
 }
 
 #' A trace's cost in words, for the print methods.
 #'
-#' One wording everywhere a cost is shown: a model with no registered price
-#' makes the total unknown, never zero.
+#' One wording everywhere a cost is shown. `trace` is a `gr_trace`, or a data
+#' frame with `model` and `usd` columns, as hr_trace_cost() and
+#' hr_estimate_cost(detail = TRUE) return. A known total says the month of its
+#' prices. A model with no price makes its share unknown, never zero: the line
+#' names it and the function that sets a price, and a total over the other
+#' models says it covers only them. A priced model whose cost is still unknown
+#' has a step with no token count, read back from a file.
 #' @noRd
 format_trace_cost <- function(trace) {
-  cost <- hr_trace_cost(trace)
+  cost <- if (inherits(trace, "gr_trace")) hr_trace_cost(trace) else trace
   if (!nrow(cost)) return("no cost recorded")
-  total <- sum(cost$usd)
-  if (is.na(total)) {
-    return(sprintf("cost unknown (no registered price for %s)",
-                   paste(cost$model[is.na(cost$usd)], collapse = ", ")))
+  if (is.null(cost$priced)) {
+    cost <- cbind(cost[setdiff(names(cost), c("as_of", "certain"))],
+                  price_status(cost$model)[c("priced", "as_of", "certain")])
   }
-  sprintf("$%.4f across %s", total, paste(cost$model, collapse = ", "))
+  known <- !is.na(cost$usd)
+  dated <- price_as_of_text(cost$as_of[known & cost$priced %in% TRUE])
+  with_date <- function(txt) if (nzchar(dated)) paste0(txt, ", ", dated) else txt
+  if (all(known)) {
+    return(with_date(sprintf("$%.4f across %s", sum(cost$usd),
+                             paste(cost$model, collapse = ", "))))
+  }
+  missing <- cost$model[!known & !(cost$priced %in% TRUE)]
+  untold <- cost$model[!known & cost$priced %in% TRUE]
+  why <- paste(c(if (length(missing)) price_missing_text(missing),
+                 if (length(untold)) sprintf("token counts unknown for %s",
+                                             paste(untold, collapse = ", "))),
+               collapse = "; ")
+  if (!any(known)) return(sprintf("cost unknown: %s", why))
+  sprintf("$%.4f covers the priced models only (%s); %s", sum(cost$usd[known]),
+          with_date(paste(cost$model[known], collapse = ", ")), why)
 }

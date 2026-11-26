@@ -150,7 +150,8 @@ test_that("an unpriced model prints as cost unknown, never as free", {
   ans <- quiet(gr_read(ch, "How many participants?", mock_echo("482."),
                        list(reader = "stuff", model = "unpriced-model")))
   out <- capture.output(print(ans))
-  expect_true(any(grepl("cost unknown \\(no registered price for unpriced-model\\)", out)))
+  expect_true(any(grepl("cost unknown: no price set for unpriced-model (set one with",
+                        out, fixed = TRUE)))
   expect_false(any(grepl("\\$0\\.0000", out)))
 })
 

@@ -20,6 +20,15 @@ no registered price contributes \code{NA}, so a total that silently omitted an
 unpriced model is impossible. The exception is a model whose every request
 failed without sending a token (an embeddings request to an endpoint that
 has none, say): that cost nothing, priced or not, so it contributes 0.
+
+Three more columns say where each row's prices came from: \code{priced}
+(whether the model has a price), \code{as_of} (the month of its prices, \code{NA}
+without one) and \code{certain} (\code{FALSE} when the model's registry entry is a
+family guess or the default; see \code{\link[=hr_model_info]{hr_model_info()}}). They describe the
+registry when you call this, which is also what \code{usd} is priced at.
+Printed, a trace shows the cost with the month of its prices, and names
+each model with no price; a total over models of which some have no
+price says it covers only the priced ones.
 }
 \description{
 Costs a trace using each step's own model and counting only the calls that

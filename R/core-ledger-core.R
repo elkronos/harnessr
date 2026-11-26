@@ -139,6 +139,10 @@
 #'     reasoning and cached input tokens the provider reported and the model
 #'     it said answered, `NA` where it did not. Each is present only when some
 #'     request in the trace has it.}
+#'   \item{`priced`, `as_of`, `certain`}{Last, where `usd`'s price came from, as in
+#'     [hr_trace_cost()]: whether the model has a price, the month of its
+#'     prices (`NA` without one), and whether its registry entry is a fact
+#'     rather than a guess.}
 #' }
 #' A request's `usd` prices its cached input tokens at the model's cached
 #' input rate when [hr_register_model()] gave it one, and at the input rate
@@ -790,6 +794,12 @@ as.data.frame.gr_trace <- function(x, row.names = NULL, optional = FALSE, ...) {
   if (any(!is.na(cached_in))) out$tokens_cached_in <- cached_in
   served <- chr(function(s) s$served_model)
   if (any(!is.na(served))) out$served_model <- served
+  # Where each request's price came from, as hr_trace_cost() gives it per
+  # model. Last, so every other column is where it was.
+  prices <- price_status(model)
+  out$priced <- prices$priced
+  out$as_of <- prices$as_of
+  out$certain <- prices$certain
   if (!is.null(row.names)) rownames(out) <- row.names
   out
 }
