@@ -512,8 +512,8 @@ tr
 ```
 
 Two other parts of the core read or write these steps. `hr_embed()` cuts a
-text longer than the embedding model's window and writes the cut as
-`"embed.input"`. And under `hr_effort_escalate()`, a `"truncate"` step in a
+text longer than the embedding model's window and writes the cut as a
+`"truncate"` step whose `where` is `"embed.input"`. And under `hr_effort_escalate()`, a `"truncate"` step in a
 stage is the `"truncated"` trigger that raises the next stage's effort; "How
 much the model reasons" in `vignette("runs")` covers it.
 
@@ -590,12 +590,17 @@ raised to at least `min_output_tokens` (256) and held to the model's output
 cap. Whatever the reserve takes, the prompt cannot use. `min_output_tokens` is
 also the floor the reserve drops to when the default reserve leaves no input
 room. An explicit `reserve_output` is used as given, down to 1 token, unless it
-leaves no input room, in which case it drops to the same floor.
+leaves no input room, in which case it drops to the same floor. The readers of
+the document layer give an explicit reserve, their `max_answer_tokens`, so
+`output_reserve_share` changes only the budgets you compute without one, while
+`min_output_tokens` still sets the floor theirs drops to.
 
-**Signs they need changing.** Replies cut off at the cap (`finish_reason`
-`"length"`) on small models point to a larger reserve. A prompt cut while the
-replies use a small part of their reserve points to a smaller share, which
-gives the prompt the difference.
+**Signs they need changing.** The reserve is room, not the reply's cap:
+`hr_call()` caps a reply at its own `max_output`. When you send the reserve
+as that cap, as the readers do, replies cut off at it (`finish_reason`
+`"length"`) point to a larger reserve. A prompt cut while the replies use a
+small part of their reserve points to a smaller share, which gives the prompt
+the difference.
 
 **Where the defaults came from.** A quarter of the window and a floor of 256
 tokens were set as room for a short reply and not measured.
@@ -620,7 +625,7 @@ reply's token counts in the trace.
 
 ## Where the document layer builds on this
 
-Every reader sizes its prompts with `hr_budget()`. A read takes a policy as
+The readers size their prompts with `hr_budget()`. A read takes a policy as
 the `context_policy` setting of `gr_read_spec()`: `refine` fits its draft and
 excerpt with `hr_context_fit()`, and the merges, `hierarchical` and `preview`
 cut their pieces with `hr_truncate()`. "What a request keeps" in
@@ -636,5 +641,6 @@ hr_options(old)
   records them.
 - `vignette("models")`: the context windows and output caps the budget reads,
   and how tokens are counted.
-- `vignette("compose")`: steps and chains, including a step that summarises.
+- `vignette("compose")`: steps and chains, where a summary step like the one
+  above runs.
 - `vignette("readers")`: the readers that use these functions on a document.
