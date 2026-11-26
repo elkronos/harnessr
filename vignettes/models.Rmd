@@ -681,5 +681,6 @@ hr_options(old)
   trace that records their tokens and cost.
 - `vignette("context")`: the budgets these limits set, and how a prompt is cut
   to fit them.
+- `vignette("effort")`: the reasoning effort sent to the models that reason.
 - `vignette("runs")`: spending limits, the governor, caching and replay.
 - `vignette("settings")`: every setting with its default.

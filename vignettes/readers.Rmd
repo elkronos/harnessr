@@ -429,8 +429,9 @@ harnessr would send no effort and the trace would have no `effort` column. A
 request at `"high"` can spend the whole output cap reasoning and come back cut
 off, so give it room with `max_answer_tokens`. `gr_compare()` (below) counts
 recipes that differ only in effort as different, so you can test what a lower
-effort costs. `vignette("runs")` covers effort across a literature review and
-what each trace step records.
+effort costs. `vignette("runs")` covers effort across a literature review, and
+`vignette("effort")` covers effort in the core: its cost, the cache, the trace
+and raising it when a stage goes wrong.
 
 ## Asking for citations
 

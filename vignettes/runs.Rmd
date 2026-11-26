@@ -378,8 +378,9 @@ stopped part way. The limits apply to them like this:
 ### How much the model reasons
 
 `effort` sets how much a reasoning model reasons on each call, stage by stage.
-`vignette("readers")` explains how effort is billed, which models it is sent
-to, and the label each stage's calls carry.
+`vignette("effort")` covers effort in the core: which models take it, how it
+is billed, the cache and the trace, and effort that rises when needed.
+`vignette("readers")` lists the label each reader's calls carry.
 
 In a review, the same vector goes to each stage. `gr_screen()` and
 `gr_extract()` take it as a recipe override; `gr_claims()`, `gr_outline()` and

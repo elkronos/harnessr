@@ -514,8 +514,8 @@ tr
 Two other parts of the core read or write these steps. `hr_embed()` cuts a
 text longer than the embedding model's window and writes the cut as a
 `"truncate"` step whose `where` is `"embed.input"`. And under `hr_effort_escalate()`, a `"truncate"` step in a
-stage is the `"truncated"` trigger that raises the next stage's effort; "How
-much the model reasons" in `vignette("runs")` covers it.
+stage is the `"truncated"` trigger that raises the next stage's effort;
+`vignette("effort")` covers it.
 
 ## Summarising is a step you build {#summarise}
 
@@ -641,6 +641,7 @@ hr_options(old)
   records them.
 - `vignette("models")`: the context windows and output caps the budget reads,
   and how tokens are counted.
+- `vignette("effort")`: the reasoning effort that a cut can raise.
 - `vignette("compose")`: steps and chains, where a summary step like the one
   above runs.
 - `vignette("readers")`: the readers that use these functions on a document.

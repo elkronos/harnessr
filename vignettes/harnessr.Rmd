@@ -411,7 +411,7 @@ when a request carried one. Less reasoning costs less.
 
 You can also set `effort` by stage: low for the many routine requests, high for
 the few that judge. `?gr_read_spec` lists the stages and suggests a starting
-point.
+point, and `vignette("effort")` covers effort in full.
 
 ## Choosing a recipe
 

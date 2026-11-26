@@ -96,8 +96,8 @@ hr_call(effort_seen, "What was revenue?", model = "gpt-5.6-luna", effort = "low"
 hr_call(effort_seen, "What was revenue?", model = "gpt-4o", effort = "low")$text
 ```
 
-"How much the model reasons" in `vignette("runs")` and "Reasoning effort, stage
-by stage" in `vignette("readers")` cover effort in a run.
+`vignette("effort")` covers effort in full: the levels, an effort per stage,
+what it costs, and effort that rises only when a stage goes wrong.
 
 ## What a result holds
 
@@ -863,6 +863,8 @@ hr_options(old)
   token counts.
 - `vignette("context")`: how much room a prompt has, and what is cut when it
   does not fit.
+- `vignette("effort")`: how hard a reasoning model reasons, call by call or
+  stage by stage.
 - `vignette("runs")`: limits, the governor, caching across sessions, replaying
   a whole run, and model prices.
 - `vignette("compose")`: steps and chains built from calls like these, and a
