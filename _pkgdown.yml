@@ -150,6 +150,18 @@ reference:
   - hr_step_command
   - hr_skill
 
+- subtitle: Modules and the registry
+  desc: >
+    Register and list modules of any kind, check a module against rules of
+    your own, and declare what a module's run costs. See "Registering a step"
+    in `vignette("compose")`. "Declaring cost" in `vignette("extending")`, a
+    document guide, covers `hr_cost()` with a reader.
+  contents:
+  - hr_register
+  - hr_modules
+  - hr_check_module
+  - hr_cost
+
 - subtitle: Benchmarks
   desc: >
     Compare configurations on a labelled reference: arms, sweeps of a setting,
@@ -214,16 +226,6 @@ reference:
   - hr_ht_estimate
   - hr_ppi
   - hr_alt_test
-
-- subtitle: Modules and the registry
-  desc: >
-    Register and list modules of any kind, declare what a module's run costs,
-    and check a module against rules of your own. See `vignette("extending")`.
-  contents:
-  - hr_register
-  - hr_modules
-  - hr_cost
-  - hr_check_module
 
 - title: Documents
   desc: >

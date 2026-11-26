@@ -159,6 +159,58 @@ b <- hr_chain(segment = gr_step("segment"), retrieve = gr_step_retrieve(top_k = 
 identical(attr(a, "hr_config"), attr(b, "hr_config"))
 ```
 
+## Registering a step
+
+`hr_register()` files a module in the registry under a kind. The kinds are
+`"extractor"`, `"cleaner"`, `"segmenter"`, `"reader"`, `"embedder"`,
+`"protocol"` and `"step"`. The first six belong to the document layer, and
+`vignette("extending")` registers them. For any other kind, `hr_register()`
+raises an error of class `hr_unknown_kind`.
+
+A step from `hr_step()` registers under the kind `"step"`. Its version is the
+step's own unless you give `hr_register()` another:
+
+```{r}
+hr_register("step", "shout", fn = hr_step("shout", function(input, ctx) toupper(input),
+                                          input = "answer", output = "state",
+                                          version = "0.2.0"))
+hr_modules("step")[, c("name", "input", "output", "version", "contract")]
+```
+
+`hr_modules()` with no kind lists the modules of every kind in one table, with
+the call stems each declares as a list column. Give it a kind, as above, to add
+that kind's own columns:
+
+```{r}
+m <- hr_modules()
+table(m$kind)
+```
+
+### Checking a module
+
+`hr_check_module()` runs a module once and reports which of your rules it
+breaks. It works for a module of any kind. Give it three things:
+
+- the module's function;
+- a closure of no arguments that runs the module once;
+- a named list of rules, each a function of the value the closure returned.
+
+A rule returns `TRUE`, `FALSE`, `NA` (could not be checked), or a list with
+`ok` and a `detail` string. The closure runs in a temporary working directory
+that `hr_check_module()` removes afterwards, and the `runs` rule reports any
+error the closure raises.
+
+```{r}
+double_it <- function(x) x * 2
+hr_check_module(double_it, function() double_it(2),
+  rules = list(numeric = function(v) is.numeric(v),
+               above_three = function(v) list(ok = v > 3, detail = sprintf("got %s", v))),
+  kind = "function", name = "double_it")
+```
+
+The reader and segmenter checks of the document layer use it ("Checking a
+module against the contract" in `vignette("extending")`).
+
 ## Settings and sweeps
 
 Every step built with a schema has settings:
@@ -525,6 +577,8 @@ hr_options(old)
 - `vignette("core")`: the calls a step makes, and the trace that records them.
 - `vignette("runs")`: the limits, the cache and the replay a chain runs under.
 - `?hr_step` and `?hr_chain`: every argument, and what a chain records.
+- `?hr_register`, `?hr_modules` and `?hr_check_module`: registering, listing
+  and checking a module of any kind.
 - `?hr_settings` and `?hr_set`: listing and changing a chain's settings by
   path.
 - `?hr_skill`: what a skill folder holds and what is refused.

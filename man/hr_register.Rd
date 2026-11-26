@@ -94,7 +94,7 @@ hr_modules("step")[, c("name", "input", "output", "version", "contract")]
 try(hr_register("ranker", "mine", fn = identity))
 }
 \seealso{
-\code{\link[=hr_modules]{hr_modules()}}, \code{vignette("extending")}
+\code{\link[=hr_modules]{hr_modules()}}, \code{vignette("compose")}, \code{vignette("extending")}
 
 Other harness: 
 \code{\link{gr_arm}()},
