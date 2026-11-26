@@ -338,7 +338,9 @@ model_entry <- function(id, given, as_of = NULL) {
 #'   \item{`cached_input_usd`}{Price per 1M input tokens served from the
 #'     provider's prompt cache. Blank prices them as other input tokens.}
 #'   \item{`as_of`}{The month the prices were checked, as `YYYY-MM`. Blank
-#'     stamps the current month.}
+#'     stamps the current month. A cost computed from prices older than
+#'     `hr_options("price_max_age_days")` warns with class
+#'     `hr_stale_price`, once per model per session.}
 #'   \item{`context_window`, `max_output`}{Limits in tokens.}
 #'   \item{`reasoning`, `supports_temperature`}{`TRUE` or `FALSE`.}
 #'   \item{`kind`}{`chat` or `embedding`.}

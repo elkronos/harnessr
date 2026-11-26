@@ -121,6 +121,13 @@ such model in a session warns with class \code{hr_unpriced_model}. Off, it is
 refused with a condition of that class. Untested: harnessr ships no
 prices, so off would refuse every built-in model until you set its
 prices with \code{\link[=hr_register_model]{hr_register_model()}} or \code{\link[=hr_load_models]{hr_load_models()}}.}
+\item{\code{price_max_age_days} (120)}{How old a price may be, in days, before
+a cost computed from it warns with class \code{hr_stale_price}. A price's age
+is counted from the first day of its \code{as_of} month (see \code{\link[=hr_models]{hr_models()}}),
+and the warning is given once per model per session. Built-in models
+have no prices, so it applies to prices you set. \code{NULL} turns the
+warning off. Untested: about four months, so prices set once are
+checked again a few times a year.}
 \item{\code{unknown_model_action} ("warn")}{\code{"warn"} or \code{"error"} when a model id
 is not in the registry.}
 \item{\code{actor} (none)}{A named list (or character vector) of the actor
@@ -168,14 +175,15 @@ than the default joins the store key of \code{\link[=gr_read_many]{gr_read_many(
 \section{Where the defaults come from}{
 
 The settings listed last above were constants in the code until they were
-options; each keeps the constant's value. A trace records them (in its
-options snapshot) only when one is not its default, so a trace made at the
-defaults reads as it did before they existed. Each tuning setting's entry
-above (\code{temperature}, \code{max_retries}, \code{retry_pause_base}, \code{request_timeout},
-\code{safety_margin}, \code{min_output_tokens}, \code{workers} and the settings listed
-last) says where its default came from; "untested" means no measurement
-backs the value. The other entries are switches, limits and names, which
-are choices rather than tuned values.
+options; each keeps the constant's value. A trace records them, and
+\code{price_max_age_days}, (in its options snapshot) only when one is not its
+default, so a trace made at the defaults reads as it did before they
+existed. Each tuning setting's entry above (\code{temperature}, \code{max_retries},
+\code{retry_pause_base}, \code{request_timeout}, \code{safety_margin},
+\code{min_output_tokens}, \code{workers}, \code{price_max_age_days} and the settings
+listed last) says where its default came from, as does \code{allow_unpriced}'s;
+"untested" means no measurement backs the value. The other entries are
+switches, limits and names, which are choices rather than tuned values.
 }
 
 \section{Checked values}{
@@ -196,12 +204,14 @@ The tuning settings (\code{safety_margin} [0, 0.5], \code{min_output_tokens}
 \code{request_timeout} [1, 3600], \code{workers} [1, 32], \code{temperature}
 [0, 2], \code{auto_max_tokens} [0, 1e7], \code{auto_room_share} [0, 1],
 \code{reasoning_floor} [0, 1e6], \code{output_reserve_share} [0, 0.9],
-\code{near_verbatim_sim} and \code{near_verbatim_sim_short} [0, 1] and
-\code{near_verbatim_short_chars} [0, 1e4]) read a number written as text as that number. A value they cannot
+\code{near_verbatim_sim} and \code{near_verbatim_sim_short} [0, 1],
+\code{near_verbatim_short_chars} [0, 1e4] and \code{price_max_age_days}
+[0, 3650]) read a number written as text as that number. A value they cannot
 read, such as \code{NA} or \code{"x"}, warns (\code{gr_bad_option}) and leaves the current
 setting unchanged; a value outside the range is clamped into it, with the
 same warning. Whole-number settings are rounded down. \code{temperature} also
-takes \code{NULL}, its default.
+takes \code{NULL}, its default, and \code{price_max_age_days} takes \code{NULL} to turn
+its warning off.
 }
 
 \examples{

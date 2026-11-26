@@ -234,7 +234,8 @@ gr_inventory <- function(sources, recursive = TRUE, model = NULL,
   tok <- sum(files$tokens[readable], na.rm = TRUE)
   unknown <- sum(readable & is.na(files$tokens))
   model <- as_chr1(model %||% hr_options("model"))
-  cost <- suppressWarnings(hr_estimate_cost(model, tok, sum(readable) * 500))
+  cost <- suppressWarnings(hr_estimate_cost(model, tok, sum(readable) * 500),
+                           classes = "gr_unknown_model")
 
   by <- as.data.frame(table(factor(files$status,
                                    levels = c("ready", "needs_ocr", "needs_package",

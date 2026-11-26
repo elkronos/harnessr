@@ -80,7 +80,8 @@ progress_cost <- function(p) {
       m <- as_chr1(st$model, "unknown")
       known <- unname(p$priced[m])
       if (is.na(known)) {
-        known <- !is.na(tryCatch(suppressWarnings(hr_estimate_cost(m, 1, 1)),
+        known <- !is.na(tryCatch(suppressWarnings(hr_estimate_cost(m, 1, 1),
+                                                  classes = "gr_unknown_model"),
                                  error = function(e) NA_real_))
         p$priced[m] <- known
       }

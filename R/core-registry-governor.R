@@ -223,9 +223,12 @@ governor_tighter <- function(a, b) {
 #' output cap at the output price. NA when the model has no price.
 #' @noRd
 worst_case_usd <- function(model, input_tokens, output_tokens) {
+  # Only the unknown-model warning is muffled: a stale price is worth hearing
+  # the first time a request is priced from it.
   tryCatch(suppressWarnings(as.numeric(hr_estimate_cost(as_chr1(model, "unknown"),
                                                         max(as_num1(input_tokens, 0), 0),
-                                                        max(as_num1(output_tokens, 0), 0)))),
+                                                        max(as_num1(output_tokens, 0), 0))),
+                            classes = "gr_unknown_model"),
            error = function(e) NA_real_)
 }
 

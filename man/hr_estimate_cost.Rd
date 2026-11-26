@@ -27,7 +27,10 @@ pricing in the registry, or no output price and \code{output_tokens} above zero
 (an embedding model's missing output price counts as zero, since it
 produces no output tokens). harnessr ships no prices: set them with
 \code{\link[=hr_register_model]{hr_register_model()}} or \code{\link[=hr_load_models]{hr_load_models()}}. Treat the figure as an
-estimate.
+estimate. When the model's prices are older than
+\code{hr_options("price_max_age_days")} (120 days by default, counted from the
+first day of their \code{as_of} month), the first figure computed from them in
+a session warns with class \code{hr_stale_price}.
 }
 \description{
 Estimate the USD cost of a set of calls

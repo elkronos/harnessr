@@ -304,9 +304,10 @@ step_tokens <- function(usage) {
 #' @noRd
 usage_cost <- function(model, usage) {
   u <- if (is.list(usage)) usage else list()
+  # The unknown-model warning only: a stale price warns, once per model.
   tryCatch(suppressWarnings(as.numeric(hr_estimate_cost(
     as_chr1(model, "unknown"), u$input %||% 0L, u$output %||% 0L,
-    cached_input_tokens = u$cached_input %||% 0L))),
+    cached_input_tokens = u$cached_input %||% 0L)), classes = "gr_unknown_model"),
     error = function(e) NA_real_)
 }
 

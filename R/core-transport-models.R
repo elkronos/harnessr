@@ -88,7 +88,9 @@
 #'
 #' The entry's `as_of`, shown by [hr_models()], is the current month. When you
 #' change an entry that has prices without giving new ones, it keeps the
-#' month of those prices.
+#' month of those prices. Once prices are older than
+#' `hr_options("price_max_age_days")` (120 days by default), the first cost
+#' computed from them in a session warns with class `hr_stale_price`.
 #'
 #' @param id Model id string, exactly as the API expects it.
 #' @param context_window Total context window in tokens. Leave it out to keep
@@ -303,7 +305,10 @@ hr_models <- function() {
 #'   (an embedding model's missing output price counts as zero, since it
 #'   produces no output tokens). harnessr ships no prices: set them with
 #'   [hr_register_model()] or [hr_load_models()]. Treat the figure as an
-#'   estimate.
+#'   estimate. When the model's prices are older than
+#'   `hr_options("price_max_age_days")` (120 days by default, counted from the
+#'   first day of their `as_of` month), the first figure computed from them in
+#'   a session warns with class `hr_stale_price`.
 #' @seealso [hr_model_info()], [hr_register_model()], [hr_trace_summary()]
 #' @family cost and token functions
 #' @export
@@ -340,9 +345,13 @@ hr_estimate_cost <- function(model, input_tokens, output_tokens = 0, cached_inpu
   # read as all of the input, and an unknown one as none of it.
   cached <- suppressWarnings(usable(cached_input_tokens))
   cached_usd <- as_num1(info$cached_input_usd)
-  if (is.na(cached_usd) || is.na(cached) || cached <= 0) {
-    return(tin / 1e6 * info$input_usd + tout / 1e6 * out_usd)
+  usd <- if (is.na(cached_usd) || is.na(cached) || cached <= 0) {
+    tin / 1e6 * info$input_usd + tout / 1e6 * out_usd
+  } else {
+    cached <- min(cached, tin)
+    (tin - cached) / 1e6 * info$input_usd + cached / 1e6 * cached_usd + tout / 1e6 * out_usd
   }
-  cached <- min(cached, tin)
-  (tin - cached) / 1e6 * info$input_usd + cached / 1e6 * cached_usd + tout / 1e6 * out_usd
+  # A figure computed from old prices is the one to warn about; NA is not.
+  warn_stale_price(model, info)
+  usd
 }

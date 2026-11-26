@@ -65,7 +65,9 @@ model without restating its limits.
 
 The entry's \code{as_of}, shown by \code{\link[=hr_models]{hr_models()}}, is the current month. When you
 change an entry that has prices without giving new ones, it keeps the
-month of those prices.
+month of those prices. Once prices are older than
+\code{hr_options("price_max_age_days")} (120 days by default), the first cost
+computed from them in a session warns with class \code{hr_stale_price}.
 }
 \examples{
 hr_register_model("my-local-llama", context_window = 32768, max_output = 4096)

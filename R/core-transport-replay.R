@@ -481,7 +481,8 @@ replay_step_budget <- function(st, model) {
   if (isTRUE(st$cached)) return(0)
   tok <- if (is.list(st$tokens)) st$tokens else list()
   usd <- tryCatch(suppressWarnings(as.numeric(hr_estimate_cost(
-    as_chr1(model, "unknown"), as_int1(tok$input, 0L), as_int1(tok$output, 0L)))),
+    as_chr1(model, "unknown"), as_int1(tok$input, 0L), as_int1(tok$output, 0L))),
+    classes = "gr_unknown_model"),
     error = function(e) NA_real_)
   if (length(usd) == 1L && is.finite(usd) && usd > 0) usd else 0
 }

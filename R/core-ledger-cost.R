@@ -80,7 +80,9 @@ hr_trace_cost <- function(trace) {
             else tryCatch(as.numeric(hr_estimate_cost(m, pin, pout,
                                                       cached_input_tokens = pcach)),
                           error = function(e) NA_real_,
-                          warning = function(w) NA_real_),
+                          # An unknown model is unpriced. A stale price still
+                          # prices the calls, and warns.
+                          gr_unknown_model = function(w) NA_real_),
       paid_reasoning = as.integer(sum(treas[i & paid])),
       paid_cached_in = as.integer(pcach),
       stringsAsFactors = FALSE)

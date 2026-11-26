@@ -197,7 +197,8 @@ trace_slice <- function(trace, idx) {
   usd <- vapply(seq_along(req), function(i) {
     if (cached[i]) return(0)
     v <- tryCatch(suppressWarnings(as.numeric(hr_estimate_cost(
-      as_chr1(req[[i]]$model, "unknown"), tin[i], tout[i]))), error = function(e) NA_real_)
+      as_chr1(req[[i]]$model, "unknown"), tin[i], tout[i])), classes = "gr_unknown_model"),
+      error = function(e) NA_real_)
     if (length(v) == 1L && !is.na(v)) v else 0
   }, numeric(1))
   num <- vapply(steps, function(s) as_int1(s$step, NA_integer_), integer(1))
