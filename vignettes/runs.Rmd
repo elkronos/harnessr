@@ -148,7 +148,7 @@ str(cuts[[1]]$detail)
 cut$notes$tokens_truncated
 ```
 
-A cut can also be made at `refine.excerpt`, `hier.summaries`,
+A cut can also be made at `refine.excerpt`, `refine.ledger`, `hier.summaries`,
 `preview.skim`, `preview.outline`, `<label>.input` for a finding cut to fit a
 merge, `<label>.giveup` for the capped findings a failed merge returns,
 `segment.contextual.header`, `segment.contextual.document`, `screen.opening`,
