@@ -821,9 +821,12 @@ test_that("every model without a price is named, and a free one runs under a $0 
   hr_register_model("no-price", context_window = 200000, max_output = 8000)
   ch <- test_chunks()
   hr_options(max_cost_usd = 5, max_calls = 1000)
+  local_price_warnings()
+  # A client that bills what it sends: a mock is never warned about.
+  billed <- hr_backend_client(function(m, p) "MOCK ANSWER", model = "free")
   expect_warning(suppressMessages(
-    gr_read(ch, "Q?", mock_echo(), list(reader = "skim", model = "free", skim_model = "no-price"))),
-    class = "gr_cost_uncheckable", regexp = "'no-price'")
+    gr_read(ch, "Q?", billed, list(reader = "skim", model = "free", skim_model = "no-price"))),
+    class = "hr_unpriced_model", regexp = "'no-price'")
 
   hr_options(max_cost_usd = 0)
   a <- quiet(gr_read(ch, "Q?", mock_echo(), list(reader = "map_reduce", model = "free")))
@@ -834,6 +837,39 @@ test_that("every model without a price is named, and a free one runs under a $0 
                  class = "gr_cost_cap")
   }
   expect_length(cl$calls(), 0L)
+})
+
+test_that("reads on an unpriced model warn once per session, and never for a mock", {
+  local_registries()
+  local_clean_cache()
+  local_price_warnings()
+  hr_register_model("no-price", context_window = 200000, max_output = 8000)
+  ch <- test_chunks()
+  hr_options(max_cost_usd = 5, max_calls = 1000)
+  warned <- list()
+  classes_of <- function(expr) {
+    seen <- character(0)
+    withCallingHandlers(suppressMessages(expr), warning = function(w) {
+      seen <<- c(seen, class(w)[1])
+      warned[[length(warned) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    })
+    seen
+  }
+  # A mock sends nothing that is billed: no price warning, read after read.
+  for (i in 1:2) {
+    expect_length(classes_of(gr_read(ch, "Q?", mock_echo(), list(reader = "stuff",
+                                                                  model = "no-price"))), 0L)
+  }
+  # A billed client: one warning across two reads, with the run's own limit.
+  cl <- hr_backend_client(function(m, p) "MOCK ANSWER", model = "no-price")
+  first <- classes_of(gr_read(ch, "Q?", cl, "stuff"))
+  w <- warned[[1]]
+  second <- classes_of(gr_read(ch, "Q?", cl, "stuff"))
+  expect_identical(c(first, second), "hr_unpriced_model")
+  expect_match(conditionMessage(w), "the $5 spending limit", fixed = TRUE)
+  expect_match(conditionMessage(w), "hr_load_models()", fixed = TRUE)
+  expect_null(conditionCall(w))
 })
 
 test_that("a refusal states a small amount as it is", {

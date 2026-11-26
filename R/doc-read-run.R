@@ -280,8 +280,7 @@ preflight <- function(chunks, spec, trace, client = NULL, question = "",
 }
 
 #' Word the refusal governor_run_check() returned for a read, and raise it.
-#' An unpriced model that is allowed is warned about, since what its requests
-#' cost is not counted. Returns nothing when the run may start.
+#' Returns nothing when the run may start.
 #' @noRd
 preflight_refuse <- function(chk, spec, n, est_calls, embed_calls, worst_calls, tok,
                              input_cost, worst) {
@@ -330,15 +329,9 @@ preflight_refuse <- function(chk, spec, n, est_calls, embed_calls, worst_calls, 
                      models_txt(unpriced), their(unpriced), limit_txt),
              class = c("hr_unpriced_model", "hr_budget_refused"), limit = "unpriced")
   }
-  # Allowed unpriced, or a mock: what its requests cost is not counted. Say
-  # so rather than silently running with no spending guard at all.
-  if (length(unpriced)) {
-    gr_warn(sprintf(paste0("%s no pricing in the registry, so what %s requests cost cannot be ",
-                           "counted against the $%s max_cost_usd limit. Register prices with ",
-                           "hr_register_model(input_usd =, output_usd =) to enable it."),
-                    models_txt(unpriced), their(unpriced), limit_txt),
-            class = "gr_cost_uncheckable")
-  }
+  # Allowed unpriced: governor_run_check() has warned, once per model per
+  # session, with class hr_unpriced_model. This used to warn again on every
+  # read, and about a mock too, which sends nothing that is billed.
   # What this run has spent already counts, as calls already made count
   # against the call cap: several readers on one trace are one run.
   # budget_spent(): with what a replay's recorded calls cost, as the

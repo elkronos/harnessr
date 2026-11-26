@@ -31,7 +31,9 @@ no longer ships them. You set the prices you pay.
   not cover the model until you set its prices. Token and call limits still
   apply. `hr_options(allow_unpriced = FALSE)` or
   `hr_governor(allow_unpriced = FALSE)` restores the refusal. A trace's
-  config snapshot records the new default.
+  config snapshot records the new default. A read gives this warning before
+  it starts, and no longer adds a `gr_cost_uncheckable` warning on every
+  run. `hr_mock_client()` and replays are not warned about.
 * New option `price_max_age_days` (120). A cost computed from prices older
   than that, counted from the first day of their `as_of` month, warns with
   class `hr_stale_price`, once per model per session. `NULL` turns the

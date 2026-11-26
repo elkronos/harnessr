@@ -480,8 +480,8 @@ governor_exhausted <- function(trace) {
 #' of one input and one output token for each model the run may use, named by
 #' model, NA for a model with no price. The caller
 #' words the refusal, since it knows what the run is. `unpriced` lists the
-#' unpriced models whatever the outcome, for a warning that their cost is not
-#' counted.
+#' unpriced models whatever the outcome. When they are allowed, each one not
+#' `exempt` is warned about here (warn_unpriced_model()), once per session.
 #' @noRd
 governor_run_check <- function(trace, calls, calls_max, parallel = FALSE, calls_only = FALSE,
                                unit_usd = NULL, exempt = FALSE, floor_usd = NULL,
@@ -505,6 +505,10 @@ governor_run_check <- function(trace, calls, calls_max, parallel = FALSE, calls_
   if (length(out$unpriced) && !isTRUE(gov$allow_unpriced) && !isTRUE(exempt)) {
     return(done("unpriced"))
   }
+  # Allowed: said here, before the first request, with the run's own limit,
+  # and once per model per session, as each request's check says it. A mock
+  # or a replay is not warned about, since what it answers is not billed.
+  if (!isTRUE(exempt)) for (m in out$unpriced) warn_unpriced_model(m, budget)
   spent <- budget_spent(trace)
   out$spent <- spent
   if (spent > 0 && spent >= budget) return(done("spent"))

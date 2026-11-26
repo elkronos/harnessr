@@ -164,16 +164,20 @@ test_that("an ellmer chat's own unpriced model is refused, override or not", {
     gr_read(ch, "Q?", cl, list(reader = "stuff", model = "gpt-5.6-terra")))),
     class = "hr_unpriced_model", regexp = "claude-test")
   # Allowed to run unpriced, it says the limit cannot be checked, for the
-  # chat's model in both cases.
+  # chat's model in both cases. The warning is given once per model per
+  # session, so the record is cleared before each read.
   hr_options(allow_unpriced = TRUE)
+  local_price_warnings()
   for (settings in list("stuff", list(reader = "stuff", model = "gpt-5.6-terra"))) {
+    st <- harnessr:::hr_state
+    st$price_warned <- NULL
     ws <- character(0)
     withCallingHandlers(suppressMessages(gr_read(ch, "Q?", cl, settings)),
                         warning = function(w) {
                           ws <<- c(ws, paste(class(w)[1], conditionMessage(w)))
                           invokeRestart("muffleWarning")
                         })
-    expect_true(any(grepl("^gr_cost_uncheckable .*claude-test", ws)))
+    expect_true(any(grepl("^hr_unpriced_model .*claude-test", ws)))
   }
   # Other clients bill as the model each request names.
   expect_null(harnessr:::client_billed_model(mock_echo()))
