@@ -271,9 +271,10 @@ adding the line never pushes a chunk over the cap. The room is:
 
 A line that still does not fit is shortened. The document text is not.
 
-If a context call fails or is refused at the run's limits ("Limits and
-refusals" in `vignette("core")`), the chunk keeps its text without a line. `$extra$blurbs_missing` counts those chunks, and a
-`gr_segment_fallback` warning reports them.
+If a context call fails or is refused at the run's limits ("Limits and refusals"
+in `vignette("core")`), the chunk keeps its text without a line.
+`$extra$blurbs_missing` counts those chunks, and a `gr_segment_fallback` warning
+reports them.
 
 The context line is not the document's text, and a model may have written it.
 The chunk therefore keeps its body alone in a `source_text` column. harnessr

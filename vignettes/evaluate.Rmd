@@ -19,12 +19,12 @@ to one observation than to ten.
 
 The functions in this guide answer what one run cannot: on a labelled set of
 questions, is configuration A more accurate than B, by how much, at what cost,
-and how sure can you be? They are part of the core. An arm wraps any function
-of an item and a context, so a benchmark compares prompts, models, efforts and
+and how sure can you be? They are part of the core. An arm wraps any function of
+an item and a context, so a benchmark compares prompts, models, efforts and
 chains as well as reading recipes. Many examples use the document layer's
 recipes, because the example report and a few questions about it make a short
-labelled set. `gr_compare()`, from the document layer, shows what each recipe does to
-one document, and its output is descriptive only.
+labelled set. `gr_compare()`, from the document layer, shows what each recipe
+does to one document, and its output is descriptive only.
 
 The sections follow the order of the work: a reference set and its splits, the
 arms to compare and the rule that scores them, a benchmark held to one spending
@@ -195,13 +195,13 @@ for question answering.
 
 ## Arms and scorers
 
-An arm is one configuration to compare: a function of an item and a context
-that returns the arm's output for that item. `ctx` carries the benchmark's
-client, a trace of this run alone ("The trace" in `vignette("core")`), the
-governor the run is held to and the run's `draw_index`. `ctx$call()` is
-`hr_call()` with the client, the trace and the draw index filled in. Send every request an arm makes through that trace:
-the benchmark counts the run's tokens and dollars there and holds the run to the
-limit through it:
+An arm is one configuration to compare: a function of an item and a context that
+returns the arm's output for that item. `ctx` carries the benchmark's client, a
+trace of this run alone ("The trace" in `vignette("core")`), the governor the
+run is held to and the run's `draw_index`. `ctx$call()` is `hr_call()` with the
+client, the trace and the draw index filled in. Send every request an arm makes
+through that trace: the benchmark counts the run's tokens and dollars there and
+holds the run to the limit through it:
 
 ```{r}
 ask <- function(name, model) {

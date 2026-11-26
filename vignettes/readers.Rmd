@@ -149,9 +149,10 @@ document's length. The model sees everything at once, so it can connect facts
 from different places.
 
 The context window sets the limit: `stuff` fills the room `hr_budget()` leaves
-for the input. If the document does not fit, `stuff` sends what fits, warns, and marks the answer partial (`on_overflow = "error"` makes it
-stop instead). Very long prompts also dilute attention, and a model misses
-details in the middle of a long prompt more easily.
+for the input. If the document does not fit, `stuff` sends what fits, warns, and
+marks the answer partial (`on_overflow = "error"` makes it stop instead). Very
+long prompts also dilute attention, and a model misses details in the middle of
+a long prompt more easily.
 
 **Use it for** documents comfortably inside the model's context window.
 **Recipe:** `"fast"`, which `answer_document()` uses by default for a document

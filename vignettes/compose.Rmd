@@ -239,8 +239,9 @@ A swept chain is a chain like any other: you can derive a chain from it with
 `hr_chain()` and change it further with `hr_set()`.
 
 A replay of a recorded benchmark ("Replaying a run" in `vignette("runs")`)
-matches each run's sampled requests by the arm's name. A renamed or swept chain therefore does not replay a recording
-made under another name; record the benchmark again under the new names.
+matches each run's sampled requests by the arm's name. A renamed or swept chain
+therefore does not replay a recording made under another name; record the
+benchmark again under the new names.
 
 ## Skills
 
