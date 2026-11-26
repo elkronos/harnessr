@@ -52,9 +52,12 @@ The triggers the core sees for itself are \code{"truncated"} (a \code{"truncate"
 step of the trace, or a reply cut off at its output cap; a cut made while
 a stage packs its requests belongs to that stage, including one made
 before its first request),
-\code{"parse_failure"} (a reply to a structured request, such as
-\code{ctx$call_json()}, that is not JSON) and
-\code{"schema_failure"} (one that does not fit the schema). \code{replies} names
+\code{"parse_failure"} (a reply to one of harnessr's own structured requests,
+such as \code{ctx$call_json()} in a benchmark arm, a judge or a document reader,
+that is not JSON) and
+\code{"schema_failure"} (one that does not fit the schema). \code{\link[=hr_call]{hr_call()}} with a
+\code{schema} does not parse its reply, so it fires neither: check the reply
+and report it with \code{\link[=hr_effort_event]{hr_effort_event()}}. \code{replies} names
 replies that are triggers: a named character vector from trigger to the
 text a reply starts with, such as \code{c(not_in_document = "NOT_IN_DOCUMENT")};
 such a trigger fires when every request of the stage replied with it.

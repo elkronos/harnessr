@@ -29,7 +29,8 @@ out at the provider's default. This guide covers how to ask:
 - measuring whether that saves money without losing answers, with
   `hr_effort_check()`.
 
-Every example runs offline with no API key.
+Every example runs offline with no API key. The calls that would reach a real
+provider are shown but not run.
 
 ## Setting up
 
@@ -335,8 +336,8 @@ str(tr$steps[[4]]$params)
 carried an effort, so a trace without effort reads as it did before effort
 existed. `NA` in the column marks a request sent no effort, such as the unset
 call above or a request to a model that does not reason. A run that raises its
-effort adds `"effort.escalate"`, `"effort.resolve"` and `"effort.event"`
-steps, covered next.
+effort adds `"effort.escalate"` and `"effort.resolve"` steps, and
+`hr_effort_event()` adds `"effort.event"` steps; both are covered next.
 
 ## Effort that rises only when needed
 
@@ -385,9 +386,14 @@ The core sees three triggers for itself:
 - `"truncated"`: a `"truncate"` step on the trace, which `hr_truncate()` and
   `hr_context_fit()` write when given the trace (see `vignette("context")`),
   or a reply cut off at its output cap.
-- `"parse_failure"`: a reply to a structured request, such as a benchmark
-  arm's `ctx$call_json()`, that is not JSON.
+- `"parse_failure"`: a reply to one of harnessr's own structured requests
+  that is not JSON. These are `ctx$call_json()` in a benchmark arm, a judge
+  and the document readers.
 - `"schema_failure"`: such a reply that does not fit its schema.
+
+`hr_call(schema = )` does not parse its reply, so a reply to it never fires
+either trigger by itself. Check the reply in your code and report it with
+`hr_effort_event()`, as [Reporting a trigger](#report-trigger) shows.
 
 `replies` turns a reply into a trigger. With
 `c(not_in_document = "NOT FOUND")`, the trigger fires when every request
@@ -449,7 +455,7 @@ for (s in local_steps) {
 }
 ```
 
-### Reporting a trigger: `hr_effort_event()`
+### Reporting a trigger: `hr_effort_event()` {#report-trigger}
 
 Some trouble only your code can see: two reviewers that disagree, a quotation
 that failed a check. `hr_effort_event()` records it as an `"effort.event"`
@@ -485,13 +491,44 @@ final stage went out raised too. That was the second and last raise, so
 stage fired none of the triggers that raised it. A third trigger would have
 raised nothing.
 
-`hr_effort_event()` returns `TRUE` when it recorded the event. It records
-nothing, and returns `FALSE`, on a trace no escalation policy has sent a
-request on, so a run without a policy records nothing new:
+`hr_effort_event()` returns `TRUE` when it recorded the event, invisibly, so
+the call in the chunk above printed nothing. It records nothing, and returns
+`FALSE`, on a trace no escalation policy has sent a request on, so a run
+without a policy records nothing new:
 
 ```{r}
-hr_effort_event(hr_trace(), "disagreement")
+print(hr_effort_event(hr_trace(), "disagreement"))
 ```
+
+A reply to `hr_call(schema = )` that is not JSON is a trigger only when your
+code reports it. This policy narrows `on` to `"parse_failure"`, so no other
+trigger raises a stage:
+
+```{r}
+pol3 <- hr_effort_escalate(base = "low", to = "high", on = "parse_failure")
+extractor <- hr_mock_client(function(messages, params) {
+  if (identical(params$effort, "low")) "Revenue was 45.2." else '{"revenue": 45.2}'
+})
+revenue_schema <- list(type = "object",
+                       properties = list(revenue = list(type = "number")),
+                       required = list("revenue"))
+tr3 <- hr_trace()
+ask <- function(label) {
+  hr_call(extractor, "Give the revenue as JSON.", model = "reasoner", trace = tr3,
+          label = label, effort = pol3, schema = revenue_schema, schema_name = "revenue")
+}
+first <- ask("extract")
+first$text
+if (!jsonlite::validate(first$text)) {
+  print(hr_effort_event(tr3, "parse_failure", label = "extract"))
+}
+ask("extract_again")$text
+hr_effort_log(tr3)[, c("after", "stage", "to", "resolved")]
+```
+
+The first reply came back as prose, `jsonlite::validate()` found it was not
+JSON, and the code reported `"parse_failure"`, which printed `TRUE`. The next stage went out at high and returned
+JSON, so the raise resolved.
 
 ### What escalation does not do
 
@@ -551,13 +588,20 @@ chk <- hr_effort_check(bench, "escalate", margin = 0.10, B = 500)
 chk
 ```
 
-The first block tests the policy against each fixed effort. `margin` is the
-largest loss of accuracy you accept, here 10 points, and the policy is
-non-inferior to an arm when the lower bound of the difference stays above
-minus the margin. The cost table gives, per arm, the accuracy, the mean cost
+The first block tests the policy against each fixed effort: every other arm,
+since `comparators` was left out. `margin` is the largest loss of accuracy you
+accept, here 10 points, and the policy is non-inferior to an arm when the lower
+bound of the difference stays above minus the margin. The bounds come from
+`B` bootstrap resamples drawn with `seed` (1 by default), and Holm's procedure
+adjusts the tests for there being more than one comparison. "best fixed
+comparator" names the most accurate of the fixed arms, the one the policy most
+needs to match. The cost table gives, per arm, the accuracy, the mean cost
 per run (`usd`), the requests per run (`calls`), the raises per run
 (`escalations`), the requests sent raised per run (`escalated_calls`) and the
-share of raises that resolved.
+share of raises that resolved. Its last three columns say where `usd`'s prices
+came from: `priced` is `TRUE` when every run's models have a price, `as_of` is
+the oldest month among those prices, and `certain` is `TRUE` when every
+model's registry entry is a fact rather than a guess from a pattern.
 
 Here the policy answered every item, as `"high"` did, at about a tenth of
 its cost: only the hard items' answer stage went out raised. Against `"low"`
@@ -571,7 +615,17 @@ chk$contrasts[, c("reference", "estimate", "lower", "accuracy_holds",
                   "cost_diff", "cost_holds", "verdict")]
 ```
 
-With `cost_test = FALSE`, the verdict rests on accuracy alone.
+With `cost_test = FALSE`, the verdict rests on accuracy alone. Here it is run
+against `"high"` alone, through `comparators`:
+
+```{r}
+chk_acc <- hr_effort_check(bench, "escalate", comparators = "high", margin = 0.10,
+                           cost_test = FALSE, B = 500)
+chk_acc$contrasts[, c("reference", "estimate", "lower", "accuracy_holds", "verdict")]
+```
+
+With one comparison, Holm's procedure has nothing to adjust, and the verdict
+follows the accuracy test.
 
 The header says "post hoc": the margin was chosen after the benchmark was
 scored, so the result is evidence for running a registered comparison, not a

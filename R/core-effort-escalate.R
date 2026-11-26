@@ -39,9 +39,12 @@
 #' step of the trace, or a reply cut off at its output cap; a cut made while
 #' a stage packs its requests belongs to that stage, including one made
 #' before its first request),
-#' `"parse_failure"` (a reply to a structured request, such as
-#' `ctx$call_json()`, that is not JSON) and
-#' `"schema_failure"` (one that does not fit the schema). `replies` names
+#' `"parse_failure"` (a reply to one of harnessr's own structured requests,
+#' such as `ctx$call_json()` in a benchmark arm, a judge or a document reader,
+#' that is not JSON) and
+#' `"schema_failure"` (one that does not fit the schema). [hr_call()] with a
+#' `schema` does not parse its reply, so it fires neither: check the reply
+#' and report it with [hr_effort_event()]. `replies` names
 #' replies that are triggers: a named character vector from trigger to the
 #' text a reply starts with, such as `c(not_in_document = "NOT_IN_DOCUMENT")`;
 #' such a trigger fires when every request of the stage replied with it.
