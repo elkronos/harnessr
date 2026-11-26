@@ -78,6 +78,24 @@ before `premise`, which stays last).
   such a total. The progress line says "spent on priced models" in the
   same case. The audit report's cost table has a `prices` column.
 
+## Guides on the core
+
+* New guide, `vignette("core")` ("The core: calls, clients and results"), in
+  a new Core group on the site and in the README. It covers calls made with
+  no document: `hr_call()` with each kind of client, every field of a
+  result, the trace and how to read it, structured replies, a check that
+  runs a program on a reply, signals, and the classes of the core's errors
+  and warnings. Its settings walkthroughs cover `model`, `api`, `api_base`,
+  `api_headers`, `embedding_model`, `max_retries`, `retry_pause_base`,
+  `request_timeout`, `temperature` and `actor`, and `gr_settings_table()`
+  links those options to them.
+* `?gr_result` lists every field a result carries, including `cached`,
+  `served_model`, `response_id`, `fingerprint`, `attempts` and, for a
+  request the limits did not send, `refused` and `refusal`.
+* `?hr_cache` no longer says that every structured reply that does not parse
+  is kept out of the cache. That holds for the package's own structured
+  calls; `hr_call()` does not parse a reply, so it caches one like any other.
+
 ## Renamed core functions
 
 The 27 core functions that still began with `gr_` now begin with `hr_`, like
