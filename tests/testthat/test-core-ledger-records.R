@@ -374,7 +374,7 @@ test_that("the gr_result help states the counted zero and the NA fields", {
   # or unsent request carries a counted zero, and it left out that
   # finish_reason can be NA.
   rd <- tools::Rd_db("harnessr")[["gr_result.Rd"]]
-  skip_if(is.null(rd), "help pages not installed")
+  expect_false(is.null(rd))
   txt <- paste(capture.output(tools::Rd2txt(rd, options = list(underline_titles = FALSE))),
                collapse = " ")
   txt <- gsub("\\s+", " ", gsub("[\u2018\u2019\"']", "", txt))
