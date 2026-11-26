@@ -82,7 +82,7 @@
     "config": {
       "options": {
         "actor": [],
-        "allow_unpriced": false,
+        "allow_unpriced": true,
         "allowed_models": null,
         "api": "responses",
         "api_base": "https://api.openai.com/v1",
