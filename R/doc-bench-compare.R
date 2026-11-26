@@ -85,9 +85,14 @@
 #'       which is `usd` for a right answer, `Inf` for a wrong one that cost
 #'       something and `NA` for a wrong one that cost nothing or one whose
 #'       correctness is not known.}
+#'     \item{`priced`, `as_of`, `certain`}{Where `usd`'s prices came from,
+#'       over the models the recipe used: `TRUE` when every one has a price,
+#'       the oldest month among their prices, and `TRUE` when every registry
+#'       entry is a fact rather than a guess (see [hr_trace_cost()]). `NA` for
+#'       a recipe that made no request. They follow every column above.}
 #'     \item{`premise`}{Only when a recipe checks the question's premise: what
 #'       the model said the document states instead, or `NA`; see `premise` in
-#'       [gr_read_spec()].}
+#'       [gr_read_spec()]. Always the last column.}
 #'   }
 #' @seealso [answer_document()], [gr_recipes()], [gr_recipe()], [gr_answer],
 #'   [hr_benchmark()] for the comparison with intervals
@@ -341,6 +346,11 @@ gr_compare <- function(source, question, recipes = c("fast", "needle", "thorough
     summary$premise <- unname(vapply(names(answers), function(nm) answer_premise(answers[[nm]]),
                                      character(1)))
   }
+  # Where each row's prices came from, after the other columns and before
+  # `premise`, which stays last.
+  pc <- c("priced", "as_of", "certain")
+  rest <- setdiff(names(summary), c(pc, "premise"))
+  summary <- summary[c(rest, pc, intersect("premise", names(summary)))]
   list(answers = answers, summary = summary, trace = trace,
        document = list(source = doc$source, stats = doc$stats))
 }
@@ -367,10 +377,27 @@ recipe_cost <- function(steps) {
   known <- usd_of(steps[!is.na(prov)])
   est <- usd_of(steps[prov %in% "estimated"])
   share <- if (!any(!is.na(prov)) || is.na(known) || known <= 0) NA_real_ else est / known
+  prices <- cost_prices(cost)
   data.frame(calls = length(steps),
              tokens_in = as.integer(if (is.null(cost)) 0L else sum(cost$paid_in)),
              tokens_out = as.integer(if (is.null(cost)) 0L else sum(cost$paid_out)),
-             usd = usd, usd_estimated = share)
+             usd = usd, usd_estimated = share,
+             priced = prices$priced, as_of = prices$as_of, certain = prices$certain,
+             stringsAsFactors = FALSE)
+}
+
+#' One row's price columns for a cost over several models, from the rows of
+#' hr_trace_cost(): `priced` when every model has a price, `as_of` the oldest
+#' month among their prices (the one to check first), `certain` when every
+#' registry entry is a fact. `NA` for a cost of no request.
+#' @noRd
+cost_prices <- function(cost) {
+  if (is.null(cost) || !nrow(cost)) return(list(priced = NA, as_of = NA_character_,
+                                                certain = NA))
+  months <- cost$as_of[cost$priced %in% TRUE & !is.na(cost$as_of)]
+  list(priced = all(cost$priced %in% TRUE),
+       as_of = if (length(months)) min(months) else NA_character_,
+       certain = all(cost$certain %in% TRUE))
 }
 
 #' Whether a recipe's answer is right, for gr_compare()'s `correct` column.

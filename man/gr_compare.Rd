@@ -73,9 +73,14 @@ answer was right, and \code{usd} divided by the number of right answers,
 which is \code{usd} for a right answer, \code{Inf} for a wrong one that cost
 something and \code{NA} for a wrong one that cost nothing or one whose
 correctness is not known.}
+\item{\code{priced}, \code{as_of}, \code{certain}}{Where \code{usd}'s prices came from,
+over the models the recipe used: \code{TRUE} when every one has a price,
+the oldest month among their prices, and \code{TRUE} when every registry
+entry is a fact rather than a guess (see \code{\link[=hr_trace_cost]{hr_trace_cost()}}). \code{NA} for
+a recipe that made no request. They follow every column above.}
 \item{\code{premise}}{Only when a recipe checks the question's premise: what
 the model said the document states instead, or \code{NA}; see \code{premise} in
-\code{\link[=gr_read_spec]{gr_read_spec()}}.}
+\code{\link[=gr_read_spec]{gr_read_spec()}}. Always the last column.}
 }
 }
 \description{
