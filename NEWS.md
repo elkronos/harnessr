@@ -10,7 +10,7 @@ no longer ships them. You set the prices you pay.
   dimensions, checked as of 2026-08. Their limits are unchanged. Their
   `input_usd` and `output_usd` are `NA`, so `hr_estimate_cost()` returns `NA`
   for them until you set prices, and under a `max_cost_usd` limit a request
-  to one is refused unless `allow_unpriced = TRUE`.
+  to one is sent with a warning (below).
 * New `hr_load_models(file)` registers models from a CSV file. A row may
   name a built-in model and give only `input_usd`, `output_usd` and `as_of`:
   the model keeps its limits and gains the prices. A malformed file stops
@@ -24,6 +24,18 @@ no longer ships them. You set the prices you pay.
 * A built-in models file that cannot be read stops the package from
   loading, with an error of class `hr_bad_models_file`, instead of leaving
   the registry empty.
+* `allow_unpriced` now defaults to `TRUE`. Under a spending limit, a
+  request to a chat model with no price is sent instead of refused. The
+  trace prices it `NA`, and the first such request to each model in a
+  session warns with class `hr_unpriced_model` that the spending limit does
+  not cover the model until you set its prices. Token and call limits still
+  apply. `hr_options(allow_unpriced = FALSE)` or
+  `hr_governor(allow_unpriced = FALSE)` restores the refusal. A trace's
+  config snapshot records the new default.
+* New option `price_max_age_days` (120). A cost computed from prices older
+  than that, counted from the first day of their `as_of` month, warns with
+  class `hr_stale_price`, once per model per session. `NULL` turns the
+  warning off. Set the current prices again to clear it.
 
 ## Renamed core functions
 

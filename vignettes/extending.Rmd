@@ -355,15 +355,16 @@ assuming the run is free:
 is.na(hr_estimate_cost("my-local-llama", 1000, 500))
 ```
 
-While a spending limit is set, harnessr refuses a request to a language model
-with no registered price before sending it. Embedding models and
-`hr_mock_client()` are exempt. You have two ways forward:
+While a spending limit is set, harnessr sends a request to a language model
+with no registered price and warns, once per model per session, that the limit
+does not count it. Embedding models and `hr_mock_client()` are exempt. Give
+`input_usd` and `output_usd` in US dollars per million tokens, zero for a local
+model, and the limit counts the model's requests. To refuse unpriced requests
+instead, set `hr_options(allow_unpriced = FALSE)`.
 
-- give `input_usd` and `output_usd` in US dollars per million tokens;
-- let a local model run unpriced with `hr_options(allow_unpriced = TRUE)`.
-
-The section on connecting to a model in `vignette("harnessr")` shows both for
-a model reached through ellmer. `reasoning = TRUE` marks a model that takes an
+The section on connecting to a model in `vignette("harnessr")` registers a
+hosted model at its prices and a local one at zero, both reached through
+ellmer. `reasoning = TRUE` marks a model that takes an
 effort setting.
 
 ## Using what you registered

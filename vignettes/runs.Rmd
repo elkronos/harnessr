@@ -179,7 +179,8 @@ Errors are classed, so you can catch a specific failure:
   `gr_budget_error`, `gr_unknown_model`, `gr_unknown_override`,
   `gr_no_recipes`, `gr_bad_ensemble` and `gr_missing_dep`.
 - `gr_bad_setting` for a setting outside its choices (`vignette("extending")`).
-- `hr_unknown_effort_key` and `hr_unpriced_model`, both covered below.
+- `hr_unknown_effort_key`, covered below, and `hr_unpriced_model` when
+  `allow_unpriced = FALSE` refuses a model with no price.
 - `hr_dim_mismatch` when two vectors of different lengths are compared, such as
   a lexical fallback vector against an API embedding.
 
@@ -195,6 +196,9 @@ Degradations are classed warnings:
 - `gr_bad_correct` for a `gr_compare()` `correct` function that fails (below).
 - `gr_unclear_dropped` when `gr_extract()` leaves unclear screening records out
   (`vignette("review")`).
+- `hr_unpriced_model` for a request sent to a model with no price under a
+  spending limit, and `hr_stale_price` for a cost computed from old prices,
+  each once per model per session (below).
 
 In an interactive session, a long read keeps one progress line up to date with
 the number of chunks read and the spend so far. `gr_read_many()` also reports
@@ -295,7 +299,7 @@ embeddings, and any request a custom reader or a script makes with `hr_call()`.
 | `max_tokens_total` | tokens of every prompt, reply and embedded text | off |
 | `max_output_tokens` | the largest output cap one request may carry; a request with a larger one is refused, not cut down | off |
 | `allowed_models` | the model ids the run may call, text and embedding models alike | any |
-| `allow_unpriced` | whether a model with no registered price may be called under a spending limit | `FALSE` |
+| `allow_unpriced` | whether a model with no registered price may be called under a spending limit | `TRUE` |
 
 Each limit is also an option of the same name:
 `hr_options(max_tokens_total = 50000)` sets it for every run, and each trace's
@@ -323,32 +327,52 @@ holds the whole comparison to `max_cost_usd` and `max_tokens_total`.
 
 ### Models with no price
 
-A language model with no registered price adds nothing to the spend, so no
-spending limit could stop it. With `max_cost_usd` set, a request to such a
-model is refused with a condition of class `hr_unpriced_model`, and `gr_read()`
-stops before its first request. `hr_backend_client()` wraps an R function as a
-paying client, which lets this example show the refusal offline:
+harnessr ships each built-in model's limits but no prices, because providers
+change prices more often than the package is released. A language model with
+no price adds nothing to the spend, so no spending limit can stop it. With
+`max_cost_usd` set, a request to such a model is still sent: the trace prices
+it `NA`, never 0, and the first request to each such model in a session warns
+with class `hr_unpriced_model`. `hr_backend_client()` wraps an R function as a
+paying client, which lets this example show the warning offline:
 
 ```{r}
 hr_register_model("unpriced-model", context_window = 128000, max_output = 4096)
 backend <- hr_backend_client(function(messages, params) "Revenue was 45.2 million dollars.")
 
-res <- hr_call(backend, "What was revenue?", model = "unpriced-model")
+tr <- hr_trace()
+res <- hr_call(backend, "What was revenue?", model = "unpriced-model", trace = tr)
+res$ok
+hr_trace_cost(tr)[, c("model", "calls", "usd")]
+```
+
+The request still counts against `max_calls` and `max_tokens_total`, and
+`max_tokens_total` is then the limit that bounds the run. Register the model's
+prices with `hr_register_model()` or `hr_load_models()` and the spending limit
+counts it. To refuse every request the limit cannot price, set
+`hr_options(allow_unpriced = FALSE)` or `hr_governor(allow_unpriced = FALSE)`.
+`gr_read()` then stops before its first request, and `hr_call()` refuses:
+
+```{r}
+res <- hr_call(backend, "What was revenue?", model = "unpriced-model",
+               trace = hr_trace(governor = hr_governor(allow_unpriced = FALSE)))
 res$refused
 res$error
 ```
 
-Register the model's prices with `hr_register_model()`, or set
-`hr_options(allow_unpriced = TRUE)`. Under `allow_unpriced`, its requests are
-sent, still count against `max_calls` and `max_tokens_total`, and are priced
-`NA` in the trace. `max_tokens_total` is then the limit that still bounds the
-run. `hr_mock_client()` and replays are never refused for this, and neither are
-embedding models with no price.
+`hr_mock_client()` and replays are never refused or warned about for this, and
+neither are embedding models with no price.
+
+Prices you set go out of date. A cost computed from prices older than
+`hr_options("price_max_age_days")`, 120 days by default counted from the first
+day of their `as_of` month, warns with class `hr_stale_price`, once per model
+per session. `hr_models()` shows each model's `as_of`. Set the current prices
+again to stamp them with this month, or set `price_max_age_days = NULL` to turn
+the warning off.
 
 An `hr_ellmer_client()` is priced as the model its ellmer object was built with,
-whatever a recipe names, so one built on a model with no registered price is
-refused too. Register that model at your provider's current prices, or let a
-local model run unpriced; `vignette("harnessr")` shows both.
+whatever a recipe names, so one built on a model with no registered price runs
+outside the spending limit too. Register that model at your provider's current
+prices, or a local model at zero; `vignette("harnessr")` shows both.
 
 Through ellmer, a `temperature` in a read spec is ignored with a warning,
 because sampling parameters belong to the ellmer object. Embeddings come from a
@@ -664,8 +688,10 @@ reader's caps (`max_answer_tokens`, `max_chunk_tokens`) to fit it.
 **Where the defaults came from.** $5 and 400 calls are limits for one read,
 chosen so a mistake costs little. No measurement backs them, and
 `gr_settings_table("options")` declares no evidence for them. The other limits
-are off by default. `allow_unpriced` is `FALSE` because a spending limit cannot
-hold a request whose cost it cannot see.
+are off by default. `allow_unpriced` is `TRUE` because harnessr ships no prices:
+`FALSE` would refuse every request to a built-in model until you set its
+prices. Set it to `FALSE` when every request must count against the spending
+limit.
 
 **How to test them.** A limit belongs to the run, not to an arm, so a sweep can
 only test which settings fit under it. A reader's output caps decide how much

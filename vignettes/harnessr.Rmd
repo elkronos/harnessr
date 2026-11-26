@@ -177,9 +177,9 @@ the transport to the [ellmer](https://ellmer.tidyverse.org/) package, which
 covers about twenty providers, local models through Ollama among them.
 
 The spending limit is on by default, and it can hold only for a model with a
-registered price. Register the model you built the ellmer object with, at your
-provider's current prices in US dollars per million tokens. A local model has no
-price to register, so let it run unpriced:
+registered price. harnessr ships no prices, so register the model you built the
+ellmer object with, at your provider's current prices in US dollars per million
+tokens. A local model costs nothing, so register it at zero:
 
 ```{r eval = FALSE}
 library(ellmer)
@@ -189,13 +189,15 @@ hr_register_model("claude-sonnet-4-5", context_window = 200000, max_output = 640
 cl <- hr_ellmer_client(chat_anthropic(model = "claude-sonnet-4-5"))
 answer_document("report.pdf", "What was revenue?", "thorough", client = cl)
 
-hr_options(allow_unpriced = TRUE)
+hr_register_model("llama3.1", context_window = 128000, max_output = 4096,
+                  input_usd = 0, output_usd = 0)
 cl <- hr_ellmer_client(chat_ollama(model = "llama3.1"))
 ```
 
-Without a registered price, a run under `max_cost_usd` stops before its first
-request with an `hr_unpriced_model` error. `vignette("runs")` covers unpriced
-models and what changes through ellmer (temperature and embeddings).
+Without a registered price, a run under `max_cost_usd` is sent with an
+`hr_unpriced_model` warning, and the spending limit does not count it.
+`vignette("runs")` covers unpriced models and what changes through ellmer
+(temperature and embeddings).
 
 Anything else, such as a model behind a queue, goes through
 `hr_backend_client()`. Give it any function of `messages` and `params` that
