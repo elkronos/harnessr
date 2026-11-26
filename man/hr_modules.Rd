@@ -42,7 +42,7 @@ r[r$name \%in\% c("stuff", "retrieve"), c("name", "signature", "cost_calls")]
 r$calls[r$name == "refine"][[1]]
 }
 \seealso{
-\code{\link[=hr_register]{hr_register()}}, \code{vignette("extending")}
+\code{\link[=hr_register]{hr_register()}}, \code{vignette("compose")}, \code{vignette("extending")}
 
 Other harness: 
 \code{\link{gr_arm}()},

@@ -42,9 +42,9 @@ no longer ships them. You set the prices you pay.
   warning off. Set the current prices again to clear it.
 * To set prices, call `hr_register_model(id, input_usd =, output_usd =)` for
   one model, or keep a CSV file of prices with an `as_of` column and load it
-  with `hr_load_models()` at the top of each script. "Models, prices and
-  token counts" in `vignette("runs")` walks through both, checking prices
-  with `hr_models()`, unpriced models and stale prices.
+  with `hr_load_models()` at the top of each script. "Prices" in
+  `vignette("models")` walks through both, checking prices with
+  `hr_models()`, unpriced models and stale prices.
   `vignette("migrate")` lists what changes for code written for 0.6.0. The
   guides, the README and the examples set illustrative prices before they
   show a cost.
@@ -123,6 +123,37 @@ before `premise`, which stays last).
   `hr_effort_event()`, `hr_effort_log()`), and `hr_effort_check()` on a
   benchmark of fixed and raised efforts. Its settings walkthrough covers
   `reasoning_floor`, and `gr_settings_table()` links that option to it.
+* The site and the README group the guides in two parts after Get started.
+  Core holds `core`, `models`, `context`, `effort`, `runs`, `compose`,
+  `evaluate`, `compare` and `settings`; Documents holds `ingest`, `segment`,
+  `readers`, `review` and `extending`. The reference index lists the core
+  functions first, by topic in the order of the core guides, then the
+  document layer.
+* The README and `vignette("harnessr")` introduce harnessr as a harness for
+  model calls with a document layer built on it. The get started guide shows
+  a call, its trace, prices and limits, context and effort before the first
+  question about a document.
+* The walkthrough of parameter schemas (`hr_param()`, `hr_schema()`,
+  `hr_validate()`) moved from `vignette("extending")` to "Checking settings"
+  in `vignette("core")`. The extending guide's section on models now points
+  to `vignette("models")`, which covers the same ground.
+* The walkthrough of registering a step, listing the modules of every kind
+  with `hr_modules()` and checking a module with `hr_check_module()` moved
+  from `vignette("extending")` to "Registering a step" in
+  `vignette("compose")`. The reference index lists these functions after the
+  compose functions.
+* `vignette("runs")` is now "Limits, caching and replay". Its walkthrough of
+  models, prices and token counts moved to `vignette("models")`, whose
+  Prices section keeps the `#models-prices` anchor. Its effort sections
+  moved to `vignette("effort")`, including the `effort_mode` walkthrough
+  with its `#set-effort-mode` anchor, and `gr_settings_table()` links
+  `effort_mode` there.
+* Each document guide (`ingest`, `segment`, `readers`, `review`,
+  `extending`) opens by naming the core pieces it builds on, and links to
+  the core section where it mentions a budget, the trace, a refusal, the
+  cache, effort or a price. `vignette("compose")` and `vignette("evaluate")`
+  open as core guides. `vignette("settings")` lists the core settings
+  before the document settings.
 * `?gr_result` lists every field a result carries, including `cached`,
   `served_model`, `response_id`, `fingerprint`, `attempts` and, for a
   request the limits did not send, `refused` and `refusal`.

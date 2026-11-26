@@ -73,7 +73,7 @@ kind_access <- function(kind, need = c("get", "set", "check")) {
 #'   `version` field. `NULL` (the default) records `NA`, or, for a step, the
 #'   step's own version.
 #' @return Invisibly, `name`.
-#' @seealso [hr_modules()], `vignette("extending")`
+#' @seealso [hr_modules()], `vignette("compose")`, `vignette("extending")`
 #' @family harness
 #' @export
 #' @examples
@@ -126,7 +126,7 @@ hr_register <- function(kind, name, fn, ..., description = "", calls = NULL, ver
 #'   always `version` and `contract` (character): the module's version and
 #'   the module contract it was registered under with [hr_register()], `NA`
 #'   for a module registered through its kind's own function.
-#' @seealso [hr_register()], `vignette("extending")`
+#' @seealso [hr_register()], `vignette("compose")`, `vignette("extending")`
 #' @family harness
 #' @export
 #' @examples

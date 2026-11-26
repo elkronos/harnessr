@@ -56,5 +56,5 @@ hr_check_module(double_it, function() double_it(2),
   kind = "function", name = "double_it")
 }
 \seealso{
-\code{\link[=gr_check_reader]{gr_check_reader()}}, \code{\link[=gr_check_segmenter]{gr_check_segmenter()}}
+\code{\link[=gr_check_reader]{gr_check_reader()}}, \code{\link[=gr_check_segmenter]{gr_check_segmenter()}}, \code{vignette("compose")}
 }

@@ -27,7 +27,16 @@ This guide covers four tasks:
 - stating the parameters of a spec;
 - checking your module against the contract the built-ins follow.
 
-`vignette("harnessr")` introduces the package and its ideas.
+A module that calls the model builds on the core. It sends each request with
+`hr_call()` and records it in the run's trace ("The trace" in
+`vignette("core")`), the run's limits can refuse it ("Limits and refusals" in
+`vignette("core")`), it sizes its prompts with `hr_budget()`
+(`vignette("context")`), and it passes on the run's effort
+(`vignette("effort")`). Models and their prices belong to the core too
+(`vignette("models")`). Steps register in the same registry, and "Registering
+a step" in `vignette("compose")` covers them, with `hr_modules()` across every
+kind and `hr_check_module()` for a module of any kind. `vignette("harnessr")`
+introduces the package.
 
 ## Setting up
 
@@ -166,13 +175,16 @@ function:
 
 - Send every request through `hr_call()` with the client you were given,
   never one you construct, and pass it the `trace`. Through the trace,
-  `hr_call()` counts, prices and limits your calls.
+  `hr_call()` counts, prices and limits your calls ("The trace" in
+  `vignette("core")`).
 - Expect refusals. harnessr does not send a request that would pass
   `max_calls` or `max_cost_usd`, and `hr_call()` returns a result with
-  `refused = TRUE` instead. Stop or degrade when that happens.
+  `refused = TRUE` instead ("Limits and refusals" in `vignette("core")`).
+  Stop or degrade when that happens.
 - Honour at least `spec$model`, `spec$max_answer_tokens`, `spec$temperature`
   and `spec$effort`.
-- Budget the prompt with `hr_budget()` instead of assuming the document fits.
+- Budget the prompt with `hr_budget()` instead of assuming the document fits
+  ("How much room a prompt has: `hr_budget()`" in `vignette("context")`).
 
 The `signature`, `"select|calls|state"`, describes how the reader traverses
 the chunks. Two readers with the same signature are the same method under two
@@ -213,7 +225,7 @@ tryCatch(gr_read_spec("longest", effort = c(longst = "low")),
 
 To name the calls of your own module in an effort map, register the module
 first, with its labels in `calls`. The `calls` column of `gr_readers()` and
-`gr_segmenters()` lists every module's stems. `vignette("runs")` explains what
+`gr_segmenters()` lists every module's stems. `vignette("effort")` explains what
 effort does and which models it is sent to.
 
 ## Declaring cost
@@ -289,8 +301,8 @@ Declare `cost` for any reader that makes a different number of requests.
 hr_cost(calls = 4, calls_max = 6)$calls_max
 ```
 
-`vignette("runs")` covers the governor, its limits and the pre-flight step in
-the trace.
+"Limits" in `vignette("runs")` covers the governor, its limits and the
+pre-flight step in the trace.
 
 ## Embedders
 
@@ -336,39 +348,17 @@ in any session on any machine. A trace records model calls but not vectors.
 The flag lets `hr_replay_client()` recompute a run's chunk ranking instead of
 degrading to lexical vectors. If you set it wrongly, a replay ranks chunks from
 vectors the original run never saw and still reports an exact match.
+"Embeddings in a replay" in `vignette("runs")` shows what a replay does with
+each kind of embedder.
 
 ## Models
 
-The model registry holds each model's context window, output limit and prices.
-harnessr ships the limits of its built-in models and no prices. Use
-`hr_register_model()` to add a model the package does not know, to correct a
-built-in entry, or to give a model the prices you pay:
-
-```{r}
-hr_register_model("my-local-llama", context_window = 32768, max_output = 4096)
-hr_model_info("my-local-llama")[c("context_window", "source", "certain")]
-```
-
-Without prices, harnessr cannot estimate a cost. It returns `NA` instead of
-assuming the run is free:
-
-```{r}
-is.na(hr_estimate_cost("my-local-llama", 1000, 500))
-```
-
-While a spending limit is set, harnessr sends a request to a language model
-with no registered price and warns, once per model per session, that the limit
-does not count it. Embedding models and `hr_mock_client()` are exempt. Give
-`input_usd` and `output_usd` in US dollars per million tokens, zero for a local
-model, and the limit counts the model's requests. To refuse unpriced requests
-instead, set `hr_options(allow_unpriced = FALSE)`.
-
-The section on connecting to a model in `vignette("harnessr")` registers a
-hosted model at its prices and a local one at zero, both reached through
-ellmer. `reasoning = TRUE` marks a model that takes an
-effort setting. To set the prices of many models at once from a file, and to
-keep them current, see "Models, prices and token counts" in
-`vignette("runs")`.
+The model registry belongs to the core. `hr_register_model()` adds a model
+harnessr does not know, corrects a built-in entry, or gives a model the prices
+you pay. `vignette("models")` covers each of these and what harnessr does with
+a model that has no price. The section on connecting to a model in
+`vignette("harnessr")` registers a hosted model at its prices and a local one
+at zero, both reached through ellmer.
 
 ## Using what you registered
 
@@ -433,13 +423,10 @@ by name and calls its function:
 knitr::include_graphics("../man/figures/registry.svg")
 ```
 
-`hr_modules()` lists the modules of every kind in one table, with the call
-stems each declares as a list column. Give it a kind to add that kind's own
-columns:
+`hr_modules("reader")` lists the readers with the columns of their kind and
+the call stems each declares:
 
 ```{r}
-m <- hr_modules()
-table(m$kind)
 r <- hr_modules("reader")
 r[r$name %in% c("longest", "shortest"), c("name", "signature", "calls")]
 ```
@@ -463,15 +450,8 @@ r <- gr_readers()
 r[r$name %in% c("longest", "shortest"), c("name", "version", "contract")]
 ```
 
-A step from `hr_step()` registers the same way, under the kind `"step"`. Its
-version is the step's own unless you give another:
-
-```{r}
-hr_register("step", "shout", fn = hr_step("shout", function(input, ctx) toupper(input),
-                                          input = "answer", output = "state",
-                                          version = "0.2.0"))
-hr_modules("step")[, c("name", "input", "output", "version", "contract")]
-```
+A step from `hr_step()` registers the same way, under the kind `"step"`;
+"Registering a step" in `vignette("compose")` shows it.
 
 Through `hr_register()`, a segmenter that calls a model can also take
 `effort_label`. It is a function of the segment spec that returns the label
@@ -485,63 +465,10 @@ from it.
 
 Each spec constructor states its parameters once, as a schema: type, default,
 range and choices. `gr_read_spec()`, `gr_segment_spec()` and `gr_ingest_spec()`
-check their arguments against a schema. You can use the same three schema
-functions for a module of your own:
-
-- `hr_param()` declares one parameter;
-- `hr_schema()` collects them;
-- `hr_validate()` applies the rules.
-
-```{r}
-s <- hr_schema(
-  hr_param("max_tokens", "integer", default = 1200L, min = 32, max = 1e6,
-           help = "Largest chunk, in tokens."),
-  hr_param("overlap_tokens", "integer", default = 0L, min = 0,
-           max = function(p) p$max_tokens - 1L,
-           help = "Tokens repeated between neighbouring chunks."),
-  hr_param("order", "enum", choices = c("relevance", "document"),
-           help = "How chosen chunks are ordered in the prompt."))
-s
-```
-
-`hr_validate()` resolves the parameters in schema order, so a parameter whose
-bound depends on another, such as `overlap_tokens` above, comes after it. It
-moves a number out of range to the nearest bound and warns with class
-`gr_clamped` (and `hr_param_clamped`). It matches an `enum` as `match.arg()`
-does, so it accepts an unambiguous abbreviation:
-
-```{r}
-withCallingHandlers(
-  str(hr_validate(s, list(max_tokens = 100, overlap_tokens = 500, order = "doc"))),
-  gr_clamped = function(w) {
-    message(conditionMessage(w))
-    invokeRestart("muffleWarning")
-  })
-```
-
-A name the schema does not have raises an error of class `hr_unknown_param`.
-A value outside an `enum`'s choices raises an error that names the choices:
-
-```{r}
-tryCatch(hr_validate(s, list(top_k = 3)),
-         hr_unknown_param = function(e) conditionMessage(e))
-```
-
-The types are `integer`, `number`, `string`, `boolean`, `enum`,
-`string_vector`, `named_map`, `module_ref` and `file`; `?hr_param` gives the
-rule for each. For a parameter that needs a rule of its own, a `resolve`
-function replaces the type's rule.
-
-The other fields describe the parameter and do not check it:
-
-- `help`: one plain sentence.
-- `cost_class`: how it moves the cost of a run, one of `"none"`, `"local"`,
-  `"per_call_constant"`, `"per_unit"`, `"per_sample"` or `"per_round"`.
-- `affects_output`: whether it belongs in cache and store keys.
-- `tier`: `"basic"` or `"advanced"`, for grouping in a user interface.
-- `evidence`, `depends_on` and `since`.
-
-These fields let a later UI or command line be built from the same list.
+check their arguments against a schema. A module of your own can state its
+parameters with the same three core functions: `hr_param()` declares one,
+`hr_schema()` collects them and `hr_validate()` applies the rules. "Checking
+settings" in `vignette("core")` shows them, with every type and field.
 
 ## Checking a module against the contract
 
@@ -639,25 +566,9 @@ request is rate limited:
 gr_check_reader("longest", client = hr_mock_client(mode = 429))
 ```
 
-`hr_check_module()` is the core helper both checks use, and it works for a
-module of any kind. Give it three things:
-
-- the module's function;
-- a closure of no arguments that runs the module once;
-- a named list of rules, each a function of the value the closure returned.
-
-A rule returns `TRUE`, `FALSE`, `NA` (could not be checked), or a list with
-`ok` and a `detail` string. The closure runs in a temporary working directory
-that `hr_check_module()` removes afterwards, and the `runs` rule reports any
-error the closure raises.
-
-```{r}
-double_it <- function(x) x * 2
-hr_check_module(double_it, function() double_it(2),
-  rules = list(numeric = function(v) is.numeric(v),
-               above_three = function(v) list(ok = v > 3, detail = sprintf("got %s", v))),
-  kind = "function", name = "double_it")
-```
+Both checks use the core helper `hr_check_module()`, which checks a module of
+any kind against rules you write. "Checking a module" in `vignette("compose")`
+covers it.
 
 ```{r include = FALSE}
 hr_options(old)
@@ -669,4 +580,10 @@ hr_options(old)
   each, with every argument a module receives.
 - `?new_chunks` and `?new_answer`: the constructors a segmenter and a reader
   return.
-- `vignette("runs")`: limits, the pre-flight check, effort, and replaying a run.
+- `vignette("core")`: `hr_call()`, the trace and refusals, which every module
+  that calls the model uses.
+- `vignette("compose")`: registering a step, listing the modules of every
+  kind, and checking a module against rules of your own.
+- `vignette("context")`: budgets, and fitting pieces into one.
+- `vignette("runs")`: limits, the pre-flight check, and replaying a run.
+- `vignette("effort")`: effort, by stage or raised when a stage goes wrong.

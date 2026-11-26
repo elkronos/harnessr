@@ -49,7 +49,7 @@ hr_contract_version <- function() "0.2"
 #'   checked against) and `warnings` (the messages of the warnings the run
 #'   raised). The first two rows are always `is_function` and `runs`.
 #'   `print()` lists the broken rules first.
-#' @seealso [gr_check_reader()], [gr_check_segmenter()]
+#' @seealso [gr_check_reader()], [gr_check_segmenter()], `vignette("compose")`
 #' @export
 #' @examples
 #' double_it <- function(x) x * 2

@@ -19,8 +19,14 @@ share, and how to compare chunkings before you pay for any reading.
 
 Six of the nine segmenters make no model calls. A seventh makes none by
 default. At their defaults, you can try all seven for nothing.
-`vignette("harnessr")` introduces the package and the ideas this guide uses,
-and `vignette("ingest")` covers the step before this one.
+
+Segmenting builds on the core in two ways. Every chunk size is a count of
+tokens, made by the counter that "Counting tokens" in `vignette("models")`
+describes. The segmenters that call a model send their requests with
+`hr_call()`, so the run's limits apply to them ("Limits and refusals" in
+`vignette("core")`) and a trace records them ("The trace" in
+`vignette("core")`). `vignette("harnessr")` introduces the package, and
+`vignette("ingest")` covers the step before this one.
 
 ```{r message = FALSE}
 library(harnessr)
@@ -265,9 +271,10 @@ adding the line never pushes a chunk over the cap. The room is:
 
 A line that still does not fit is shortened. The document text is not.
 
-If a context call fails or is skipped at the run's limits, the chunk keeps its
-text without a line. `$extra$blurbs_missing` counts those chunks, and a
-`gr_segment_fallback` warning reports them.
+If a context call fails or is refused at the run's limits ("Limits and refusals"
+in `vignette("core")`), the chunk keeps its text without a line.
+`$extra$blurbs_missing` counts those chunks, and a `gr_segment_fallback` warning
+reports them.
 
 The context line is not the document's text, and a model may have written it.
 The chunk therefore keeps its body alone in a `source_text` column. harnessr
@@ -332,7 +339,8 @@ makes its own and returns it as `$trace`, so you can see what segmenting cost:
 hr_trace_summary(ctx_llm$trace)[, c("calls", "tokens_in", "tokens_out")]
 ```
 
-`vignette("runs")` covers limits and traces.
+"The trace" in `vignette("core")` covers what a trace records, and "Limits" in
+`vignette("runs")` covers the limits and how to set them.
 
 ## Comparing segmentations
 

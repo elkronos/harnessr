@@ -314,7 +314,13 @@ history passes from one call to the next and your chat object is left as it
 was. Three settings belong to the chat and not to the call: the temperature and
 the reasoning effort are those the chat was built with (a call that asks for
 another warns once), and the output cap carries over only with ellmer 0.5.0 or
-later. `?hr_ellmer_client` lists what carries over.
+later. `?hr_ellmer_client` lists what carries over. A `temperature` in a
+document read spec is ignored the same way, with a warning.
+
+The chat is priced as the model it was built with, so register that model's
+prices ("A model with no price" in `vignette("models")`). Embeddings come from
+a function you pass as `embed =`. Without one, `retrieve` and the `semantic`
+segmenter fall back to lexical vectors and warn.
 
 ### A cache: `hr_cache_client()`
 
@@ -572,7 +578,55 @@ tryCatch(hr_validate(reply_settings, list(max_word = 10)),
          hr_unknown_param = function(e) conditionMessage(e))
 ```
 
-"Parameter schemas" in `vignette("extending")` covers every type and field.
+The spec constructors of the document layer, `gr_read_spec()`,
+`gr_segment_spec()` and `gr_ingest_spec()`, check their arguments against
+schemas built the same way. A bound can depend on another setting.
+`hr_validate()` resolves the parameters in schema order, so a parameter whose
+bound depends on another, such as `overlap_tokens` below, comes after it:
+
+```{r}
+chunk_settings <- hr_schema(
+  hr_param("max_tokens", "integer", default = 1200L, min = 32, max = 1e6,
+           help = "Largest chunk, in tokens."),
+  hr_param("overlap_tokens", "integer", default = 0L, min = 0,
+           max = function(p) p$max_tokens - 1L,
+           help = "Tokens repeated between neighbouring chunks."),
+  hr_param("order", "enum", choices = c("relevance", "document"),
+           help = "How chosen chunks are ordered in the prompt."))
+chunk_settings
+```
+
+The `gr_clamped` warning also has class `hr_param_clamped`. An `enum` is
+matched as `match.arg()` matches, so an unambiguous abbreviation is accepted:
+
+```{r}
+withCallingHandlers(
+  str(hr_validate(chunk_settings,
+                  list(max_tokens = 100, overlap_tokens = 500, order = "doc"))),
+  gr_clamped = function(w) {
+    message(conditionMessage(w))
+    invokeRestart("muffleWarning")
+  })
+```
+
+A value outside an `enum`'s choices raises an error of class `gr_bad_setting`
+that names the choices.
+
+The types are `integer`, `number`, `string`, `boolean`, `enum`,
+`string_vector`, `named_map`, `module_ref` and `file`; `?hr_param` gives the
+rule for each. For a parameter that needs a rule of its own, a `resolve`
+function replaces the type's rule.
+
+The other fields describe the parameter and do not check it:
+
+- `help`: one plain sentence.
+- `cost_class`: how it moves the cost of a run, one of `"none"`, `"local"`,
+  `"per_call_constant"`, `"per_unit"`, `"per_sample"` or `"per_round"`.
+- `affects_output`: whether it belongs in cache and store keys.
+- `tier`: `"basic"` or `"advanced"`, for grouping in a user interface.
+- `evidence`, `depends_on` and `since`.
+
+These fields let a later UI or command line be built from the same list.
 
 ## Checking a reply
 
@@ -933,10 +987,11 @@ hr_options(prev)
 
 ## Where the document layer builds on this
 
-Every reading function in the document layer makes its requests with
-`hr_call()` and records them in a trace, so everything above applies to a whole
-document. `answer_document()` takes the same clients and returns the trace of
-its run in `$trace`; `vignette("harnessr")` starts there.
+Every reading function in the document layer makes its chat requests with
+`hr_call()` and its embedding requests with `hr_embed()`, and records them in a
+trace, so everything above applies to a whole document. `answer_document()`
+takes the same clients and returns the trace of its run in `$trace`;
+`vignette("harnessr")` starts there.
 
 ```{r include = FALSE}
 hr_options(old)
@@ -950,11 +1005,12 @@ hr_options(old)
   does not fit.
 - `vignette("effort")`: how hard a reasoning model reasons, call by call or
   stage by stage.
-- `vignette("runs")`: limits, the governor, caching across sessions, replaying
-  a whole run, and model prices.
+- `vignette("runs")`: limits, the governor, caching across sessions, and
+  replaying a whole run.
 - `vignette("compose")`: steps and chains built from calls like these, and a
   coding sub-agent that checks its own code.
 - `vignette("evaluate")`: benchmarks, judges, checks that run a program, and
   calibrating signals.
-- `vignette("extending")`: parameter schemas, and registering your own modules.
+- `vignette("extending")`: registering your own modules and checking them
+  against the contract.
 - `vignette("settings")`: every setting with its default.
