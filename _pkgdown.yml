@@ -41,8 +41,8 @@ articles:
 - title: Control cost and settings
   navbar: Control cost and settings
   desc: >
-    Set spending limits, pay for a request once, replay a run, and look up
-    every setting with its default.
+    Set model prices and spending limits, pay for a request once, replay a
+    run, and look up every setting with its default.
   contents:
   - runs
   - settings
