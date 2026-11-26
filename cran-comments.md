@@ -6,7 +6,18 @@
 
 ## R CMD check results
 
-0 errors | 0 warnings | 1 note
+0 errors | 0 warnings | 2 notes
+
+These are the results CRAN would see. The local check ran
+`R CMD check --no-manual` without `--as-cran`, so it gave the installed size
+NOTE and skipped the CRAN incoming check. That check gives the second NOTE.
+
+* checking CRAN incoming feasibility ... NOTE
+
+  This is a new submission: harnessr has not been on CRAN before. With
+  `Version: 0.6.0.9000` in DESCRIPTION the same NOTE also reports "Version
+  contains large components (0.6.0.9000)"; a release version such as 0.7.0
+  removes that line.
 
 * checking installed package size ... NOTE
 
@@ -20,7 +31,7 @@
 
   The R code and the guides in `doc` make up most of it.
 
-The check in the development container also gives a second NOTE, "Packages
+The check in the development container also gives a NOTE, "Packages
 suggested but not available for checking: 'ellmer', 'readtext',
 'tesseract'", because those packages are not installed there. CRAN has all
 three, so its check will not show that NOTE.
