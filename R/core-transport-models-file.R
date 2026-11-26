@@ -241,7 +241,8 @@ models_file_seed <- function(file) {
 #' `as_of` is NULL to stamp the current month, except that an entry whose
 #' prices are kept from a priced entry keeps that entry's month, so a price's
 #' age stays visible. A call that sets only some of a priced entry's prices
-#' keeps the older of the two months, for the same reason. Errors carry a `column` naming the field at
+#' keeps the older of the two months, for the same reason. An alias is
+#' refused with its target named. Errors carry a `column` naming the field at
 #' fault.
 #' @noRd
 model_entry <- function(id, given, as_of = NULL) {
@@ -250,6 +251,16 @@ model_entry <- function(id, given, as_of = NULL) {
   base <- NULL
   if (!full) {
     base <- hr_state$models[[id]] %||% hr_state$seed_models[[id]]
+    # An alias takes its limits and prices from its target, so a change made
+    # to the alias itself would register a separate model that later prices
+    # on the target no longer reach. Send the user to the target instead.
+    alias <- .gr_aliases[[id]]
+    if (is.null(base) && !is.null(alias)) {
+      gr_abort(sprintf(paste0(
+        "'%s' is an alias of '%s'; set the prices on '%s'. The alias uses the ",
+        "target's entry."), id, alias, alias),
+        class = "gr_bad_setting", column = "id")
+    }
     if (is.null(base)) {
       miss <- if (has("context_window")) "max_output" else "context_window"
       gr_abort(sprintf(paste0(

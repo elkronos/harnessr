@@ -319,3 +319,20 @@ test_that("hr_load_models() refuses a month after the current one", {
   hr_load_models(write_models(c("id,input_usd,output_usd,as_of", "gpt-4o,2.5,10,2026-11")))
   expect_identical(hr_model_info("gpt-4o")$as_of, "2026-11")
 })
+
+test_that("setting the prices of an alias names the model to set them on", {
+  local_builtin_only()
+  expect_true(hr_model_info("chatgpt-4o-latest")$certain)
+  expect_error(hr_register_model("chatgpt-4o-latest", input_usd = 5, output_usd = 15),
+               "'chatgpt-4o-latest' is an alias of 'gpt-4o'; set the prices on 'gpt-4o'",
+               fixed = TRUE, class = "gr_bad_setting")
+  e <- models_file_error(hr_load_models(write_models(
+    c("id,input_usd,output_usd", "chatgpt-4o-latest,5,15"))))
+  expect_identical(e$row, 1L)
+  expect_identical(e$column, "id")
+  expect_match(conditionMessage(e), "alias of 'gpt-4o'", fixed = TRUE)
+  expect_null(harnessr:::hr_state$models[["chatgpt-4o-latest"]])
+  # Pricing the target prices the alias.
+  hr_register_model("gpt-4o", input_usd = 5, output_usd = 15)
+  expect_identical(hr_model_info("chatgpt-4o-latest")$input_usd, 5)
+})
