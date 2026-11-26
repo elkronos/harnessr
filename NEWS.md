@@ -114,6 +114,15 @@ before `premise`, which stays last).
   `min_output_tokens` before the error. `?hr_options` says that
   `output_reserve_share` does not change how much of a document a reader
   fits, since the readers give `max_answer_tokens` as the reserve.
+* New guide, `vignette("effort")` ("Effort: how hard the model reasons"), in
+  the Core group. It covers which models take a reasoning effort and what a
+  model that does not reason is sent, the levels, the request field and a
+  client's `extra_body` default, an effort per call label, what reasoning
+  costs, what effort does to the response cache, a replay and the trace,
+  effort raised for the next stage (`hr_effort_escalate()`,
+  `hr_effort_event()`, `hr_effort_log()`), and `hr_effort_check()` on a
+  benchmark of fixed and raised efforts. Its settings walkthrough covers
+  `reasoning_floor`, and `gr_settings_table()` links that option to it.
 * `?gr_result` lists every field a result carries, including `cached`,
   `served_model`, `response_id`, `fingerprint`, `attempts` and, for a
   request the limits did not send, `refused` and `refusal`.
