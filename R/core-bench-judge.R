@@ -274,7 +274,10 @@ print.hr_judge_config <- function(x, ...) {
 #'   \item{`degradation`}{`"judge_inconsistent"` when unresolved, else `NA`.}
 #'   \item{`swap_checked`}{`FALSE` when only one order was asked.}
 #'   \item{`judge_cost`}{A list of `usd` (`NA` when the model has no price),
-#'     `tokens_in`, `tokens_out` and `calls`, over the judge's own requests.}
+#'     `tokens_in`, `tokens_out` and `calls`, over the judge's own requests,
+#'     then where the prices came from: `priced`, `as_of` and `certain` (as
+#'     in [hr_trace_cost()], over the judge's models) and `models`, the
+#'     models priced.}
 #'   \item{`mode`, `model`, `candidates` (the ids), `config_hash`}{What was
 #'     judged and under which configuration.}
 #'   \item{`trace`}{The judge's own `gr_trace`.}
@@ -499,8 +502,12 @@ judge_steps_cost <- function(jt, from) {
   tmp$steps <- steps
   cost <- hr_trace_cost(tmp)
   tok <- function(f) sum(vapply(steps, function(s) as_int1(s$tokens[[f]], 0L), integer(1)))
+  prices <- price_summary(cost$model)
   list(usd = if (nrow(cost)) sum(cost$usd) else 0, tokens_in = tok("input"),
-       tokens_out = tok("output"), calls = length(steps))
+       tokens_out = tok("output"), calls = length(steps),
+       # Where the prices came from, and the model(s) priced.
+       priced = prices$priced, as_of = prices$as_of, certain = prices$certain,
+       models = cost$model)
 }
 
 #' @rdname hr_judge
@@ -514,9 +521,16 @@ print.hr_judgement <- function(x, ...) {
                 if (v$ok) sprintf("%s -> %s", v$verdict, v$value) else paste("failed:", v$error)))
   }
   if (!isTRUE(x$swap_checked)) cat("  one order only: no swap check\n")
-  usd <- x$judge_cost$usd
-  cat(sprintf("  judge cost: %d call(s), %s\n", x$judge_cost$calls,
-              if (is.na(usd)) "unknown (unpriced model)" else sprintf("$%.6f", usd)))
+  jc <- x$judge_cost
+  usd <- jc$usd
+  models <- jc[["models", exact = TRUE]] %||% character(0)
+  dated <- if (isTRUE(jc$priced)) price_as_of_text(jc$as_of) else ""
+  cat(sprintf("  judge cost: %d call(s), %s\n", jc$calls,
+              if (is.na(usd)) {
+                missing <- models[!price_status(models)$priced]
+                if (length(missing)) sprintf("unknown: %s", price_missing_text(missing))
+                else "unknown"
+              } else paste0(sprintf("$%.6f", usd), if (nzchar(dated)) paste0(", ", dated))))
   invisible(x)
 }
 

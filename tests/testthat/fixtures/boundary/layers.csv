@@ -533,6 +533,7 @@
 "report_design","core","function"
 "report_ni","core","function"
 "report_pairs","core","function"
+"report_prices","core","function"
 "request_body","core","function"
 "request_fingerprints","core","function"
 "request_headers","core","function"

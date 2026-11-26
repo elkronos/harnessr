@@ -52,7 +52,8 @@
 #'     requests per run), `escalations` (raises per run), `escalated_calls`
 #'     (requests per run sent at a raised effort) and `resolved` (the share
 #'     of raises whose stage fired none of the same triggers again, `NA`
-#'     with none).}
+#'     with none), then `priced`, `as_of` and `certain`, where `usd`'s
+#'     prices came from, as in [hr_report()]'s `cost` table.}
 #'   \item{`best_fixed`}{The most accurate comparator.}
 #'   \item{`post_hoc`}{`TRUE` when no registration was given.}
 #'   \item{`report`}{The [hr_report()] the contrasts come from.}
@@ -173,6 +174,11 @@ effort_costs <- function(bench) {
                resolved = if (esc > 0) sum(r[, "resolved"], na.rm = TRUE) / esc else NA_real_,
                stringsAsFactors = FALSE)
   }))
+  # Where `usd`'s prices came from, as hr_report() gives it per arm.
+  prices <- report_prices(df, seq_len(nrow(df)), as.character(df$arm), arms)
+  out$priced <- prices$priced
+  out$as_of <- prices$as_of
+  out$certain <- prices$certain
   rownames(out) <- NULL
   out
 }

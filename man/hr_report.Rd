@@ -102,7 +102,11 @@ arm2), \code{lower}, \code{upper}, \code{method} (\code{"cluster_robust_t"}, or
 \item{\code{pass_k}}{Per arm and k: \code{pass_k} with \code{lower} and \code{upper}.}
 \item{\code{cost}}{Per arm: \code{usd_per_item}, \code{usd_per_correct},
 \code{tokens_per_item}, \code{tokens_per_correct}, each with \verb{_lower} and
-\verb{_upper}, \code{usd_estimated_share} and \code{estimated_flag}.}
+\verb{_upper}, \code{usd_estimated_share}, \code{estimated_flag}, and where the
+prices came from: \code{priced} (every run's models have a price), \code{as_of}
+(the oldest month among those prices) and \code{certain} (every model's
+registry entry is a fact, not a guess), from the columns of the same
+names in an \code{\link[=hr_benchmark]{hr_benchmark()}} result, \code{NA} for a table without them.}
 \item{\code{frontier}}{Per arm: \code{usd_per_item}, \code{accuracy}, \code{on_frontier},
 \code{frontier_share}.}
 \item{\code{failures}}{Per arm: counts by failure kind, \code{accuracy} and

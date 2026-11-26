@@ -51,7 +51,8 @@ from \code{\link[=hr_report]{hr_report()}}'s \code{ni} table.}
 requests per run), \code{escalations} (raises per run), \code{escalated_calls}
 (requests per run sent at a raised effort) and \code{resolved} (the share
 of raises whose stage fired none of the same triggers again, \code{NA}
-with none).}
+with none), then \code{priced}, \code{as_of} and \code{certain}, where \code{usd}'s
+prices came from, as in \code{\link[=hr_report]{hr_report()}}'s \code{cost} table.}
 \item{\code{best_fixed}}{The most accurate comparator.}
 \item{\code{post_hoc}}{\code{TRUE} when no registration was given.}
 \item{\code{report}}{The \code{\link[=hr_report]{hr_report()}} the contrasts come from.}

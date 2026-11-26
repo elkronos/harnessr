@@ -70,7 +70,10 @@ candidate), \code{reason} and \code{error}.}
 \item{\code{degradation}}{\code{"judge_inconsistent"} when unresolved, else \code{NA}.}
 \item{\code{swap_checked}}{\code{FALSE} when only one order was asked.}
 \item{\code{judge_cost}}{A list of \code{usd} (\code{NA} when the model has no price),
-\code{tokens_in}, \code{tokens_out} and \code{calls}, over the judge's own requests.}
+\code{tokens_in}, \code{tokens_out} and \code{calls}, over the judge's own requests,
+then where the prices came from: \code{priced}, \code{as_of} and \code{certain} (as
+in \code{\link[=hr_trace_cost]{hr_trace_cost()}}, over the judge's models) and \code{models}, the
+models priced.}
 \item{\code{mode}, \code{model}, \code{candidates} (the ids), \code{config_hash}}{What was
 judged and under which configuration.}
 \item{\code{trace}}{The judge's own \code{gr_trace}.}
