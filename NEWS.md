@@ -42,9 +42,9 @@ no longer ships them. You set the prices you pay.
   warning off. Set the current prices again to clear it.
 * To set prices, call `hr_register_model(id, input_usd =, output_usd =)` for
   one model, or keep a CSV file of prices with an `as_of` column and load it
-  with `hr_load_models()` at the top of each script. "Models, prices and
-  token counts" in `vignette("runs")` walks through both, checking prices
-  with `hr_models()`, unpriced models and stale prices.
+  with `hr_load_models()` at the top of each script. "Prices" in
+  `vignette("models")` walks through both, checking prices with
+  `hr_models()`, unpriced models and stale prices.
   `vignette("migrate")` lists what changes for code written for 0.6.0. The
   guides, the README and the examples set illustrative prices before they
   show a cost.

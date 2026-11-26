@@ -314,7 +314,13 @@ history passes from one call to the next and your chat object is left as it
 was. Three settings belong to the chat and not to the call: the temperature and
 the reasoning effort are those the chat was built with (a call that asks for
 another warns once), and the output cap carries over only with ellmer 0.5.0 or
-later. `?hr_ellmer_client` lists what carries over.
+later. `?hr_ellmer_client` lists what carries over. A `temperature` in a
+document read spec is ignored the same way, with a warning.
+
+The chat is priced as the model it was built with, so register that model's
+prices ("A model with no price" in `vignette("models")`). Embeddings come from
+a function you pass as `embed =`. Without one, `retrieve` and the `semantic`
+segmenter fall back to lexical vectors and warn.
 
 ### A cache: `hr_cache_client()`
 

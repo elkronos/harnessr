@@ -135,7 +135,8 @@ the same string for the same document in every run and on every machine.
 **You can see what it cost.** `out$trace` holds the run's calls, and
 `hr_trace_cost()` prices them at each step's own model, counting only the calls
 that were issued. The mock client has no price, so this bill is zero;
-`vignette("runs")` explains the columns and how to register a price.
+`vignette("runs")` explains the columns, and `vignette("models")` how to
+register a price.
 
 ```{r}
 hr_trace_cost(out$trace)[, c("model", "calls", "paid_calls", "usd")]

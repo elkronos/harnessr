@@ -175,8 +175,9 @@ cl <- hr_ellmer_client(chat_ollama(model = "llama3.1"))
 
 Without a registered price, a run under `max_cost_usd` is sent with an
 `hr_unpriced_model` warning, and the spending limit does not count it.
-`vignette("runs")` covers unpriced models and what changes through ellmer
-(temperature and embeddings).
+"A model with no price" in `vignette("models")` covers unpriced models, and
+`vignette("core")` covers what changes through ellmer (temperature and
+embeddings).
 
 Anything else, such as a model behind a queue, goes through
 `hr_backend_client()`. Give it any function of `messages` and `params` that
