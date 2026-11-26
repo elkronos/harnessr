@@ -448,7 +448,8 @@ fast$reader
 
 Recipes differ a great deal in cost. `"thorough"` sends every chunk to the model
 separately, so a long document means many requests. `"fast"` makes one, and
-`"needle"` one plus the embeddings requests that rank the chunks.
+`"needle"` one plus the embeddings requests that cut the document into chunks
+and rank them.
 `vignette("readers")` explains each reading strategy and when to use it,
 and how to change a recipe's settings or build your own.
 
