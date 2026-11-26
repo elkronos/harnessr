@@ -572,7 +572,55 @@ tryCatch(hr_validate(reply_settings, list(max_word = 10)),
          hr_unknown_param = function(e) conditionMessage(e))
 ```
 
-"Parameter schemas" in `vignette("extending")` covers every type and field.
+The spec constructors of the document layer, `gr_read_spec()`,
+`gr_segment_spec()` and `gr_ingest_spec()`, check their arguments against
+schemas built the same way. A bound can depend on another setting.
+`hr_validate()` resolves the parameters in schema order, so a parameter whose
+bound depends on another, such as `overlap_tokens` below, comes after it:
+
+```{r}
+chunk_settings <- hr_schema(
+  hr_param("max_tokens", "integer", default = 1200L, min = 32, max = 1e6,
+           help = "Largest chunk, in tokens."),
+  hr_param("overlap_tokens", "integer", default = 0L, min = 0,
+           max = function(p) p$max_tokens - 1L,
+           help = "Tokens repeated between neighbouring chunks."),
+  hr_param("order", "enum", choices = c("relevance", "document"),
+           help = "How chosen chunks are ordered in the prompt."))
+chunk_settings
+```
+
+The `gr_clamped` warning also has class `hr_param_clamped`. An `enum` is
+matched as `match.arg()` matches, so an unambiguous abbreviation is accepted:
+
+```{r}
+withCallingHandlers(
+  str(hr_validate(chunk_settings,
+                  list(max_tokens = 100, overlap_tokens = 500, order = "doc"))),
+  gr_clamped = function(w) {
+    message(conditionMessage(w))
+    invokeRestart("muffleWarning")
+  })
+```
+
+A value outside an `enum`'s choices raises an error of class `gr_bad_setting`
+that names the choices.
+
+The types are `integer`, `number`, `string`, `boolean`, `enum`,
+`string_vector`, `named_map`, `module_ref` and `file`; `?hr_param` gives the
+rule for each. For a parameter that needs a rule of its own, a `resolve`
+function replaces the type's rule.
+
+The other fields describe the parameter and do not check it:
+
+- `help`: one plain sentence.
+- `cost_class`: how it moves the cost of a run, one of `"none"`, `"local"`,
+  `"per_call_constant"`, `"per_unit"`, `"per_sample"` or `"per_round"`.
+- `affects_output`: whether it belongs in cache and store keys.
+- `tier`: `"basic"` or `"advanced"`, for grouping in a user interface.
+- `evidence`, `depends_on` and `since`.
+
+These fields let a later UI or command line be built from the same list.
 
 ## Checking a reply
 
@@ -956,5 +1004,6 @@ hr_options(old)
   coding sub-agent that checks its own code.
 - `vignette("evaluate")`: benchmarks, judges, checks that run a program, and
   calibrating signals.
-- `vignette("extending")`: parameter schemas, and registering your own modules.
+- `vignette("extending")`: registering your own modules and checking them
+  against the contract.
 - `vignette("settings")`: every setting with its default.

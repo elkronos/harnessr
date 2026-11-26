@@ -198,7 +198,7 @@ Errors are classed, so you can catch a specific failure:
   `gr_unsupported_format`, `gr_overflow`, `gr_call_cap`, `gr_cost_cap`,
   `gr_budget_error`, `gr_unknown_model`, `gr_unknown_override`,
   `gr_no_recipes`, `gr_bad_ensemble` and `gr_missing_dep`.
-- `gr_bad_setting` for a setting outside its choices (`vignette("extending")`).
+- `gr_bad_setting` for a setting outside its choices (`vignette("core")`).
 - `hr_unknown_effort_key`, covered below, and `hr_unpriced_model` when
   `allow_unpriced = FALSE` refuses a model with no price.
 - `hr_dim_mismatch` when two vectors of different lengths are compared, such as
@@ -210,7 +210,7 @@ Degradations are classed warnings:
   `gr_iterative_degraded`, `gr_ensemble_degenerate`, `gr_duplicate_recipe` and
   `gr_ocr_unavailable`.
 - `gr_clamped` with `hr_param_clamped` for a parameter moved to its nearest
-  bound (`vignette("extending")`).
+  bound (`vignette("core")`).
 - `gr_parallel_share` for a parallel item whose share refused a later request
   (below).
 - `gr_bad_correct` for a `gr_compare()` `correct` function that fails (below).
