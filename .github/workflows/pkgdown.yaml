@@ -17,6 +17,10 @@
 # from: the code and its help pages, the guides, the installed files they
 # read, LICENSE, and every top-level Markdown page pkgdown renders (README,
 # NEWS, CONTRIBUTING, CONTRACT, NOTES-primitives).
+#
+# Publishing replaces everything on gh-pages (clean: true), so pages for
+# removed guides and help topics do not stay online. Every file there comes
+# from pkgdown; the site has no CNAME file.
 on:
   push:
     branches: [main, master]
@@ -82,6 +86,6 @@ jobs:
           (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         uses: JamesIves/github-pages-deploy-action@v4.5.0
         with:
-          clean: false
+          clean: true
           branch: gh-pages
           folder: docs
