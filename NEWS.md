@@ -910,6 +910,15 @@ every field that changed.
 
 ## Fixed
 
+* `print()` of a `gr_calibration` no longer shows "NA" for the frame size.
+  A reference given as a plain data frame does not record how large its
+  frame was, and the example in `?gr_calibrate` printed `sampled from: all
+  (NA of 8 screened)`. For `of = "all"` the frame is every screened record, so
+  `gr_calibrate()` now fills `$frame$frame_n` with the screened count and the
+  line reads `all (8 of 8 screened)`. For any other frame with no recorded
+  size it reads `excluded (8 screened; frame size not recorded)`. Estimates,
+  intervals and the exclusions projection do not change.
+
 * A worker in a parallel batch sets `OPENAI_API_KEY` for each item and
   puts back the value it had when the item ends. A key passed as `key` or
   through the `harnessr.api_key` option no longer stays in the worker process
