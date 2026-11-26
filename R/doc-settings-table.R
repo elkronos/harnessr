@@ -233,6 +233,7 @@
   options.safety_margin = "context#set-safety-margin",
   options.output_reserve_share = "context#set-reply-reserve",
   options.min_output_tokens = "context#set-reply-reserve",
+  options.reasoning_floor = "effort#set-reasoning-floor",
   options.model = "core#set-endpoint", options.api = "core#set-endpoint",
   options.api_base = "core#set-endpoint", options.api_headers = "core#set-endpoint",
   options.embedding_model = "core#set-endpoint",
