@@ -127,7 +127,7 @@ test_that("hr_register_model() prices a built-in model without restating its lim
   expect_identical(after$input_usd, 1.25)
   expect_identical(after$output_usd, 10)
   expect_identical(after$source, "registered")
-  expect_identical(after$as_of, format(Sys.Date(), "%Y-%m"))
+  expect_identical(after$as_of, format(harnessr:::price_today(), "%Y-%m"))
   expect_equal(hr_estimate_cost("gpt-5", 1e6, 1e6), 11.25)
 
   # gpt-4 lists an output cap equal to its window; keeping it is not an error.
@@ -158,8 +158,8 @@ test_that("changing one field of a registered model keeps the rest", {
   # New prices are stamped with the current month.
   hr_register_model("my-model", input_usd = 3, output_usd = 4)
   expect_identical(harnessr:::hr_state$models[["my-model"]]$as_of,
-                   format(Sys.Date(), "%Y-%m"))
-  expect_identical(stamped$as_of, format(Sys.Date(), "%Y-%m"))
+                   format(harnessr:::price_today(), "%Y-%m"))
+  expect_identical(stamped$as_of, format(harnessr:::price_today(), "%Y-%m"))
 })
 
 test_that("a full registration still takes the defaults it always did", {
@@ -197,7 +197,7 @@ test_that("hr_load_models() adds prices to built-in models and keeps their limit
   expect_identical(c(a$input_usd, a$output_usd), c(2.5, 10))
   expect_identical(a$as_of, "2026-11")
   # No as_of in the row: the current month.
-  expect_identical(hr_model_info("gpt-4o-mini")$as_of, format(Sys.Date(), "%Y-%m"))
+  expect_identical(hr_model_info("gpt-4o-mini")$as_of, format(harnessr:::price_today(), "%Y-%m"))
   m <- hr_models()
   expect_identical(m$input_usd_per_1m[m$id == "gpt-4o"], 2.5)
 })
