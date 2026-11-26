@@ -140,9 +140,10 @@ dev split never enters a report, and items with no label are left out.
 \strong{Accuracy.} For each arm, the mean correctness over runs within each
 item, then the mean over items.
 
-\strong{Intervals.} With \code{method = "auto"} the method follows the size of the
-benchmark. Both rest on the cluster sums of item accuracy: accuracy is the
-ratio estimator r = sum_c S_c / sum_c n_c, with S_c the summed item
+\strong{Intervals.} With \code{method = "auto"} the size of the benchmark chooses
+between the first two methods below. Both rest on the cluster sums of item
+accuracy: accuracy is the ratio estimator r = sum_c S_c / sum_c n_c, with
+S_c the summed item
 accuracy and n_c the items of cluster c, and its cluster-robust
 (linearised) variance is V = C / (C - 1) * sum_c (S_c - r n_c)^2 / N^2,
 with the small-sample factor C / (C - 1) for C clusters and N items
