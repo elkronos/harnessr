@@ -38,10 +38,13 @@
 #' written to disk, keyed on the exact request. Re-issuing the same request
 #' returns the stored response without touching the network: free, instant, and
 #' byte-identical even at a temperature above zero. A failed call is never
-#' written, and neither is a reply cut off at the output cap or a structured
-#' (JSON-schema) reply that does not parse, so re-running asks again. An
-#' unparseable structured reply that an earlier version did store is asked
-#' again rather than replayed.
+#' written, and neither is a reply cut off at the output cap, so re-running
+#' asks again. A structured (JSON-schema) reply that does not parse is not
+#' written either when the package's own structured calls make the request
+#' (the readers, `ctx$call_json()` in an [hr_arm()]), and one an earlier
+#' version did store is asked again rather than replayed. [hr_call()] does not
+#' parse a reply, so a reply to a schema call made with it is written like any
+#' other.
 #'
 #' The default location is under [tempdir()], so a cache costs nothing and
 #' disappears with the session. That is the right default for a package (it
