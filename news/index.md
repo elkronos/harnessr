@@ -1145,6 +1145,28 @@ changed.
 
 ### Fixed
 
+- [`print()`](https://rdrr.io/r/base/print.html) of a `gr_calibration`
+  no longer shows “NA” for the frame size. A reference given as a plain
+  data frame does not record how large its frame was, and the example in
+  [`?gr_calibrate`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
+  printed `sampled from: all (NA of 8 screened)`. For `of = "all"` the
+  frame is every screened record, so
+  [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
+  now fills `$frame$frame_n` with the screened count and the line reads
+  `all (8 of 8 screened)`. For any other frame with no recorded size it
+  reads `excluded (8 screened; frame size not recorded)`. Estimates,
+  intervals and the exclusions projection do not change.
+
+- [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
+  counts `$frame$screened_n` from the records the screener decided when
+  the reference does not record it, the count
+  [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md)
+  writes. It used every row of the screening table, so a plain data
+  frame from a run with undecided rows printed `all (58 of 60 screened)`
+  where the same rows from
+  [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md)
+  printed `all (58 of 58 screened)`.
+
 - A worker in a parallel batch sets `OPENAI_API_KEY` for each item and
   puts back the value it had when the item ends. A key passed as `key`
   or through the `harnessr.api_key` option no longer stays in the worker

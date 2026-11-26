@@ -139,7 +139,10 @@ An object of class `gr_calibration`:
 
 - `frame`:
 
-  Which rows the sample was drawn from, and how many.
+  Which rows the sample was drawn from, and how many: `of`, `frame_n`
+  (records in that frame) and `screened_n`. `frame_n` is `NA` when the
+  reference does not record it, except for `of = "all"`, where the frame
+  is every screened record.
 
 - `recall`:
 
@@ -454,7 +457,7 @@ ref <- data.frame(document = paste0("d", 1:8, ".pdf"),
 gr_calibrate(structure(list(table = tab), class = "gr_screening"), ref,
              of = "all")
 #> <gr_calibration> 8 hand-screened row(s), 4 eligible
-#>   sampled from: all (NA of 8 screened)
+#>   sampled from: all (8 of 8 screened)
 #>   sensitivity (as deployed)       75.0%  [30.1%, 95.4%]  n=4
 #>   sensitivity (strict include)    50.0%  [15.0%, 85.0%]  n=4
 #>   specificity                     75.0%  [30.1%, 95.4%]  n=4

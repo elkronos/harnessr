@@ -125,9 +125,9 @@ hr_signal("demo.confident", TRUE, tr, item_id = "q1")
 hr_signal("demo.confident", c(0.9, 0.2), tr, item_id = c("q2", "q3"))
 hr_signals(tr)
 #>                          run_id step source recipe         signal    type
-#> 1 run_20261126103344.961_94ccf0    1   <NA>   <NA> demo.confident logical
-#> 2 run_20261126103344.961_94ccf0    2   <NA>   <NA> demo.confident numeric
-#> 3 run_20261126103344.961_94ccf0    2   <NA>   <NA> demo.confident numeric
+#> 1 run_20261126122928.804_fc0d4e    1   <NA>   <NA> demo.confident logical
+#> 2 run_20261126122928.804_fc0d4e    2   <NA>   <NA> demo.confident numeric
+#> 3 run_20261126122928.804_fc0d4e    2   <NA>   <NA> demo.confident numeric
 #>   item_id index value score refs
 #> 1      q1     1  TRUE   1.0 <NA>
 #> 2      q2     1   0.9   0.9 <NA>
@@ -144,7 +144,7 @@ ans <- gr_read(ch, "What was revenue?", cl, "iterative")
 #> Reading with 'iterative' (topk|rounds*2|forward) over 5 chunk(s).
 hr_signals(ans)
 #>                          run_id step source recipe                  signal
-#> 1 run_20261126103345.013_6f10e7    5   <NA>   <NA> gr.iterative.can_answer
+#> 1 run_20261126122928.855_77b5d9    5   <NA>   <NA> gr.iterative.can_answer
 #>      type item_id index value score        refs
 #> 1 logical    <NA>     1  TRUE     1 {"round":1}
 

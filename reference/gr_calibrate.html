@@ -197,7 +197,10 @@ in an <code>"excluded"</code> or <code>"kept"</code> one.</p></dd>
 sentence saying why the sample fell short (<code>NA</code> when it did not).</p></dd>
 
 <dt><code>frame</code></dt>
-<dd><p>Which rows the sample was drawn from, and how many.</p></dd>
+<dd><p>Which rows the sample was drawn from, and how many: <code>of</code>,
+<code>frame_n</code> (records in that frame) and <code>screened_n</code>. <code>frame_n</code> is <code>NA</code>
+when the reference does not record it, except for <code>of = "all"</code>, where
+the frame is every screened record.</p></dd>
 
 <dt><code>recall</code></dt>
 <dd><p>Recall: <code>estimate</code>, <code>lower</code> and <code>upper</code> (two-sided at
@@ -490,7 +493,7 @@ Statistical Psychology</em> 61(1), 29-48.</p>
 <span class="r-in"><span><span class="fu">gr_calibrate</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/structure.html" class="external-link">structure</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>table <span class="op">=</span> <span class="va">tab</span><span class="op">)</span>, class <span class="op">=</span> <span class="st">"gr_screening"</span><span class="op">)</span>, <span class="va">ref</span>,</span></span>
 <span class="r-in"><span>             of <span class="op">=</span> <span class="st">"all"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;gr_calibration&gt; 8 hand-screened row(s), 4 eligible</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   sampled from: all (NA of 8 screened)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   sampled from: all (8 of 8 screened)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   sensitivity (as deployed)       75.0%  [30.1%, 95.4%]  n=4</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   sensitivity (strict include)    50.0%  [15.0%, 85.0%]  n=4</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   specificity                     75.0%  [30.1%, 95.4%]  n=4</span>
