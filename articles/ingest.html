@@ -179,13 +179,10 @@ marked as such</td>
 </tr>
 <tr class="odd">
 <td><code>html</code></td>
-<td>text inside <code>&lt;h1&gt;</code> to <code>&lt;h4&gt;</code>,
-<code>&lt;p&gt;</code>, <code>&lt;li&gt;</code>,
-<code>&lt;td&gt;</code>, <code>&lt;pre&gt;</code> and
-<code>&lt;blockquote&gt;</code>; text anywhere else (a bare
-<code>&lt;div&gt;</code>, <code>&lt;h5&gt;</code>,
-<code>&lt;th&gt;</code>) is dropped, as are scripts, styles, navigation
-bars and footers</td>
+<td>the text of the page in reading order, with <code>&lt;h1&gt;</code>
+to <code>&lt;h6&gt;</code> as sections and each table row as one block,
+its cells joined by a vertical bar; scripts, styles, navigation bars and
+footers are dropped</td>
 <td><code>xml2</code></td>
 </tr>
 <tr class="even">
@@ -518,12 +515,14 @@ limit, 20 characters by default.</p>
 <div class="section level2">
 <h2 id="reading-the-same-file-twice">Reading the same file twice<a class="anchor" aria-label="anchor" href="#reading-the-same-file-twice"></a>
 </h2>
-<p>harnessr caches each ingestion for the rest of the R session. A
-second question about the same file, or a different way of cutting it
-into chunks, reuses the extracted text instead of reading the file
-again. The cache key holds the file’s size and modification time and
-every ingestion setting, so harnessr reads the file again when any of
-them changes. Turn the cache off with
+<p>harnessr caches each ingestion in memory for the R session. A second
+question about the same file, or a different way of cutting it into
+chunks, reuses the extracted text instead of reading the file again. The
+cache key holds the file’s size and modification time and every
+ingestion setting, so harnessr reads the file again when any of them
+changes. The cache holds about 256 MB of documents; past that, harnessr
+drops the ones used least recently and reads them again when next asked
+for. Turn the cache off with
 <code>hr_options(cache_documents = FALSE)</code>.</p>
 </div>
 <div class="section level2">
@@ -546,7 +545,7 @@ without calling a model and without an API key:</p>
 <span></span>
 <span><span class="va">inv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_inventory.html">gr_inventory</a></span><span class="op">(</span><span class="va">inbox</span><span class="op">)</span></span>
 <span><span class="va">inv</span></span>
-<span><span class="co">#&gt; &lt;gr_inventory&gt; /tmp/RtmpxEwDzv/inbox</span></span>
+<span><span class="co">#&gt; &lt;gr_inventory&gt; /tmp/RtmpQ3eumk/inbox</span></span>
 <span><span class="co">#&gt;   4 file(s), 1.9 KB; 2 readable</span></span>
 <span><span class="co">#&gt;   2 ready, 1 no_extractor, 1 empty</span></span>
 <span><span class="co">#&gt;   tokens: 549   cost floor: $0.01 (gpt-5.6-terra, one call per document)</span></span>

@@ -72,8 +72,8 @@
 <div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">bash</span> run-tests.sh            <span class="co"># install what is missing, install the package, run the suite</span></span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">bash</span> run-tests.sh <span class="at">--check</span>    <span class="co"># a full R CMD check instead</span></span>
 <span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">bash</span> run-tests.sh <span class="at">--help</span>     <span class="co"># the other options</span></span></code></pre></div>
-<p>The suite needs <code>testthat</code> and <code>withr</code>. Install <code>future</code> and <code>future.apply</code> too: without them, the tests of a parallel run’s call and cost counts are skipped. Every test uses an offline mock client, so no key is needed and no request leaves your machine. The parallel tests start worker processes, and each worker loads the installed harnessr, not your source tree. <code>run-tests.sh</code> installs the package first; when you run a test file yourself, reinstall with <code>R CMD INSTALL .</code> before it, or the workers run the old code. The tests workflow on GitHub runs the same suite, then runs every R block of the README and compares the output each block documents with real output. It knits every guide with no key and no network, checks the registry counts the get started guide states against the registries, fails if two readers share a traversal signature, and fails if any of that left a new or changed file in the repository that <code>git status</code> reports. Files <code>.gitignore</code> names are not reported, so output that matches one of its patterns (<code>docs/</code>, <code>*.Rout</code>, <code>readgpt_history_*.json</code>, <code>sim-results/</code>) passes that check unseen.</p>
-<p>Three scripts rewrite the fixtures the tests compare against. Run them from the repository root, and only when you mean to change what they record:</p>
+<p>The suite needs <code>testthat</code> and <code>withr</code>. Install <code>future</code> and <code>future.apply</code> too: without them, the tests of a parallel run’s call and cost counts are skipped. Every test runs offline: model calls go to a mock client, an R function or a local fake of the HTTP request, so no key is needed and no request leaves your machine. The parallel tests start worker processes, and each worker loads the installed harnessr, not your source tree. <code>run-tests.sh</code> installs the package first; when you run a test file yourself, reinstall with <code>R CMD INSTALL .</code> before it, or the workers run the old code. The tests workflow on GitHub runs the same suite, then runs the R blocks of the README, except those that install a package or need a PDF, a real key or ellmer, and compares the output each block documents with real output. It knits every guide with no key and no network, checks the registry counts the get started guide states against the registries, fails if two readers share a traversal signature, and fails if any of that left a new or changed file in the repository that <code>git status</code> reports. Files <code>.gitignore</code> names are not reported, so output that matches one of its patterns (<code>docs/</code>, <code>*.Rout</code>, <code>readgpt_history_*.json</code>, <code>sim-results/</code>) passes that check unseen.</p>
+<p>These scripts rewrite fixtures the tests compare against. Run them from the repository root, and only when you mean to change what they record:</p>
 <table class="table"><colgroup><col width="50%"><col width="50%"></colgroup><thead><tr><th>Script</th>
 <th>What it rewrites</th>
 </tr></thead><tbody><tr><td><code>Rscript dev/record-golden.R</code></td>
@@ -86,8 +86,23 @@
 </tr><tr><td><code>Rscript dev/record-doc-internal.R</code></td>
 <td>
 <code>fixtures/boundary/doc-uses-internal.csv</code>, the core internals the document layer uses</td>
+</tr><tr><td><code>Rscript dev/record-listings.R</code></td>
+<td>
+<code>fixtures/registry/listings.rds</code>, what each registry holds when the package loads</td>
+</tr><tr><td><code>Rscript dev/build-stage-fixtures.R</code></td>
+<td>
+<code>fixtures/stages/</code>, one saved object of each review stage</td>
+</tr><tr><td><code>Rscript dev/build-quote-fixture.R</code></td>
+<td>
+<code>fixtures/quotes/</code>, the labelled quotations the quote matchers are tested on</td>
+</tr><tr><td><code>Rscript dev/build-pdf-fixtures.R</code></td>
+<td>
+<code>fixtures/pdf/</code>, the PDFs the PDF golden records read; needs pdftools</td>
+</tr><tr><td><code>dev/record-legacy-keys.R</code></td>
+<td>
+<code>fixtures/legacy-0.6.0/</code>, a cache and a recording written by an old build; its header says how to rerun it with that build</td>
 </tr></tbody></table><p><code>Rscript dev/build-diagrams.R</code> rewrites the four diagrams in <code>man/figures/</code> from the code: the layers, a document run, composition, and the registry. Rerun it after changing a stage, a kind of module, a composition verb or a contract version, and commit the new SVGs. <code>tests/testthat/test-diagrams.R</code> fails until you do.</p>
-<p><code>Rscript dev/ci/pr-checks.R &lt;mode&gt; origin/main HEAD</code> runs a pull request check locally; the modes are <code>tests</code>, <code>deps</code>, <code>lint</code>, <code>namespace</code> and <code>commits</code>.</p>
+<p><code>Rscript dev/ci/pr-checks.R &lt;mode&gt; origin/main HEAD</code> runs a pull request check locally; the modes are <code>tests</code>, <code>deps</code>, <code>lint</code>, <code>namespace</code>, <code>commits</code> and <code>dashes</code>.</p>
 </div>
 <div class="section level3">
 <h3 id="checks-on-github">Checks on GitHub<a class="anchor" aria-label="anchor" href="#checks-on-github"></a></h3>

@@ -450,10 +450,11 @@ ref <- data.frame(document = paste0("d", 1:8, ".pdf"),
                   human_decision = c("include", "exclude", "include", "exclude",
                                      "exclude", "include", "include", "exclude"),
                   stringsAsFactors = FALSE)
-gr_calibrate(structure(list(table = tab), class = "gr_screening"), ref)
-#> Warning: This reference does not say which part of the screening run it came from, so the figures below assume a sample of EVERYTHING screened. If it is a sample of one stratum (the exclusions, say), sensitivity and specificity are artifacts of that frame rather than facts about the screener. Pass `of = "excluded"`, `"kept"` or `"all"` to say which.
+# The sheet covers every screened document, so `of = "all"`.
+gr_calibrate(structure(list(table = tab), class = "gr_screening"), ref,
+             of = "all")
 #> <gr_calibration> 8 hand-screened row(s), 4 eligible
-#>   sampled from: unknown (NA of 8 screened)
+#>   sampled from: all (NA of 8 screened)
 #>   sensitivity (as deployed)       75.0%  [30.1%, 95.4%]  n=4
 #>   sensitivity (strict include)    50.0%  [15.0%, 85.0%]  n=4
 #>   specificity                     75.0%  [30.1%, 95.4%]  n=4

@@ -21,13 +21,15 @@ bash run-tests.sh --help     # the other options
 
 The suite needs `testthat` and `withr`. Install `future` and
 `future.apply` too: without them, the tests of a parallel run’s call and
-cost counts are skipped. Every test uses an offline mock client, so no
+cost counts are skipped. Every test runs offline: model calls go to a
+mock client, an R function or a local fake of the HTTP request, so no
 key is needed and no request leaves your machine. The parallel tests
 start worker processes, and each worker loads the installed harnessr,
 not your source tree. `run-tests.sh` installs the package first; when
 you run a test file yourself, reinstall with `R CMD INSTALL .` before
 it, or the workers run the old code. The tests workflow on GitHub runs
-the same suite, then runs every R block of the README and compares the
+the same suite, then runs the R blocks of the README, except those that
+install a package or need a PDF, a real key or ellmer, and compares the
 output each block documents with real output. It knits every guide with
 no key and no network, checks the registry counts the get started guide
 states against the registries, fails if two readers share a traversal
@@ -36,15 +38,19 @@ repository that `git status` reports. Files `.gitignore` names are not
 reported, so output that matches one of its patterns (`docs/`, `*.Rout`,
 `readgpt_history_*.json`, `sim-results/`) passes that check unseen.
 
-Three scripts rewrite the fixtures the tests compare against. Run them
-from the repository root, and only when you mean to change what they
-record:
+These scripts rewrite fixtures the tests compare against. Run them from
+the repository root, and only when you mean to change what they record:
 
 | Script | What it rewrites |
 |----|----|
 | `Rscript dev/record-golden.R` | the golden records in `tests/testthat/fixtures/golden/` and `fixtures/golden-heuristics/` |
 | `Rscript dev/record-layers.R` | `fixtures/boundary/layers.csv`, the layer of every object in `R/` |
 | `Rscript dev/record-doc-internal.R` | `fixtures/boundary/doc-uses-internal.csv`, the core internals the document layer uses |
+| `Rscript dev/record-listings.R` | `fixtures/registry/listings.rds`, what each registry holds when the package loads |
+| `Rscript dev/build-stage-fixtures.R` | `fixtures/stages/`, one saved object of each review stage |
+| `Rscript dev/build-quote-fixture.R` | `fixtures/quotes/`, the labelled quotations the quote matchers are tested on |
+| `Rscript dev/build-pdf-fixtures.R` | `fixtures/pdf/`, the PDFs the PDF golden records read; needs pdftools |
+| `dev/record-legacy-keys.R` | `fixtures/legacy-0.6.0/`, a cache and a recording written by an old build; its header says how to rerun it with that build |
 
 `Rscript dev/build-diagrams.R` rewrites the four diagrams in
 `man/figures/` from the code: the layers, a document run, composition,
@@ -53,8 +59,8 @@ composition verb or a contract version, and commit the new SVGs.
 `tests/testthat/test-diagrams.R` fails until you do.
 
 `Rscript dev/ci/pr-checks.R <mode> origin/main HEAD` runs a pull request
-check locally; the modes are `tests`, `deps`, `lint`, `namespace` and
-`commits`.
+check locally; the modes are `tests`, `deps`, `lint`, `namespace`,
+`commits` and `dashes`.
 
 ### Checks on GitHub
 

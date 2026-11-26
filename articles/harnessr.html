@@ -513,8 +513,9 @@ point.</p>
 <code>"auto"</code>, picks one of two by the document’s length:
 <code>"fast"</code>, which sends the whole document in one request, for
 up to 50,000 tokens (less on a model with a small context window), and
-<code>"thorough"</code>, one request per chunk, for anything longer.
-<code>ans$recipe</code> says which it picked:</p>
+<code>"thorough"</code>, one request per chunk plus the requests that
+merge the replies, for anything longer. <code>ans$recipe</code> says
+which it picked:</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ans</span><span class="op">$</span><span class="va">recipe</span></span>
 <span><span class="co">#&gt; [1] "fast"</span></span></code></pre></div>
@@ -584,9 +585,11 @@ up to 50,000 tokens (less on a model with a small context window), and
 <span><span class="co">#&gt; [1] "stuff"</span></span></code></pre></div>
 <p>Recipes differ a great deal in cost. <code>"thorough"</code> sends
 every chunk to the model separately, so a long document means many
-requests; <code>"fast"</code> and <code>"needle"</code> make one.
-<code><a href="../articles/readers.html">vignette("readers")</a></code> explains each reading strategy and when
-to use it, and how to change a recipe’s settings or build your own.</p>
+requests. <code>"fast"</code> makes one, and <code>"needle"</code> one
+plus the embeddings requests that cut the document into chunks and rank
+them. <code><a href="../articles/readers.html">vignette("readers")</a></code> explains each reading strategy
+and when to use it, and how to change a recipe’s settings or build your
+own.</p>
 <p>To choose a recipe or a model on more than one document,
 <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> runs each configuration several times over a
 labelled set of questions under one spending limit.

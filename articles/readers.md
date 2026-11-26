@@ -486,7 +486,7 @@ Every request a reader makes carries a label naming its stage:
 |----|----|----|
 | `stuff` | none | `stuff.answer` |
 | `map_reduce` | `map.answer` | `reduce` |
-| `refine` | `refine.draft`, then `refine.revise` | none (the last revision is the answer) |
+| `refine` | `refine.draft`, then `refine.revise` | none (the last revision is the answer); `refine.answer` under `refine_state = "ledger"` |
 | `skim` | `skim.extract` | `skim.consolidate` (only if the passages do not fit), `skim.answer` |
 | `hierarchical` | `hier.summarise.L1` | `hier.summarise.L2` and up, `hier.answer` |
 | `retrieve` | none | `retrieve.answer` |
@@ -820,8 +820,8 @@ value sends and what
 [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
 reports, and they cannot show which value answers better.
 [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)
-sweeps `top_k` on a reference of 32 questions with dev and test splits
-and reads the result with intervals.
+sweeps `top_k` on 16 dev questions, compares two values on 32 test
+questions and reads the result with intervals.
 
 ``` r
 

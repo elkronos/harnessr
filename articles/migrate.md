@@ -155,8 +155,12 @@ unlist(legacy$segment[c("method", "max_tokens", "overlap_tokens")])
 #>    "paragraph"         "3000"            "0"
 ```
 
-The regression suite in `tests/testthat/` reproduces each of these
-defects against the current code.
+Two tests in `tests/testthat/` fail if the current code undoes the
+second or third change above: “a recipe’s answer does not depend on what
+it is compared against”, in `test-distinctness.R`, and “digits survive
+ingestion by default”, in `test-regressions-v1.R`. `answer_question()`
+is removed, and `test-removed-names.R` fails if it is exported or
+defined again.
 
 ## What still loads
 

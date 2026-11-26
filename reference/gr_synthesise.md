@@ -626,8 +626,8 @@ cl <- hr_mock_client(function(messages, params) {
 f <- tempfile(fileext = ".txt")
 writeLines("We ran a randomised trial. We enrolled 120 people.", f)
 x <- gr_extract(f, fields, client = cl)
-#> [1/1] file1c1c4903a6ef.txt
-#> Extracting 'file1c1c4903a6ef.txt' with the 'txt' extractor.
+#> [1/1] file1bef2a93bf34.txt
+#> Extracting 'file1bef2a93bf34.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~18 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).

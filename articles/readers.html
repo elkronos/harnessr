@@ -663,7 +663,9 @@ nothing, and each request goes out at the provider’s default.</p>
 <td>
 <code>refine.draft</code>, then <code>refine.revise</code>
 </td>
-<td>none (the last revision is the answer)</td>
+<td>none (the last revision is the answer); <code>refine.answer</code>
+under <code>refine_state = "ledger"</code>
+</td>
 </tr>
 <tr class="even">
 <td><code>skim</code></td>
@@ -1131,8 +1133,8 @@ reference. Here they run on one question about the example report, with
 the stand-in model above. They show what each value sends and what
 <code><a href="../reference/hr_sweep_check.html">hr_sweep_check()</a></code> reports, and they cannot show which value
 answers better. <code><a href="../articles/compare.html">vignette("compare")</a></code> sweeps
-<code>top_k</code> on a reference of 32 questions with dev and test
-splits and reads the result with intervals.</p>
+<code>top_k</code> on 16 dev questions, compares two values on 32 test
+questions and reads the result with intervals.</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">qa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_qa_reference.html">gr_qa_reference</a></span><span class="op">(</span>questions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>revenue <span class="op">=</span> <span class="st">"What was revenue in 2024?"</span><span class="op">)</span>,</span>
 <span>                      documents <span class="op">=</span> <span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, answers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"45.2 million"</span><span class="op">)</span>,</span>

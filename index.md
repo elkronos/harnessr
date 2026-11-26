@@ -12,8 +12,9 @@ decides which documents count,
 [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 fills a typed schema across all of them, and
 [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
-writes the result up with every claim citing the row it rests on. Every
-model call is budgeted, recorded and checked, and can be cached.
+writes the result up, citing the rows each section rests on and flagging
+any sentence that cites none. Every model call is budgeted, recorded and
+checked, and can be cached.
 
 ![Two stacked layers. Your code calls the document layer (gr\_ functions
 for ingest, segment, read, screen, extract, claims, synthesis and
@@ -107,7 +108,7 @@ cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "signature", "setting
 ```
 
 `settings` names whatever each recipe changed from the defaults. The
-bundled example is small (573 tokens as
+bundled example is small (under 600 tokens as
 [`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
 counts them), so `fast` and `thorough` fit it in one chunk. On a real
 report they would not.

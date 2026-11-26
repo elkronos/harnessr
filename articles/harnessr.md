@@ -502,8 +502,8 @@ made the three decisions using a *recipe*, a named combination of
 choices. The default, `"auto"`, picks one of two by the document’s
 length: `"fast"`, which sends the whole document in one request, for up
 to 50,000 tokens (less on a model with a small context window), and
-`"thorough"`, one request per chunk, for anything longer. `ans$recipe`
-says which it picked:
+`"thorough"`, one request per chunk plus the requests that merge the
+replies, for anything longer. `ans$recipe` says which it picked:
 
 ``` r
 
@@ -556,8 +556,9 @@ fast$reader
 ```
 
 Recipes differ a great deal in cost. `"thorough"` sends every chunk to
-the model separately, so a long document means many requests; `"fast"`
-and `"needle"` make one.
+the model separately, so a long document means many requests. `"fast"`
+makes one, and `"needle"` one plus the embeddings requests that cut the
+document into chunks and rank them.
 [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
 explains each reading strategy and when to use it, and how to change a
 recipe’s settings or build your own.

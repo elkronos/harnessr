@@ -115,8 +115,12 @@ vectors and warn.</p></dd>
 <dt id="arg-model-embedding-model">model, embedding_model<a class="anchor" aria-label="anchor" href="#arg-model-embedding-model"></a></dt>
 <dd><p>Model ids reported to the rest of the package.
 If <code>model</code> is not in the model registry you will get the usual unknown-model
-warning and a conservative context window; <code><a href="hr_register_model.html">hr_register_model()</a></code> fixes that,
-and getting it right matters because it is what sizes your chunks.</p></dd>
+warning and a conservative context window. Under the default spending limit
+(<code>hr_options(max_cost_usd =)</code>), a call to a <code>model</code> with no registered price
+is also refused and not sent. Register the model with <code><a href="hr_register_model.html">hr_register_model()</a></code>,
+giving <code>input_usd</code> and <code>output_usd</code> as well as its limits, or set
+<code>hr_options(allow_unpriced = TRUE)</code>. The context window you register is what
+sizes your chunks.</p></dd>
 
 
 <dt id="arg-id">id<a class="anchor" aria-label="anchor" href="#arg-id"></a></dt>
@@ -172,7 +176,12 @@ returns <code>""</code> is treated as an empty completion, which this package re
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Any function will do. This one is deterministic so the example is too.</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Register the model first: its limits size the calls, and a price (zero</span></span></span>
+<span class="r-in"><span><span class="co"># here) lets the default spending limit count them instead of refusing.</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"my-backend"</span>, context_window <span class="op">=</span> <span class="fl">8000</span>, max_output <span class="op">=</span> <span class="fl">1000</span>,</span></span>
+<span class="r-in"><span>                  input_usd <span class="op">=</span> <span class="fl">0</span>, output_usd <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Any function will do. This one is deterministic so the example is too.</span></span></span>
 <span class="r-in"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu">hr_backend_client</span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span>  <span class="va">user</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Filter</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="va">m</span><span class="op">$</span><span class="va">role</span> <span class="op">==</span> <span class="st">"user"</span>, <span class="va">messages</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"I was asked %d thing(s) with a %d-token cap."</span>,</span></span>
@@ -180,16 +189,14 @@ returns <code>""</code> is treated as an empty completion, which this package re
 <span class="r-in"><span><span class="op">}</span>, model <span class="op">=</span> <span class="st">"my-backend"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu"><a href="hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">cl</span>, <span class="st">"What was revenue?"</span>, max_output <span class="op">=</span> <span class="fl">128L</span><span class="op">)</span><span class="op">$</span><span class="va">text</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Model 'my-backend' is not in the registry. Falling back to a conservative 128000-token context with a 4096-token output reserve. Register the real limits with hr_register_model('my-backend', context_window = ..., max_output = ...) so budgets and cost estimates are correct.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] ""</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "I was asked 1 thing(s) with a 128-token cap."</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># It composes with everything else: caching, tracing, cost accounting.</span></span></span>
 <span class="r-in"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="hr_trace.html">hr_trace</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="fu"><a href="hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">cl</span>, <span class="st">"again"</span>, trace <span class="op">=</span> <span class="va">tr</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Model 'my-backend' is not in the registry. Falling back to a conservative 128000-token context with a 4096-token output reserve. Register the real limits with hr_register_model('my-backend', context_window = ..., max_output = ...) so budgets and cost estimates are correct.</span>
 <span class="r-in"><span><span class="fu"><a href="hr_trace_summary.html">hr_trace_summary</a></span><span class="op">(</span><span class="va">tr</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"calls"</span>, <span class="st">"tokens_in"</span>, <span class="st">"tokens_out"</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   calls tokens_in tokens_out</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1     0         0          0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1     1         5         24</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

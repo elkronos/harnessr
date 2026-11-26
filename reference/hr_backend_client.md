@@ -48,10 +48,13 @@ hr_backend_client(
 
   Model ids reported to the rest of the package. If `model` is not in
   the model registry you will get the usual unknown-model warning and a
-  conservative context window;
-  [`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md)
-  fixes that, and getting it right matters because it is what sizes your
-  chunks.
+  conservative context window. Under the default spending limit
+  (`hr_options(max_cost_usd =)`), a call to a `model` with no registered
+  price is also refused and not sent. Register the model with
+  [`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md),
+  giving `input_usd` and `output_usd` as well as its limits, or set
+  `hr_options(allow_unpriced = TRUE)`. The context window you register
+  is what sizes your chunks.
 
 - id:
 
@@ -118,6 +121,11 @@ evidence.
 ## Examples
 
 ``` r
+# Register the model first: its limits size the calls, and a price (zero
+# here) lets the default spending limit count them instead of refusing.
+hr_register_model("my-backend", context_window = 8000, max_output = 1000,
+                  input_usd = 0, output_usd = 0)
+
 # Any function will do. This one is deterministic so the example is too.
 cl <- hr_backend_client(function(messages, params) {
   user <- Filter(function(m) m$role == "user", messages)
@@ -126,14 +134,12 @@ cl <- hr_backend_client(function(messages, params) {
 }, model = "my-backend")
 
 hr_call(cl, "What was revenue?", max_output = 128L)$text
-#> Warning: Model 'my-backend' is not in the registry. Falling back to a conservative 128000-token context with a 4096-token output reserve. Register the real limits with hr_register_model('my-backend', context_window = ..., max_output = ...) so budgets and cost estimates are correct.
-#> [1] ""
+#> [1] "I was asked 1 thing(s) with a 128-token cap."
 
 # It composes with everything else: caching, tracing, cost accounting.
 tr <- hr_trace()
 invisible(hr_call(cl, "again", trace = tr))
-#> Warning: Model 'my-backend' is not in the registry. Falling back to a conservative 128000-token context with a 4096-token output reserve. Register the real limits with hr_register_model('my-backend', context_window = ..., max_output = ...) so budgets and cost estimates are correct.
 hr_trace_summary(tr)[c("calls", "tokens_in", "tokens_out")]
 #>   calls tokens_in tokens_out
-#> 1     0         0          0
+#> 1     1         5         24
 ```

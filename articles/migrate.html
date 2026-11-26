@@ -443,8 +443,14 @@ reproduce its ingestion and chunking under the current code, use the
 <span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">legacy</span><span class="op">$</span><span class="va">segment</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"method"</span>, <span class="st">"max_tokens"</span>, <span class="st">"overlap_tokens"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;         method     max_tokens overlap_tokens </span></span>
 <span><span class="co">#&gt;    "paragraph"         "3000"            "0"</span></span></code></pre></div>
-<p>The regression suite in <code>tests/testthat/</code> reproduces each
-of these defects against the current code.</p>
+<p>Two tests in <code>tests/testthat/</code> fail if the current code
+undoes the second or third change above: “a recipe’s answer does not
+depend on what it is compared against”, in
+<code>test-distinctness.R</code>, and “digits survive ingestion by
+default”, in <code>test-regressions-v1.R</code>.
+<code>answer_question()</code> is removed, and
+<code>test-removed-names.R</code> fails if it is exported or defined
+again.</p>
 </div>
 <div class="section level2">
 <h2 id="what-still-loads">What still loads<a class="anchor" aria-label="anchor" href="#what-still-loads"></a>

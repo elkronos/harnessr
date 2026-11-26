@@ -142,7 +142,7 @@ str(step[c("label", "attempts", "started_utc", "tokens")])
 #> List of 4
 #>  $ label      : chr "reduce"
 #>  $ attempts   : int 1
-#>  $ started_utc: chr "2026-11-26T06:44:37.020Z"
+#>  $ started_utc: chr "2026-11-26T06:52:38.800Z"
 #>  $ tokens     :List of 3
 #>   ..$ input     : int 296
 #>   ..$ output    : int 13
@@ -210,11 +210,12 @@ cut$notes$tokens_truncated
 #> [1] 910
 ```
 
-A cut can also be made at `refine.excerpt`, `hier.summaries`,
-`preview.skim`, `preview.outline`, `<label>.input` for a finding cut to
-fit a merge, `<label>.giveup` for the capped findings a failed merge
-returns, `segment.contextual.header`, `segment.contextual.document`,
-`screen.opening`, `synthesise.gaps` and `embed.input`.
+A cut can also be made at `refine.excerpt`, `refine.ledger`,
+`hier.summaries`, `preview.skim`, `preview.outline`, `<label>.input` for
+a finding cut to fit a merge, `<label>.giveup` for the capped findings a
+failed merge returns, `segment.contextual.header`,
+`segment.contextual.document`, `screen.opening`, `synthesise.gaps` and
+`embed.input`.
 
 A trace also records who the run is for and the settings it ran under.
 [`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md)
@@ -228,10 +229,10 @@ out the values of `api_headers`, since they can hold credentials.
 
 tr <- hr_trace(owner = "finance team", run_by = "ana", purpose = "Q3 check")
 tr
-#> <gr_trace run_20261126064437.352_86bedf>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
+#> <gr_trace run_20261126065239.323_64819b>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
 #>   cost: no cost recorded
 #>   actor: owner = finance team, run_by = ana, purpose = Q3 check 
-#>   started: 2026-11-26T06:44:37.352Z
+#>   started: 2026-11-26T06:52:39.323Z
 names(tr$config)
 #> [1] "options"   "r_version"
 ```

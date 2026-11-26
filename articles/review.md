@@ -146,10 +146,10 @@ gr_read_many(reports, "What was revenue?", "thorough",
              client = durable, store = file.path(tempdir(), "run-store"))
 ```
 
-The store is keyed on the document’s path, size and mtime, the question,
-the whole pipeline and the model. An edited document is therefore read
-again, and never served from the store. A later session reuses the store
-or cache of an
+The store is keyed on the document’s path, size and a hash of its bytes,
+the question, the whole pipeline and the model. An edited document is
+therefore read again, and never served from the store. A later session
+reuses the store or cache of an
 [`hr_backend_client()`](https://elkronos.github.io/harnessr/reference/hr_backend_client.md)
 only if you give that client a stable `id`;
 [`hr_client()`](https://elkronos.github.io/harnessr/reference/hr_client.md)
@@ -2140,8 +2140,8 @@ is checked: a stage run on a version other than the report’s is flagged:
 page <- gr_audit_report(tempfile(fileext = ".html"), screening = screened,
                         extraction = table, open = FALSE)
 grep("UTC</td>", readLines(page), value = TRUE)
-#> [1] "<tr><td>screening</td><td>2026-11-26 06:44:30 UTC</td><td>0.6.0.9000</td></tr>" 
-#> [2] "<tr><td>extraction</td><td>2026-11-26 06:44:31 UTC</td><td>0.6.0.9000</td></tr>"
+#> [1] "<tr><td>screening</td><td>2026-11-26 06:52:28 UTC</td><td>0.6.0.9000</td></tr>" 
+#> [2] "<tr><td>extraction</td><td>2026-11-26 06:52:30 UTC</td><td>0.6.0.9000</td></tr>"
 ```
 
 The report puts the failures near the top and counts them there:

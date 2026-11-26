@@ -81,12 +81,12 @@ calls it with the `segment` part of a recipe:
 
 ``` r
 
-gr_recipe("survey")$segment[c("method", "max_tokens", "overlap_tokens")]
+gr_recipes("survey")$segment[c("method", "max_tokens", "overlap_tokens")]
 #> $method
-#> [1] "paragraph"
+#> [1] "structural"
 #> 
 #> $max_tokens
-#> [1] 1200
+#> [1] 1500
 #> 
 #> $overlap_tokens
 #> [1] 0
