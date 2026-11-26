@@ -185,11 +185,17 @@ gr_inventory <- function(sources, recursive = TRUE, model = NULL,
   base <- if (is_dir) root else common_parent(paths)
 
   if (!length(paths)) {
+    # The same totals as a survey with files, so code that reads `priced`
+    # finds it: where the model's prices come from, with no cost floor.
+    model <- as_chr1(model %||% hr_options("model"))
+    priced <- suppressWarnings(hr_estimate_cost(model, 0, 0, detail = TRUE),
+                               classes = "gr_unknown_model")
     return(structure(list(files = inventory_frame(), by_status = inventory_status_frame(),
                           totals = list(files = 0L, readable = 0L, bytes = 0,
                                         tokens = 0, tokens_unknown = 0L,
-                                        cost_floor_usd = NA_real_),
-                          root = root, model = as_chr1(model %||% hr_options("model"))),
+                                        cost_floor_usd = NA_real_, priced = priced$priced,
+                                        as_of = priced$as_of, certain = priced$certain),
+                          root = root, model = model),
                      class = "gr_inventory"))
   }
 

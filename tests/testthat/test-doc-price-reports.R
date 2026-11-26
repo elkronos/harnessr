@@ -79,6 +79,14 @@ test_that("gr_inventory() says where its cost floor's prices came from", {
   expect_true(any(grepl("(dpr-priced, one call per document), prices as of 2026-11",
                         capture.output(print(inv)), fixed = TRUE)))
 
+  # An empty source has the same totals fields, for the same model.
+  empty <- gr_inventory(withr::local_tempdir(), model = "dpr-priced")
+  expect_identical(names(empty$totals), names(inv$totals))
+  expect_true(empty$totals$priced)
+  expect_identical(empty$totals$as_of, "2026-11")
+  expect_true(empty$totals$certain)
+  expect_true(is.na(empty$totals$cost_floor_usd))
+
   hr_register_model("dpr-unpriced", context_window = 8000, max_output = 500)
   un <- gr_inventory(d, model = "dpr-unpriced")
   expect_false(un$totals$priced)
