@@ -31,9 +31,9 @@ This package talks to language-model APIs. Nothing in the checked material makes
 a network request:
 
 * Every example that would reach an endpoint is wrapped in `\dontrun{}`. The
-  rest call a client whose handler is an ordinary R function
-  (`hr_mock_client()` or `hr_backend_client()`), or replay a run recorded with
-  one, so they run offline and deterministically.
+  examples that make model calls outside it use a client whose handler is an
+  ordinary R function (`hr_mock_client()` or `hr_backend_client()`), or replay
+  a run recorded with one, so they run offline and deterministically.
 * The test suite needs no API key and sends nothing off the machine. Model
   calls go to `hr_mock_client()` or a backend function. The tests of the HTTP
   transport and of the ellmer adapter replace the request with a local fake.
@@ -51,4 +51,6 @@ write; a persistent location is opt-in via `hr_options(cache_dir = )`, and the
 documentation suggests `tools::R_user_dir("harnessr", "cache")` for it.
 
 `ellmer` is a suggested dependency used by a single exported function,
-`hr_ellmer_client()`; its tests are guarded with `skip_if_not_installed()`.
+`hr_ellmer_client()`. Every test that needs ellmer is guarded with
+`skip_if_not_installed("ellmer")`; the other tests of the adapter run
+without it.
