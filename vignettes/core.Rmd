@@ -85,6 +85,20 @@ pass the earlier turns again as `"assistant"` and `"user"` messages.
 know go into the request body of an `hr_client()` as extra fields; a mock or a
 backend handler never sees them.
 
+`effort` reaches only a model the registry lists as a reasoning model. For any
+other model the call goes out with no effort, and no warning:
+
+```{r}
+effort_seen <- hr_mock_client(function(messages, params) {
+  paste("effort:", if (is.null(params$effort)) "none" else params$effort)
+})
+hr_call(effort_seen, "What was revenue?", model = "gpt-5.6-luna", effort = "low")$text
+hr_call(effort_seen, "What was revenue?", model = "gpt-4o", effort = "low")$text
+```
+
+"How much the model reasons" in `vignette("runs")` and "Reasoning effort, stage
+by stage" in `vignette("readers")` cover effort in a run.
+
 ## What a result holds
 
 A call returns a `gr_result`, a list with the same fields every time,
@@ -148,7 +162,7 @@ r
 r$finish_reason
 ```
 
-So check a result in this order: `ok` first, then `finish_reason`, then the text
+Check a result in this order: `ok` first, then `finish_reason`, then the text
 itself.
 
 A mock given a vector of HTTP status codes answers call `i` with the `i`-th
@@ -244,11 +258,10 @@ r <- hr_call(reporting, "What was revenue in 2024?")
 str(r$usage)
 ```
 
-Two things a backend does not do for you. It does not retry: a handler that
-fails returns a failed result, and only the handler can know whether trying
-again would help. And a cache cannot tell two handlers apart, so each backend
-client gets a new identity when it is built, and its cache entries last only
-for the session. Pass `id =` a stable name to reuse a cache across sessions,
+A backend does not retry: a handler that fails returns a failed result, and
+only the handler can know whether trying again would help. A cache cannot tell
+two handlers apart, so each backend client gets a new identity when it is
+built, and its cache entries last only for the session. Pass `id =` a stable name to reuse a cache across sessions,
 and only for a handler that answers the same way every time.
 
 ### An HTTP provider: `hr_client()`
