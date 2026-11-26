@@ -1098,8 +1098,8 @@ says how to test it with `hr_sweep()`.
   sentence states a claim when it stands in a section the claim was given,
   points in the claim's direction in one of its clauses (so "improved mood,
   with no adverse events" still states that mood improved) and shares at
-  least two content words with it. It is found by counting words, with no model; `print()` counts
-  them and the audit report lists them. Nothing is marked partial.
+  least two content words with it. It is found by counting words, with no
+  model; `print()` counts them and the audit report lists them. Nothing is marked partial.
 
 * **`gr_claims()` and `gr_outline()` record their calls the way the other
   review stages do.** Each records on a trace of its own and, given `trace =`,
@@ -1154,8 +1154,9 @@ says how to test it with `hr_sweep()`.
 ## Sweeping settings
 
 * **`hr_sweep()`** builds one arm per row of a grid of settings. The base is
-  an arm from `gr_arm()`, whose settings each row overrides by name, or a
-  function of the grid's columns that returns an arm. A column that is not a
+  an arm from `gr_arm()`, whose settings each row overrides by name, a chain
+  from `hr_chain()`, swept by path (see "Steps and chains"), or a function
+  of the grid's columns that returns an arm. A column that is not a
   setting is an error (class `hr_unknown_setting`) listing the settings that
   are, and rows that build the same configuration are dropped with a message
   (class `hr_sweep_collapsed`).
@@ -1207,8 +1208,8 @@ says where its default came from; almost none has a measurement behind it.
   quotation stop the `iterative` reader under `verify = TRUE`, and is
   refused without it; `max_merge_levels` (6) caps the merge tree of
   `map_reduce` and the other merging readers, and the worst case counted
-  before a run counts that many levels; `restate_tokens` (1200) is the length above which
-  `restate = "auto"` repeats the question; `bm25_k1` (1.5) and `bm25_b`
+  before a run counts that many levels; `restate_tokens` (1200) is the
+  length above which `restate = "auto"` repeats the question; `bm25_k1` (1.5) and `bm25_b`
   (0.75) are the BM25 parameters of rerank's prefilter and lexical retrieve,
   the usual values in Robertson and Zaragoza (2009); `lexical_blend` (0.5)
   weighs cosine against BM25 in an offline `retrieve`.
@@ -1261,8 +1262,9 @@ says where its default came from; almost none has a measurement behind it.
   of exactly 0 at `x = 0` and an upper bound of exactly 1 at `x = n` (the
   formula alone left a rounding error there for 38 and 60 of the values of
   `n` from 1 to 200, such as a lower bound of 2.8e-17 at 0 of 10), and
-  Clopper-Pearson matches `binom.test()`. The help says which to use: Wilson for descriptive
-  rates, Clopper-Pearson for any "at least" or "at most" guarantee.
+  Clopper-Pearson matches `binom.test()`. The help says which to use:
+  Wilson for descriptive rates, Clopper-Pearson for any "at least" or "at
+  most" guarantee.
 
 * **New `hr_agreement()`** reports agreement between two raters as the count
   table with observed agreement, Cohen's kappa (standard error and a
@@ -1339,8 +1341,8 @@ says where its default came from; almost none has a measurement behind it.
   Labels, clusters, splits, inclusion probabilities and strata given with
   names are matched to the items by name (`c(q2 = "Lima", q1 = "Paris")`
   gives q1 Paris), and names that are not the item ids are an error of
-  class `hr_bad_reference`. Items can be added with `hr_reference_add()` until a benchmark starts
-  scoring the reference; after that every copy of it, and every reference
+  class `hr_bad_reference`. Items can be added with `hr_reference_add()`
+  until a benchmark starts scoring the reference; after that every copy of it, and every reference
   grown from it, refuses new items with an error of class
   `hr_reference_locked`.
 
@@ -1362,52 +1364,38 @@ says where its default came from; almost none has a measurement behind it.
   under the arm's name, and `hr_replay_client()` answers an arm only with
   its own replies, so replaying some of the arms, or the arms in another
   order, gives each arm what it got even when two arms sent the same
-  request. The whole benchmark is held to
-  one governor; a run with a refused request is recorded as a budget stop
-  and counted wrong, and the benchmark warns (class `hr_budget_stopped`)
-  with the number of runs stopped, the limits that stopped them, how many
-  count against an arm, and the first run stopped. With no governor the
-  limits are `hr_options()`'s, set for one run of a reader (400 calls), and
-  the warning gives the values of the options that stopped runs and, for a
-  call, spending or token limit, says to pass a governor sized for the
-  benchmark. A reader stopped by its own check before its first request
-  now leaves a `budget.preflight` note on the run's trace naming the limit,
-  and the errors that check raises carry the limit in `$limit`. Every run on an item with no label has `correct = NA`,
-  failures included, so such an item never counts against an arm. Rows on
-  the dev split are marked not reportable. `print()` shows accuracy per arm
-  over the reportable rows and labelled items, with the dev split's accuracy
-  in its own column, descriptive only.
+  request. Stages called inside an arm with `trace = ctx$trace`, such as
+  `gr_read()`, `gr_segment()` or `answer_document()`, send their requests
+  at the run's draw too; a request given a fixed `draw_index` still sends
+  that one. The whole benchmark is held to one governor; a run with a
+  refused request is recorded as a budget stop and counted wrong, and so is
+  a run that a reader's pre-flight check stops with `gr_call_cap` or
+  `gr_cost_cap`, in an arm from `gr_arm()` or one of your own. The
+  benchmark warns (class `hr_budget_stopped`) with the number of runs
+  stopped, the limits that stopped them, how many count against an arm,
+  and the first run stopped. With no governor the limits are
+  `hr_options()`'s, set for one run of a reader (400 calls), and the warning
+  gives the values of the options that stopped runs and, for a call,
+  spending or token limit, says to pass a governor sized for the benchmark.
+  A reader stopped by its own check before its first request leaves a
+  `budget.preflight` note on the run's trace naming the limit, and the
+  errors that check raises carry the limit in `$limit`. Every run on an item
+  with no label has `correct = NA`, failures included, so such an item
+  never counts against an arm. Rows on the dev split are marked not
+  reportable. `print()` shows accuracy per arm over the reportable rows and
+  labelled items, with the dev split's accuracy in its own column,
+  descriptive only.
 
-* `hr_arm()`'s `ctx` gains `call_json(messages, schema, ...)`, a structured
-  call sent through the same client, trace, governor and draw as
-  `ctx$call()`. It returns the parsed reply, or a failed `gr_result` when
-  the request failed or the reply does not meet the schema, which the
-  scorers count as an error.
+* The `ctx` an arm's run receives has three more shortcuts, each sent
+  through the run's client, trace, governor and draw. `ctx$call_json(messages,
+  schema, ...)` makes a structured call and returns the parsed reply, or a
+  failed `gr_result` when the request failed or the reply does not meet the
+  schema, which the scorers count as an error. `ctx$judge(candidates, ...)`
+  calls `hr_judge()` with `trace = ctx$trace`, so the judge's cost is in the
+  run's `usd` once; pass `rubric` as `hr_judge()` needs. `ctx$note(name,
+  value, refs = NULL)` records a signal about the run's item with
+  `hr_signal()`.
 
-* `hr_benchmark()` now sets each run's draw index on `ctx$trace`, not only
-  on `ctx$call()`. A `gr_read()`, `gr_segment()`, `answer_document()` or
-  other stage called with `trace = ctx$trace` sent its requests at draw 0,
-  so under a `hr_cache()` the arm was refused with `hr_duplicate_draw`
-  unless it set `ctx$trace$draw_index` itself. Arms no longer need that
-  line, and `gr_arm()` no longer sets it. A request given a fixed
-  `draw_index` still sends that one, and such an arm is still refused.
-
-* `hr_benchmark()` records a run as `"budget_stop"`, not `"error"`, when a
-  reader's pre-flight check in the arm stops it with `gr_call_cap` or
-  `gr_cost_cap` because the benchmark's limits leave too little. `gr_arm()`
-  caught that error, but a hand-written arm that calls `answer_document()`
-  with `trace = ctx$trace` let it through, so the run was scored as an
-  error and left out of the `hr_budget_stopped` warning. The run's trace
-  gets a `budget.preflight` note naming the limit.
-
-Nothing here changes a default: an arm that uses neither shortcut sends the
-requests it sent before, with the same cache keys, and no setting is added.
-
-* `hr_arm()`'s `ctx` gains `judge(candidates, ...)`, which calls `hr_judge()`
-  with the benchmark's client and `trace = ctx$trace`, so the judge's
-  requests go out at the run's draw and its cost is in the run's `usd` once.
-  Pass `rubric` as `hr_judge()` needs. It also gains `note(name, value, refs
-  = NULL)`, which records a signal about the run's item with `hr_signal()`.
 * `hr_signals()` accepts an `hr_bench`. It reads each run's own trace and
   adds `arm`, `run` and `item` columns; the benchmark's folded trace is not
   read, so each signal is listed once.
@@ -1435,8 +1423,8 @@ requests it sent before, with the same cache keys, and no setting is added.
   into accuracy per arm (mean over runs within each item, then over items)
   with intervals that keep clusters together. With the default
   `method = "auto"` and at least 300 items and 30 clusters it uses
-  `method = "bootstrap"`, which is now a studentised (bootstrap-t) cluster
-  bootstrap rather than BCa: it resamples whole clusters with all their
+  `method = "bootstrap"`, a studentised (bootstrap-t) cluster bootstrap: it
+  resamples whole clusters with all their
   items, runs and arms (B = 2000, or 5000 with `confirmatory = TRUE`), each
   resample studentised by its own linearised standard error. Below either
   threshold it uses the new `method = "cluster_t"`, a cluster-robust t
@@ -1452,13 +1440,13 @@ requests it sent before, with the same cache keys, and no setting is added.
   with a cluster random effect and flat priors, with a note on its
   calibration. No interval treats items or runs as independent trials.
 
-  These methods replace the BCa cluster bootstrap and the Bayesian model as
-  defaults after the coverage simulation (`dev/sim-coverage.R`, 2000
-  replicates) failed them: BCa covered 93.5% for accuracy at 0.75 and 92.9%
+  The coverage simulation (`dev/sim-coverage.R`, 2000 replicates) chose
+  these methods over a BCa cluster bootstrap and the Bayesian model, which
+  failed it: BCa covered 93.5% for accuracy at 0.75 and 92.9%
   for the paired difference with 40 clusters, and 89.2% for the difference
   with 10 clusters; the Bayesian model covered 96.5% to 96.6% with 10
   clusters, its misses 2.9% to 3.2% below the truth and 0.2% to 0.5% above.
-  With the new methods the same simulation passes: accuracy 95.5% and
+  With the methods above the same simulation passes: accuracy 95.5% and
   95.0%, difference 94.7% with 40 clusters; accuracy 95.8% and 95.7%,
   difference 95.7% with 10 clusters.
 
@@ -1479,21 +1467,17 @@ requests it sent before, with the same cache keys, and no setting is added.
   up to 6.7% error. The `critical` column is `NA` on the Tango rows.
   `print()` shows the simultaneous interval of a contrast written against
   benchmark order (b - a) as the negated interval of its pair,
-  [-upper, -lower], where it printed "-"; flip rate, TARa and
-  run-level SD; pass^k with the unbiased estimator; dollars
-  and tokens per item and per correct item with intervals, flagging arms
-  whose cost rests on estimated token counts for more than 5%; the
-  cost-accuracy frontier with each arm's share of resamples on it; failure
-  counts with accuracy recomputed without parse failures and refusals; and
-  within-item and between-item variance on the probability scale, with a
-  note to use 10 runs when runs account for more than 10%. Below 5 runs the
-  report is descriptive only, without intervals. An item scored on some
-  runs but not all is refused. It has `print()` and `as_json()` methods and
-  leaves the caller's random state as it was. The help writes its intervals
-  with their brackets, such as [r - q_hi se, r - q_lo se] and "cut to
-  [0, 1]"; they had been turned into 5 broken links, which R CMD check
-  reported as a warning and the rendered help showed without brackets.
-  The BCa intervals still used for cost and pass^k count a resample as
+  [-upper, -lower]. The report also gives flip rate, TARa and run-level SD;
+  pass^k with the unbiased estimator; dollars and tokens per item and per
+  correct item with intervals, flagging arms whose cost rests on estimated
+  token counts for more than 5%; the cost-accuracy frontier with each arm's
+  share of resamples on it; failure counts with accuracy recomputed without
+  parse failures and refusals; and within-item and between-item variance on
+  the probability scale, with a note to use 10 runs when runs account for
+  more than 10%. Below 5 runs the report is descriptive only, without
+  intervals. An item scored on some runs but not all is refused. It has
+  `print()` and `as_json()` methods and leaves the caller's random state as
+  it was. The BCa intervals used for cost and pass^k count a resample as
   below t0 only when it is more than 1e-12 x max(1, |t0|) below it, so a
   resample that ties with t0 up to a rounding error is not counted. This is
   the count in exact arithmetic; boot.ci() counts sum(t < t0) and can differ
@@ -1519,8 +1503,7 @@ requests it sent before, with the same cache keys, and no setting is added.
   cluster.
   `hr_n_needed()` also takes a true difference below 0. Its `print()`
   rounds the clusters up first and gives the items as that many clusters of
-  m: 840 items in 140 clusters of 6 for n_items 837.8, where it printed 838
-  items, not a multiple of 6.
+  m: 840 items in 140 clusters of 6 for n_items 837.8.
 
 * **New `hr_contrast()` and `hr_register_contrasts()`** fix non-inferiority
   contrasts (arm, reference arm, margin, whether it must also be cheaper)
@@ -1542,10 +1525,9 @@ requests it sent before, with the same cache keys, and no setting is added.
   the cluster-robust t bound of the report's paired differences, taken
   one-sided on C - 1 degrees of freedom (the Tango bound with items as
   pairs when every cluster gives the same mean difference), so at one-sided
-  0.025 it is the lower end of the printed 95% contrast interval. It
-  replaces the BCa cluster bootstrap bound, which undercovered the paired
-  difference in the coverage simulation (92.9% with 40 clusters, 89.2% with
-  10). Confirmatory contrasts are tested with Holm's step-down procedure,
+  0.025 it is the lower end of the printed 95% contrast interval. A BCa
+  cluster bootstrap bound undercovered the paired difference in the
+  coverage simulation (92.9% with 40 clusters, 89.2% with 10). Confirmatory contrasts are tested with Holm's step-down procedure,
   exploratory ones at alpha.
   The design and achieved MDD are printed beside every verdict (the
   achieved one on the linearised standard error and the same t quantiles
@@ -1558,9 +1540,7 @@ requests it sent before, with the same cache keys, and no setting is added.
   Each contrast's `p_value` is the smallest one-sided level at which it
   passes, found by bisection down to 1e-6. With a cost test the search
   stops at 1 / (B + 1) (1 / 2001, about 5.0e-4, at B = 2000): below that
-  level the BCa cost bound is the most extreme resample and stops moving,
-  and a contrast whose resamples were all cheaper was reported at 1e-6
-  where a cluster t on the paired cost means gave 2.3e-4.
+  level the BCa cost bound is the most extreme resample and stops moving.
 
 * **Dev-split rows are refused as evidence.** A report with a registration
   or `confirmatory = TRUE` errors with class `hr_dev_not_evidence` when the
