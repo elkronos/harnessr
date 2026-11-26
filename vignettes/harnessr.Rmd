@@ -356,14 +356,23 @@ The `prompt` and `reply` columns hold exactly what was sent and what came back:
 as.data.frame(ans$trace)[, c("stage", "tokens_in", "tokens_out", "usd", "seconds")]
 ```
 
-`usd` is priced from harnessr's list of known models (`hr_models()`). A model it
-does not know is priced as unknown rather than free. You can also estimate
-before sending anything. Here is a 120,000-token document with a 4,000-token
-answer:
+`usd` comes from the prices in harnessr's model registry (`hr_models()`). The
+mock costs nothing. For a real model, harnessr knows the limits but ships no
+prices, because providers change prices more often than the package is
+released. You set the price you pay, in US dollars per million tokens. Until
+you do, the model's cost is `NA`, never 0.
+
+Set the default model's price, then estimate before sending anything. Here is a
+120,000-token document with a 4,000-token answer:
 
 ```{r}
+# Illustrative figures: use your provider's current prices.
+hr_register_model(hr_options("model"), input_usd = 2, output_usd = 12)
 hr_estimate_cost(hr_options("model"), input_tokens = 120000, output_tokens = 4000)
 ```
+
+`vignette("runs")` shows how to set the prices of many models from a file and
+keep them current.
 
 Two safety limits are on from the start: $5 and 400 requests per document.
 harnessr checks each request before sending it, against what the run has spent

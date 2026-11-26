@@ -340,8 +340,9 @@ vectors the original run never saw and still reports an exact match.
 ## Models
 
 The model registry holds each model's context window, output limit and prices.
-Use `hr_register_model()` to add a model the package does not know, or to
-override a built-in entry whose prices have gone stale:
+harnessr ships the limits of its built-in models and no prices. Use
+`hr_register_model()` to add a model the package does not know, to correct a
+built-in entry, or to give a model the prices you pay:
 
 ```{r}
 hr_register_model("my-local-llama", context_window = 32768, max_output = 4096)
@@ -365,7 +366,9 @@ instead, set `hr_options(allow_unpriced = FALSE)`.
 The section on connecting to a model in `vignette("harnessr")` registers a
 hosted model at its prices and a local one at zero, both reached through
 ellmer. `reasoning = TRUE` marks a model that takes an
-effort setting.
+effort setting. To set the prices of many models at once from a file, and to
+keep them current, see "Models, prices and token counts" in
+`vignette("runs")`.
 
 ## Using what you registered
 
