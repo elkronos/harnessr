@@ -60,8 +60,9 @@ Untested: set to absorb the error of counting tokens locally, and not
 measured against it.}
 \item{\code{min_output_tokens} (256)}{Floor on the completion room \code{\link[=hr_budget]{hr_budget()}}
 reserves \emph{when \code{reserve_output} is not given explicitly}. An explicit
-\code{reserve_output} is honoured down to 1. Untested: set as a floor for a
-short reply.}
+\code{reserve_output} is honoured down to 1, unless it leaves no input room;
+then it drops to this floor, as the default reserve does. Untested: set
+as a floor for a short reply.}
 \item{\code{cache_documents} (TRUE)}{Cache ingestion per file + settings. The key
 covers file size, mtime and every option that changes the output.}
 \item{\code{cache_embeddings} (TRUE)}{Cache embeddings per text + model.}
