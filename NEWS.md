@@ -176,6 +176,16 @@ no longer ships them. You set the prices you pay.
   handler finds it in `params$draw_index` and the trace records it in the
   step's `params`; at 0 neither carries it, so an ordinary call is unchanged.
 
+* **Stages send their requests at their trace's draw.** `gr_claims()`,
+  `gr_outline()`, `gr_synthesise()` and `gr_read_many()` each record on a
+  trace of their own and send their requests at the draw index and draw
+  scope of the trace they are given, and the items of a parallel batch
+  carry the run's draw index and scope the same way, so under an
+  `hr_cache()` each run of a benchmark gets its own replies. Requests made
+  without a draw index are unchanged, and so are their cache keys. A
+  recording made without per-draw keys is answered, for a later draw, with
+  its replies in recorded order.
+
 * **The response-cache key is now `harnessr-cache-v3`**, a SHA-256 hash (64
   hex digits) in place of xxhash64. Entries written under the old key
   (`readgpt-cache-v2`, by readgpt 0.6.0 and earlier builds of harnessr) are
@@ -2137,24 +2147,10 @@ shows a mode in use.
   `gr_audit_report()` reads it, or `print()` reads a `gr_claims` or
   `gr_synthesis`. Each one gives the output it gave for that object before.
   `gr_recheck()` returns the filled object, and `gr_synthesise()` stores the
-  filled claims table in `$claims`. A
-  hand-built object such as `structure(list(table = tab), class =
-  "gr_screening")` passes through unchanged. Requests and cache keys do not
+  filled claims table in `$claims`. A hand-built object such as
+  `structure(list(table = tab), class = "gr_screening")` passes through
+  unchanged. Requests and cache keys do not
   change.
-
-* `gr_claims()`, `gr_outline()`, `gr_synthesise()` and `gr_read_many()` now
-  send their requests at the draw index and draw scope of the trace they are
-  given. Each records on a trace of its own, which did not carry them, so its
-  requests went out at draw index 0 whatever run of a benchmark the trace
-  was: under a `hr_cache()` runs 2 onwards were answered with run 1's reply,
-  and an `hr_benchmark()` arm that called `gr_claims(trace = ctx$trace)` was
-  refused for repeating a draw. The items of a parallel `gr_lapply()` batch
-  carry the run's draw index and scope the same way. Requests made without a
-  draw index are unchanged, and so are their cache keys. A recording made
-  before this change holds a stage's requests only at draw 0, so a replay
-  asking for a later draw is answered with those replies in recorded order,
-  served as replies without their own draw key, as for any recording made
-  without per-draw keys.
 
 * A download refused for size no longer breaks the downloads after it. httr
   shares one curl handle per host, and a stream stopped at the size limit could
@@ -2234,21 +2230,15 @@ shows a mode in use.
   model calls with a document layer built on it. The get started guide shows
   a call, its trace, prices and limits, context and effort before the first
   question about a document.
-* The walkthrough of parameter schemas (`hr_param()`, `hr_schema()`,
-  `hr_validate()`) moved from `vignette("extending")` to "Checking settings"
-  in `vignette("core")`. The extending guide's section on models now points
-  to `vignette("models")`, which covers the same ground.
-* The walkthrough of registering a step, listing the modules of every kind
-  with `hr_modules()` and checking a module with `hr_check_module()` moved
-  from `vignette("extending")` to "Registering a step" in
-  `vignette("compose")`. The reference index lists these functions after the
-  compose functions.
-* `vignette("runs")` is now "Limits, caching and replay". Its walkthrough of
-  models, prices and token counts moved to `vignette("models")`, whose
-  Prices section keeps the `#models-prices` anchor. Its effort sections
-  moved to `vignette("effort")`, including the `effort_mode` walkthrough
-  with its `#set-effort-mode` anchor, and `gr_settings_table()` links
-  `effort_mode` there.
+* The README is a short front page, and each topic has a guide of its own.
+  Beside the guides described here, `vignette("segment")` ("Cutting
+  documents into chunks"), `vignette("review")` ("Many documents and
+  literature reviews"), `vignette("runs")` ("Limits, caching and replay"),
+  `vignette("compose")` ("Composing steps into chains"),
+  `vignette("extending")` ("Extending harnessr") and `vignette("migrate")`
+  ("Upgrading from older versions") are new. `vignette("harnessr")`
+  replaces `vignette("readgpt")` as Get started, and `vignette("tour")` is
+  gone: each of its topics is in one of the guides.
 * Each document guide (`ingest`, `segment`, `readers`, `review`,
   `extending`) opens by naming the core pieces it builds on, and links to
   the core section where it mentions a budget, the trace, a refusal, the
@@ -2261,9 +2251,8 @@ shows a mode in use.
 * `?hr_cache` no longer says that every structured reply that does not parse
   is kept out of the cache. That holds for the package's own structured
   calls; `hr_call()` does not parse a reply, so it caches one like any other.
-
-* A new guide, `vignette("compare")`, works through five comparisons offline,
-  each ending in an `hr_report()`: three readers on 32 test questions in 8
+* New guide, `vignette("compare")` ("Comparing methods and settings"),
+  works through five comparisons offline, each ending in an `hr_report()`: three readers on 32 test questions in 8
   reports, a grid of three segmenters at two chunk sizes, `top_k` swept over
   1, 2 and 4, two values of `screen_tokens`, and a pairwise judge validated
   against 180 labelled pairs. Settings are tuned on the dev split and one
@@ -2279,24 +2268,23 @@ shows a mode in use.
   stage with its count of settings, the most used, and links to the
   walkthroughs; Get started also gives the basic settings of each stage with
   when to change each.
-* **Settings walkthroughs.** Five guides end with a "Choosing the settings"
-  section, one walkthrough per important setting or group: what it controls
-  and trades off, the signs in your results that point to changing it, where
-  its default came from (measured, cited or untested), and how to test it
-  with `hr_sweep()`. `vignette("ingest")` covers cleaning presets with
-  `references_after`, and OCR; `vignette("segment")` the segmenter,
-  `max_tokens`, `overlap_tokens`, and `contextual` and `proposition`;
-  `vignette("readers")` the reader, `top_k`, `mmr`, word matching
-  (`lexical_blend` and BM25), `context_order` with `restate`, `verify` with
-  `cite`, `effort` and `max_merge_levels`; `vignette("review")` screening
-  calibration, extraction's `resolve` and `require_quote`, and synthesis's
-  `coherence_rounds`, `figure_bands` and `prominence`; `vignette("runs")` the
-  global limits and the governor. The offline examples run on the stand-in
-  models and report what each value sent: on the example report, `"scan"`
-  cleaning sent the same requests as `"standard"`, a merge cap of 6 the same
-  as a cap of 1, and `mmr = 0.7` at `top_k = 3` and `verify` the same as the
-  value before them.
-
+* **Settings walkthroughs.** Nine guides end with a "Choosing the
+  settings" section, one walkthrough per important setting or group: what
+  it controls and trades off, the signs in your results that point to
+  changing it, where its default came from (measured, cited or untested),
+  and how to test it with `hr_sweep()`. Besides the core guides above,
+  `vignette("ingest")` covers cleaning presets with `references_after`, and
+  OCR; `vignette("segment")` the segmenter, chunk size, overlap, packing,
+  semantic boundaries, tables, and `contextual` and `proposition`;
+  `vignette("readers")` the reader, `top_k`, `mmr`, word matching,
+  placement, `verify` with `cite`, outcomes, premise checks, `effort`,
+  merges, `context_policy` with `refine_state`, and the preview and rerank
+  safeguards; `vignette("review")` screening calibration and replies,
+  extraction and synthesis; `vignette("runs")` the global limits and the
+  governor. The offline examples run on the stand-in models and report
+  what each value sent: on the example report, `"scan"` cleaning sent the
+  same requests as `"standard"`, a merge cap of 6 the same as a cap of 1,
+  `mmr = 0.7` the same as plain top-k, and `verify` the same as no check.
 * New guide, `vignette("evaluate")` ("Measuring and comparing
   configurations"), covers reference sets and label sheets, benchmarks and
   their reports, non-inferiority, judges, baselines, drift and signals;
