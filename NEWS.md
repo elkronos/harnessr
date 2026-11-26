@@ -496,6 +496,14 @@ move.
   keys are unchanged; the trace of a run that cut nothing gains only the state
   lengths above.
 
+* New `gr_methods_text()` writes a plain paragraph for a methods section
+  from a result, a trace or a benchmark: the harnessr version, the models
+  asked for and the models the provider said answered, request and run
+  counts, the tokens sent (a request a cache or a recording answered sent
+  none, and its recorded tokens are given apart), the settings changed from
+  their defaults, and a hash of each system prompt by stage. It reads only the record and makes no claim
+  beyond it.
+
 ## Cost reports say where their prices came from
 
 Every report of a cost in dollars now says, for each model it prices,
@@ -613,7 +621,6 @@ and has a walkthrough that says how to test it with `hr_sweep()`.
   flagged by the judge; a hedge moved into another sentence is not.
   `"lexicon"`, the default, sends no judge request.
 
-
 ## Reading options
 
 Each option below is off by default, so a default spec sends the requests it
@@ -656,8 +663,8 @@ says what it trades off and how to test it with `hr_sweep()`.
 * `answer_format = "schema"` sends the answering requests with a JSON schema
   holding `answer` and `outcome`, so the model reports a not-found in a
   field rather than with the sentinel; `"parsed"`, the default, sends the
-  free-text requests as before. Owner decision DEC-05 keeps the default
-  until a live comparison of the two on the default model.
+  free-text requests as before. The default stays until a live comparison
+  of the two on the default model.
 
 * `premise_verdict = "structured"`, with `premise = TRUE`, asks the
   answering requests for a `premise_status` field and the `quote` from the
@@ -670,15 +677,6 @@ says what it trades off and how to test it with `hr_sweep()`.
   verified one goes to the merge and sets `notes$degradation` to
   `"premise_flagged"`. The default, `"sentence"`, sends what `premise = TRUE`
   sent before.
-
-* New `gr_methods_text()` writes a plain paragraph for a methods section
-  from a result, a trace or a benchmark: the harnessr version, the models
-  asked for and the models the provider said answered, request and run
-  counts, the tokens sent (a request a cache or a recording answered sent
-  none, and its recorded tokens are given apart), the settings changed from
-  their defaults, and a hash of
-  each system prompt by stage. It reads only the record and makes no claim
-  beyond it.
 
 * **`gr_read_spec(verify = TRUE)`** checks an answer's quotations against the
   chunks they come from and lets the check decide what is accepted.
@@ -709,10 +707,12 @@ says what it trades off and how to test it with `hr_sweep()`.
   character edits, with numbers (in digits or in words, with any comparison
   sign before them and the unit after), and negations required to be
   identical. A passage too long to score (its length times the source's
-  over 5e7 characters) is `not_checked`. Its statuses are `verbatim`, `near_verbatim` (similarity at
-  least 0.90, or 0.95 under 40 characters, five words or more),
-  `unverified` and `not_checked`. It decides nothing in this release:
-  `verified` and `match` are the existing check's, as before. On a labelled
+  over 5e7 characters) is `not_checked`. Its statuses are `verbatim`,
+  `near_verbatim` (similarity at least 0.90, or 0.95 under 40 characters,
+  five words or more), `unverified` and `not_checked`. At the default
+  settings it decides nothing: `verified` and `match` are the existing
+  check's, as before, and only `accept_near_verbatim` (below) lets its
+  status stop the `iterative` reader. On a labelled
   set of 343 true and 162 false quotations it rejects 1.2% of true ones
   (95% CI 0.3% to 3.0%) against 36.4% (31.3% to 41.8%) for the existing
   check, and accepts none of the 52 with a changed digit, 8 with a changed
@@ -721,11 +721,6 @@ says what it trades off and how to test it with `hr_sweep()`.
   content word swapped as `near_verbatim`, which is why that status is not
   `verified`.
   `Rscript dev/quote-matcher-rates.R` prints the full table.
-
-* **BM25 scoring is faster on many chunks.** Document frequency is counted
-  once per query term instead of once per term for every chunk, so the
-  `rerank` prefilter and the offline `retrieve` path no longer slow down with
-  the square of the number of chunks. Scores are unchanged.
 
 ## Parameter schemas, declared calls and reader costs
 
@@ -770,7 +765,7 @@ says what it trades off and how to test it with `hr_sweep()`.
   `preflight` step and the refusals are unchanged. A registered reader
   without `cost` is counted as before, one request per chunk. `cost_calls`
   is kept for display only, as the description `gr_readers()` shows; the
-  pre-flight check never reads it, and it will be retired in a later phase.
+  pre-flight check never reads it, and it may be retired in a later release.
   A cost function may also return a plain list with `calls_max` and no
   `calls`, which is read as both. `hr_cost()` has a `tokens_out_max` for a
   reader whose replies can be billed beyond the reply cap; the check prices
@@ -783,9 +778,9 @@ says what it trades off and how to test it with `hr_sweep()`.
 
 ## Pipeline options
 
-Each option below is off by default, so a default run sends the requests it
-sent before, keeps its store, cache and replay keys, and returns the tables
-it returned. Each is declared with its evidence (`untested` unless a source
+Each new setting below is off by default, so a default run sends the
+requests it sent before, keeps its store, cache and replay keys, and returns
+the tables it returned. Each is declared with its evidence (`untested` unless a source
 is named), is listed by `gr_settings_table()`, and has a walkthrough that
 says how to test it with `hr_sweep()`.
 
@@ -830,15 +825,6 @@ says how to test it with `hr_sweep()`.
   cut instead of one gap in ten. The default, `"percentile"`, cuts as
   before.
 
-* Every block of a document says which table it is a row of, if any:
-  `gr_ingest()` adds `table_id` and `table_rows` to `$blocks` (each unbroken
-  run of `"table"` blocks is one table; `table_rows` is `"3"` for a row
-  from Word or HTML, `"1-12"` for a Markdown table read as one block), and
-  `paragraph` chunks of a document with a table carry `table_id` and
-  `table_rows` for the rows they hold. This is provenance only: no text and
-  no request changes, and a document with no table gets no new chunk
-  columns.
-
 * `gr_segment_spec()` gains `table_packing`. At `"grouped"`, `paragraph`
   packs each table on its own and opens every chunk of it with the table's
   header row, so a 60-row table cut into three chunks gives three chunks
@@ -857,10 +843,6 @@ says how to test it with `hr_sweep()`.
   the page, from a second Tesseract pass over each OCR-ed page. The default,
   `FALSE`, runs one pass, as before, and adds no column.
 
-* An embedded image in a Word file whose OCR fails now raises a
-  `gr_ocr_failed` warning naming the image, as a PDF page does; before, its
-  text was lost with nothing said.
-
 * `contextual` with `context_source = "llm"` now sends each chunk's section
   path from the document's headings (`"Methods > Participants"`) with its
   request, and declares its cost, one request per chunk and no more, in
@@ -876,19 +858,14 @@ says how to test it with `hr_sweep()`.
   end of the batch before it, as context; at its default, 0, each batch is
   sent alone as before. The section path changes what `contextual` sends
   under `"llm"`, an opt-in setting of an opt-in segmenter, so its cache and
-  replay keys change; no default segmenter sends anything new, and the
-  golden runs, which use neither segmenter, are unchanged.
-
-* `semantic` run on lexical vectors now reports its method as
-  `"semantic->lexical"`, as it reports `"semantic->paragraph"` when it falls
-  back. This is a label fix: the chunks and the requests are unchanged.
+  replay keys change; no default segmenter sends anything new.
 
 ## Screening
 
 * **Kappa is no longer reported alone.** Each agreement table carries Cohen's
   kappa, PABAK and Gwet's AC1 with intervals, the prevalence and bias indices,
-  and the class-wise sensitivity, specificity, PPV and NPV; `$agreement$kept$paradox`
-  flags a table whose prevalence index is above 0.8 in absolute value, where
+  and the class-wise sensitivity, specificity, PPV and NPV;
+  `$agreement$kept$paradox` flags a table whose prevalence index is above 0.8 in absolute value, where
   kappa says more about prevalence than agreement. `$decisions` holds the 3x2
   counts, and `print()` and the audit report show them with the agreement
   set. The rate of `"unclear"` decisions is the existing `"deferred to a
@@ -960,8 +937,8 @@ says how to test it with `hr_sweep()`.
   the record's DOI, as a whole DOI, and title, with any HTML markup such as
   `<i>` taken out of the record's title. When the recipe's cleaning removes
   digits (`remove_numbers`, in the `"legacy"` preset), the DOI is not looked
-  for and the title is compared without its digits. A last `identity` column of `$summary` holds
-  `TRUE`, `FALSE` or `NA` (nothing to check), and `FALSE` warns with class
+  for and the title is compared without its digits. A last `identity`
+  column of `$summary` holds `TRUE`, `FALSE` or `NA` (nothing to check), and `FALSE` warns with class
   `gr_identity_mismatch` and is added to `warnings`. Nothing is dropped and
   `gr_flow()` is unchanged. `print()` counts the mismatches, and the audit
   report lists them. A row restored from `store` keeps its check only when
@@ -1015,8 +992,9 @@ says how to test it with `hr_sweep()`.
   Clopper-Pearson, except that when it is every screened record recall is
   known exactly and is its own bound (`method = "census"`: 25 of 25 eligible
   kept gives a bound of 1, not the 0.887 Clopper-Pearson gives); a sample of
-  the exclusions alone bounds M but not recall. Every field it returned
-  before is unchanged.
+  the exclusions alone bounds M but not recall. The fields it returned
+  before keep their meaning, apart from kappa (see "Other changes to
+  requests and results at the default settings").
 
 * **New `gr_screen_sample_size()`** gives the reference size a recall target
   needs: n >= ln(alpha) / ln(T) eligible records with no miss (59 for 95% at
@@ -2181,7 +2159,12 @@ shows a mode in use.
   `gr_register_segmenter()` still check only that `fn` is a function, and
   register a module that breaks a rule as before.
 
-## Fixed
+## Changes and fixes
+
+* **BM25 scoring is faster on many chunks.** Document frequency is counted
+  once per query term instead of once per term for every chunk, so the
+  `rerank` prefilter and the offline `retrieve` path no longer slow down with
+  the square of the number of chunks. Scores are unchanged.
 
 * `print()` of a `gr_calibration` no longer shows "NA" for the frame size.
   A reference given as a plain data frame does not record how large its
@@ -2237,6 +2220,23 @@ shows a mode in use.
   leave that handle attached to its connection, so every later download from
   the same host in the session failed with "Handle is already in use
   elsewhere". Each request now gets its own handle.
+
+* Every block of a document says which table it is a row of, if any:
+  `gr_ingest()` adds `table_id` and `table_rows` to `$blocks` (each unbroken
+  run of `"table"` blocks is one table; `table_rows` is `"3"` for a row
+  from Word or HTML, `"1-12"` for a Markdown table read as one block), and
+  `paragraph` chunks of a document with a table carry `table_id` and
+  `table_rows` for the rows they hold. This is provenance only: no text and
+  no request changes, and a document with no table gets no new chunk
+  columns.
+
+* An embedded image in a Word file whose OCR fails now raises a
+  `gr_ocr_failed` warning naming the image, as a PDF page does; before, its
+  text was lost with nothing said.
+
+* `semantic` run on lexical vectors now reports its method as
+  `"semantic->lexical"`, as it reports `"semantic->paragraph"` when it falls
+  back. This is a label fix: the chunks and the requests are unchanged.
 
 ## Documentation
 
