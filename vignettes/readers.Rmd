@@ -669,8 +669,9 @@ The tests use `hr_sweep()`, which builds one arm per value of a setting, and
 `hr_benchmark()`, which runs the arms on a reference. Here they run on one
 question about the example report, with the stand-in model above. They show
 what each value sends and what `hr_sweep_check()` reports, and they cannot show
-which value answers better. `vignette("compare")` sweeps `top_k` on a reference
-of 32 questions with dev and test splits and reads the result with intervals.
+which value answers better. `vignette("compare")` sweeps `top_k` on 16 dev
+questions, compares two values on 32 test questions and reads the result with
+intervals.
 
 ```{r}
 qa <- gr_qa_reference(questions = c(revenue = "What was revenue in 2024?"),
