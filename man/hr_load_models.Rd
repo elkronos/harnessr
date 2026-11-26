@@ -65,10 +65,11 @@ then left as it was.
 
 \examples{
 # The prices here are illustrative: use your provider's current prices.
+# With no as_of column, the prices are stamped with the current month.
 prices <- tempfile(fileext = ".csv")
-writeLines(c("id,input_usd,output_usd,as_of",
-             "gpt-4o,2.50,10.00,2026-11",
-             "gpt-4o-mini,0.15,0.60,2026-11"), prices)
+writeLines(c("id,input_usd,output_usd",
+             "gpt-4o,2.50,10.00",
+             "gpt-4o-mini,0.15,0.60"), prices)
 hr_load_models(prices)
 m <- hr_models()
 m[m$id \%in\% c("gpt-4o", "gpt-4o-mini"),

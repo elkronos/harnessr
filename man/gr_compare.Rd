@@ -134,6 +134,8 @@ hr_trace_summary(cmp$trace)
 
 # What each recipe cost, and what a right answer cost. The mock is free, so
 # register a price for it under another name to see the columns filled.
+# The figures are illustrative: for a real model, use your provider's
+# current prices.
 hr_register_model("priced-mock", context_window = 128000, max_output = 4096,
                   input_usd = 2, output_usd = 8)
 cmp <- gr_compare(gr_example(), "What was revenue?", c("fast", "precise"),

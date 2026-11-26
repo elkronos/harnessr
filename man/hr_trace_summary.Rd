@@ -52,7 +52,10 @@ hr_trace_summary(ans$trace)
 
 # What the run cost, each request priced at its own model (nothing, for a
 # mock), and what its model calls would cost at another model's prices.
+# harnessr ships no prices, so set that model's first. The figures are
+# illustrative: use your provider's current prices.
 hr_trace_cost(ans$trace)
+hr_register_model("gpt-4o", input_usd = 2.50, output_usd = 10)
 hr_estimate_cost("gpt-4o", ans$trace$tokens_in, ans$trace$tokens_out)
 }
 \seealso{

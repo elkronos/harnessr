@@ -321,12 +321,16 @@ hr_models <- function() {
 #' @family cost and token functions
 #' @export
 #' @examples
+#' # harnessr ships no prices, so a built-in model's cost is NA until you set
+#' # them. Not 0: nothing says the run is free.
 #' hr_estimate_cost("gpt-4o", input_tokens = 120000, output_tokens = 4000)
-#' hr_estimate_cost("a-model-with-no-pricing", 1000, 100)
 #'
-#' # Where the figure's prices came from. The prices are illustrative: use
-#' # your provider's current ones.
+#' # Set the prices you pay. These figures are illustrative: use your
+#' # provider's current prices, in USD per million tokens.
 #' hr_register_model("gpt-4o", input_usd = 2.50, output_usd = 10)
+#' hr_estimate_cost("gpt-4o", input_tokens = 120000, output_tokens = 4000)
+#'
+#' # Where the figure's prices came from.
 #' hr_estimate_cost("gpt-4o", 120000, 4000, detail = TRUE)
 hr_estimate_cost <- function(model, input_tokens, output_tokens = 0, cached_input_tokens = 0,
                              detail = FALSE) {
