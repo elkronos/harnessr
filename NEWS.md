@@ -137,6 +137,11 @@ before `premise`, which stays last).
   `hr_validate()`) moved from `vignette("extending")` to "Checking settings"
   in `vignette("core")`. The extending guide's section on models now points
   to `vignette("models")`, which covers the same ground.
+* The walkthrough of registering a step, listing the modules of every kind
+  with `hr_modules()` and checking a module with `hr_check_module()` moved
+  from `vignette("extending")` to "Registering a step" in
+  `vignette("compose")`. The reference index lists these functions after the
+  compose functions.
 * `vignette("runs")` is now "Limits, caching and replay". Its walkthrough of
   models, prices and token counts moved to `vignette("models")`, whose
   Prices section keeps the `#models-prices` anchor. Its effort sections
