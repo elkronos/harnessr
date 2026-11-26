@@ -919,6 +919,12 @@ every field that changed.
   size it reads `excluded (8 screened; frame size not recorded)`. Estimates,
   intervals and the exclusions projection do not change.
 
+* `gr_calibrate()` counts `$frame$screened_n` from the records the screener
+  decided when the reference does not record it, the count `gr_reference()`
+  writes. It used every row of the screening table, so a plain data frame
+  from a run with undecided rows printed `all (58 of 60 screened)` where the
+  same rows from `gr_reference()` printed `all (58 of 58 screened)`.
+
 * A worker in a parallel batch sets `OPENAI_API_KEY` for each item and
   puts back the value it had when the item ends. A key passed as `key` or
   through the `harnessr.api_key` option no longer stays in the worker process

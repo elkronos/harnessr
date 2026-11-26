@@ -951,7 +951,11 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
     min_positives = min_pos,
     frame = list(of = of,
                  frame_n = if (identical(of, "stacked")) sum(rec$strata$N) else frame_n,
-                 screened_n = attr(ref, "screened_n") %||% nrow(tab)),
+                 # The decided rows, as gr_reference() records it. nrow(tab)
+                 # also counted rows the screener never decided, so a plain
+                 # data frame printed an "all" frame smaller than its
+                 # screened count.
+                 screened_n = attr(ref, "screened_n") %||% sum(!is.na(tab$decision))),
     # What the rate implies for the part of the frame nobody checked. The whole
     # reason to sample exclusions is to find out how much was lost, and a rate
     # without that multiplication leaves the reader to do it.

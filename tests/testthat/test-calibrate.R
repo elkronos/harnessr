@@ -472,5 +472,6 @@ test_that("an `all` reference with no frame size takes the screened count as its
   scr$table$decision[2] <- NA
   cal <- gr_calibrate(scr, ref[-2, ], of = "all")
   expect_identical(cal$frame$frame_n, 7L)
-  expect_identical(sampled_from_line(cal), "  sampled from: all (7 of 8 screened)")
+  expect_identical(cal$frame$screened_n, 7L)
+  expect_identical(sampled_from_line(cal), "  sampled from: all (7 of 7 screened)")
 })
