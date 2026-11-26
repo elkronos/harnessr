@@ -136,7 +136,7 @@ and has a walkthrough that says how to test it with `hr_sweep()`.
   Each changes the requests of a reader in a way that needs its own
   benchmark arm, and neither was needed for the policy itself.
 
-The read stage now has 50 settings and the synthesise stage 29, 224 in all.
+The read stage now has 50 settings and the synthesise stage 29, 227 in all.
 
 ## Reading options
 
