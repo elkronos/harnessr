@@ -92,9 +92,9 @@ that sends batches is also refused before it starts when its worst case,
 every reply at its token cap and the price of the dearest model it uses,
 would pass the limit, and each worker is held to its share of what is
 left. A chat model with no registered price (see \code{\link[=hr_models]{hr_models()}}) is
-refused under a limit unless \code{allow_unpriced} is \code{TRUE}. Under a limit of 0 a
-model registered at no cost runs and one with a price is refused. \code{NULL}
-removes the limit.}
+not held by the limit: its requests are sent with a warning, unless
+\code{allow_unpriced} is \code{FALSE}. Under a limit of 0 a model registered at no
+cost runs and one with a price is refused. \code{NULL} removes the limit.}
 \item{\code{max_calls} (400)}{Hard cap on model calls per run, checked before
 every request. A request to an embeddings endpoint (the built-in \code{"api"}
 embedder) counts as one, and is checked and priced against
@@ -105,8 +105,8 @@ cap.}
 prompt and reply tokens of every call, cache hits included, and the
 text sent to be embedded. A request is refused when what the run has
 used plus its prompt and its reply at the cap would pass it. The limit
-that still bounds a run on a model with no price under
-\code{allow_unpriced = TRUE}. \code{NULL} for no limit.}
+that still bounds a run on a model with no price. \code{NULL} for no
+limit.}
 \item{\code{max_output_tokens} (NULL)}{The largest output cap one request may
 be sent with. A request with a larger cap (for a reasoning model, the
 raised cap \code{\link[=hr_call]{hr_call()}} sends) is refused rather than cut down. \code{NULL}
@@ -114,10 +114,13 @@ for no ceiling.}
 \item{\code{allowed_models} (NULL)}{Character vector of the model ids a run
 may call, chat and embedding models alike. A request to any other is
 refused. \code{NULL} for any model.}
-\item{\code{allow_unpriced} (FALSE)}{Whether a chat model with no registered price
-may be called while \code{max_cost_usd} is set. Off, such a request is
-refused with a condition of class \code{hr_unpriced_model}; on, it is sent
-and its cost is recorded as unknown (\code{NA}).}
+\item{\code{allow_unpriced} (TRUE)}{Whether a chat model with no registered price
+may be called while \code{max_cost_usd} is set. On, such a request is sent,
+its cost is recorded as unknown (\code{NA}), and the first request to each
+such model in a session warns with class \code{hr_unpriced_model}. Off, it is
+refused with a condition of that class. Untested: harnessr ships no
+prices, so off would refuse every built-in model until you set its
+prices with \code{\link[=hr_register_model]{hr_register_model()}} or \code{\link[=hr_load_models]{hr_load_models()}}.}
 \item{\code{unknown_model_action} ("warn")}{\code{"warn"} or \code{"error"} when a model id
 is not in the registry.}
 \item{\code{actor} (none)}{A named list (or character vector) of the actor

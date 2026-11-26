@@ -111,8 +111,10 @@ hr_register_model("claude-sonnet-4-5", context_window = 200000, max_output = 640
 cl <- hr_ellmer_client(chat_anthropic(model = "claude-sonnet-4-5"))
 ans <- answer_document("report.pdf", "What was revenue?", "thorough", client = cl)
 
-# Locally, for nothing. A local model has no price, so let it run unpriced:
-hr_options(allow_unpriced = TRUE)
+# Locally, for nothing. A local model has no price; register it at zero so
+# the spending limit counts it without a warning.
+hr_register_model("llama3.1", context_window = 128000, max_output = 4096,
+                  input_usd = 0, output_usd = 0)
 local <- hr_ellmer_client(chat_ollama(model = "llama3.1"))
 gr_compare("report.pdf", "What was revenue?",
            c("fast", "thorough"), client = local)$summary

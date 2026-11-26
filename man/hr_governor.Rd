@@ -31,7 +31,8 @@ for no limit.}
 (chat and embedding models alike), or \code{NULL} for any.}
 
 \item{allow_unpriced}{\code{TRUE} to send requests to models with no registered
-price under a spending limit.}
+price under a spending limit, with a warning once per model per session;
+\code{FALSE} to refuse them.}
 }
 \value{
 An object of class \code{hr_governor}: a list of the six limits.
@@ -73,16 +74,21 @@ ceiling), \code{"output"} (the per-call ceiling), \code{"model"} (not an allowed
 model) or \code{"unpriced"}.
 
 A text-generation model with no registered price cannot be held to a
-spending limit, so while \code{max_cost_usd} is a finite number a request to one
-is refused (a condition of class \code{hr_unpriced_model} as well as
-\code{hr_budget_refused}), unless \code{allow_unpriced = TRUE}. With
-\code{allow_unpriced = TRUE} the request is sent, the trace prices it at \code{NA},
-never 0, and \code{max_calls}, \code{max_tokens_total} and the other limits still
-apply: \code{max_tokens_total} is the limit that bounds such a run, since the
-spending limit cannot. An embedding model with no price is not refused; its
-requests count against \code{max_calls} and add nothing to the spend, as
-\code{\link[=gr_read_many]{gr_read_many()}} warns. \code{\link[=hr_mock_client]{hr_mock_client()}} makes no paid requests and is
-never refused as unpriced. A request an \code{\link[=hr_cache]{hr_cache()}} answers spends nothing
+spending limit. harnessr ships no prices, so by default
+(\code{allow_unpriced = TRUE}) a request to one is sent while \code{max_cost_usd} is a
+finite number, and the trace prices it at \code{NA}, never 0. The first such
+request to each model in a session warns, with class \code{hr_unpriced_model},
+that the spending limit does not cover the model until you set its prices
+with \code{\link[=hr_register_model]{hr_register_model()}} or \code{\link[=hr_load_models]{hr_load_models()}}. \code{max_calls},
+\code{max_tokens_total} and the other limits still apply: \code{max_tokens_total} is
+the limit that bounds such a run, since the spending limit cannot. With
+\code{allow_unpriced = FALSE} the request is refused instead (a condition of
+class \code{hr_unpriced_model} as well as \code{hr_budget_refused}), for a run in
+which every request must be priced. An embedding model with no price is
+neither refused nor warned about here; its requests count against
+\code{max_calls} and add nothing to the spend, as \code{\link[=gr_read_many]{gr_read_many()}} warns.
+\code{\link[=hr_mock_client]{hr_mock_client()}} makes no paid requests, so it is never refused or warned
+about as unpriced. A request an \code{\link[=hr_cache]{hr_cache()}} answers spends nothing
 and is checked only against \code{max_calls}, \code{max_output_tokens} and
 \code{allowed_models}.
 
@@ -111,8 +117,12 @@ tr$calls
 tr$stop_reason
 
 # A request whose worst case would pass the spending limit is not sent.
+# The limit needs a price; this one is illustrative, so use your
+# provider's current prices.
+hr_register_model("my-priced-model", context_window = 128000, max_output = 4096,
+                  input_usd = 2.5, output_usd = 10)
 tr <- hr_trace(governor = hr_governor(max_cost_usd = 0.001))
-res <- hr_call(cl, "hi", model = "gpt-4o", trace = tr)
+res <- hr_call(cl, "hi", model = "my-priced-model", trace = tr)
 res$refused
 res$error
 }

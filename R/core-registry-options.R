@@ -52,8 +52,10 @@ gr_defaults <- list(
   # The models a run may call. NULL = any.
   allowed_models      = NULL,
   # Whether a model with no registered price may be called under a spending
-  # limit. Off: a limit that cannot see what a request costs is not a limit.
-  allow_unpriced      = FALSE,
+  # limit. On: harnessr ships no prices, so off would refuse every request to
+  # a built-in model until its prices are set. Each such model is warned
+  # about once per session (warn_unpriced_model()).
+  allow_unpriced      = TRUE,
   unknown_model_action = "warn",       # "warn" | "error"
   # Who runs are for and who runs them, recorded on every trace (see
   # hr_trace()). Empty: every field NA unless hr_trace() is given it.
@@ -179,7 +181,13 @@ nondefault_options <- function(names = .gr_late_options) {
   # max_calls = 0 says more plainly.
   max_output_tokens = list(kind = "ceiling", lo = 1, whole = TRUE),
   # lo = 0, as for max_calls: a run that may use no tokens sends nothing.
-  max_tokens_total  = list(kind = "ceiling", lo = 0, whole = TRUE)
+  max_tokens_total  = list(kind = "ceiling", lo = 0, whole = TRUE),
+  # A switch, checked by check_option() itself; listed for its evidence.
+  allow_unpriced    = list(kind = "switch",
+                           evidence = list(status = "untested", source = paste0(
+                             "A choice, not a tuned value: harnessr ships no prices, so FALSE ",
+                             "would refuse every request to a built-in model until you set ",
+                             "its prices.")))
 )
 
 #' @noRd
@@ -338,9 +346,9 @@ check_option <- function(name, value) {
 #'     every reply at its token cap and the price of the dearest model it uses,
 #'     would pass the limit, and each worker is held to its share of what is
 #'     left. A chat model with no registered price (see [hr_models()]) is
-#'     refused under a limit unless `allow_unpriced` is `TRUE`. Under a limit of 0 a
-#'     model registered at no cost runs and one with a price is refused. `NULL`
-#'     removes the limit.}
+#'     not held by the limit: its requests are sent with a warning, unless
+#'     `allow_unpriced` is `FALSE`. Under a limit of 0 a model registered at no
+#'     cost runs and one with a price is refused. `NULL` removes the limit.}
 #'   \item{`max_calls` (400)}{Hard cap on model calls per run, checked before
 #'     every request. A request to an embeddings endpoint (the built-in `"api"`
 #'     embedder) counts as one, and is checked and priced against
@@ -351,8 +359,8 @@ check_option <- function(name, value) {
 #'     prompt and reply tokens of every call, cache hits included, and the
 #'     text sent to be embedded. A request is refused when what the run has
 #'     used plus its prompt and its reply at the cap would pass it. The limit
-#'     that still bounds a run on a model with no price under
-#'     `allow_unpriced = TRUE`. `NULL` for no limit.}
+#'     that still bounds a run on a model with no price. `NULL` for no
+#'     limit.}
 #'   \item{`max_output_tokens` (NULL)}{The largest output cap one request may
 #'     be sent with. A request with a larger cap (for a reasoning model, the
 #'     raised cap [hr_call()] sends) is refused rather than cut down. `NULL`
@@ -360,10 +368,13 @@ check_option <- function(name, value) {
 #'   \item{`allowed_models` (NULL)}{Character vector of the model ids a run
 #'     may call, chat and embedding models alike. A request to any other is
 #'     refused. `NULL` for any model.}
-#'   \item{`allow_unpriced` (FALSE)}{Whether a chat model with no registered price
-#'     may be called while `max_cost_usd` is set. Off, such a request is
-#'     refused with a condition of class `hr_unpriced_model`; on, it is sent
-#'     and its cost is recorded as unknown (`NA`).}
+#'   \item{`allow_unpriced` (TRUE)}{Whether a chat model with no registered price
+#'     may be called while `max_cost_usd` is set. On, such a request is sent,
+#'     its cost is recorded as unknown (`NA`), and the first request to each
+#'     such model in a session warns with class `hr_unpriced_model`. Off, it is
+#'     refused with a condition of that class. Untested: harnessr ships no
+#'     prices, so off would refuse every built-in model until you set its
+#'     prices with [hr_register_model()] or [hr_load_models()].}
 #'   \item{`unknown_model_action` ("warn")}{`"warn"` or `"error"` when a model id
 #'     is not in the registry.}
 #'   \item{`actor` (none)}{A named list (or character vector) of the actor

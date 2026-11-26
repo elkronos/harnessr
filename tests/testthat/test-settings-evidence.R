@@ -111,7 +111,6 @@ settings_unrated_frozen <- c(
   "options | hr_options() | max_tokens_total",
   "options | hr_options() | max_output_tokens",
   "options | hr_options() | allowed_models",
-  "options | hr_options() | allow_unpriced",
   "options | hr_options() | unknown_model_action",
   "options | hr_options() | actor"
 )

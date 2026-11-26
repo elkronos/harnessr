@@ -28,3 +28,14 @@ local_unpriced <- function(ids, env = parent.frame()) {
   st$models <- models
   invisible(ids)
 }
+
+# The price warnings are given once per model per session. Clear the record
+# of which have been given for the rest of the calling test, so a test sees
+# the first warning whatever ran before it, and put it back afterwards.
+local_price_warnings <- function(env = parent.frame()) {
+  st <- harnessr:::hr_state
+  old <- st$price_warned
+  st$price_warned <- NULL
+  withr::defer(st$price_warned <- old, envir = env)
+  invisible(NULL)
+}

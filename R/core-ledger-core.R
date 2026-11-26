@@ -63,7 +63,7 @@
 #'   `worst_usd`, the run's `calls` and `spent_usd` at that moment, and the
 #'   `message`. A refused request is not a call and has no step. `spent_usd`
 #'   is what the calls so far cost. A call to a model with no registered price
-#'   (sent under `allow_unpriced = TRUE`) adds nothing to it, so
+#'   (sent under `allow_unpriced = TRUE`, the default) adds nothing to it, so
 #'   [hr_trace_cost()] is the full account. `replayed_usd` is what the calls a
 #'   [hr_replay_client()] answered cost when they were recorded, counted when
 #'   the spending limit stopped the recorded run: nothing was paid for them,

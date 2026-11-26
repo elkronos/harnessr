@@ -48,16 +48,21 @@
 #' model) or `"unpriced"`.
 #'
 #' A text-generation model with no registered price cannot be held to a
-#' spending limit, so while `max_cost_usd` is a finite number a request to one
-#' is refused (a condition of class `hr_unpriced_model` as well as
-#' `hr_budget_refused`), unless `allow_unpriced = TRUE`. With
-#' `allow_unpriced = TRUE` the request is sent, the trace prices it at `NA`,
-#' never 0, and `max_calls`, `max_tokens_total` and the other limits still
-#' apply: `max_tokens_total` is the limit that bounds such a run, since the
-#' spending limit cannot. An embedding model with no price is not refused; its
-#' requests count against `max_calls` and add nothing to the spend, as
-#' [gr_read_many()] warns. [hr_mock_client()] makes no paid requests and is
-#' never refused as unpriced. A request an [hr_cache()] answers spends nothing
+#' spending limit. harnessr ships no prices, so by default
+#' (`allow_unpriced = TRUE`) a request to one is sent while `max_cost_usd` is a
+#' finite number, and the trace prices it at `NA`, never 0. The first such
+#' request to each model in a session warns, with class `hr_unpriced_model`,
+#' that the spending limit does not cover the model until you set its prices
+#' with [hr_register_model()] or [hr_load_models()]. `max_calls`,
+#' `max_tokens_total` and the other limits still apply: `max_tokens_total` is
+#' the limit that bounds such a run, since the spending limit cannot. With
+#' `allow_unpriced = FALSE` the request is refused instead (a condition of
+#' class `hr_unpriced_model` as well as `hr_budget_refused`), for a run in
+#' which every request must be priced. An embedding model with no price is
+#' neither refused nor warned about here; its requests count against
+#' `max_calls` and add nothing to the spend, as [gr_read_many()] warns.
+#' [hr_mock_client()] makes no paid requests, so it is never refused or warned
+#' about as unpriced. A request an [hr_cache()] answers spends nothing
 #' and is checked only against `max_calls`, `max_output_tokens` and
 #' `allowed_models`.
 #'
@@ -90,7 +95,8 @@
 #' @param allowed_models Character vector of the model ids the run may call
 #'   (chat and embedding models alike), or `NULL` for any.
 #' @param allow_unpriced `TRUE` to send requests to models with no registered
-#'   price under a spending limit.
+#'   price under a spending limit, with a warning once per model per session;
+#'   `FALSE` to refuse them.
 #' @return An object of class `hr_governor`: a list of the six limits.
 #' @seealso [hr_options()] for the session defaults, [hr_trace()],
 #'   [hr_register_model()] to give a model its prices
@@ -103,8 +109,12 @@
 #' tr$stop_reason
 #'
 #' # A request whose worst case would pass the spending limit is not sent.
+#' # The limit needs a price; this one is illustrative, so use your
+#' # provider's current prices.
+#' hr_register_model("my-priced-model", context_window = 128000, max_output = 4096,
+#'                   input_usd = 2.5, output_usd = 10)
 #' tr <- hr_trace(governor = hr_governor(max_cost_usd = 0.001))
-#' res <- hr_call(cl, "hi", model = "gpt-4o", trace = tr)
+#' res <- hr_call(cl, "hi", model = "my-priced-model", trace = tr)
 #' res$refused
 #' res$error
 hr_governor <- function(max_calls = hr_options("max_calls"),
@@ -289,12 +299,16 @@ governor_check <- function(trace, request, stage = c("both", "call", "send")) {
     if (is.null(limit)) return(NULL)
     worst <- request$worst_usd %||% worst_case_usd(model, request$input_tokens, out_tokens)
     if (is.na(worst)) {
-      if (isTRUE(request$unpriced_ok) || isTRUE(gov$allow_unpriced)) return(NULL)
+      if (isTRUE(request$unpriced_ok)) return(NULL)
+      if (isTRUE(gov$allow_unpriced)) {
+        warn_unpriced_model(model, limit)
+        return(NULL)
+      }
       return(refuse("unpriced", sprintf(paste0(
         "unpriced model: '%s' has no registered price, so what the '%s' request costs cannot ",
         "be held to the $%s spending limit, and it was not sent. Register its prices with ",
-        "hr_register_model(input_usd =, output_usd =), or send it unpriced with ",
-        "hr_options(allow_unpriced = TRUE) or hr_governor(allow_unpriced = TRUE)"),
+        "hr_register_model(input_usd =, output_usd =) or hr_load_models(), or send it ",
+        "unpriced with hr_options(allow_unpriced = TRUE) or hr_governor(allow_unpriced = TRUE)"),
         model, label, format(limit, scientific = FALSE))))
     }
     spent <- budget_spent(trace)
