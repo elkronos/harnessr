@@ -206,9 +206,9 @@ with `hr_options(old)`.
 
 ## The core in brief
 
-Every request harnessr makes goes through one function, `hr_call()`, whether a
-document reader sends it or your own code does. You can use the core with no
-document at all. The parts below each link to the core guide that covers them in
+Every chat request harnessr makes goes through `hr_call()`, and every embedding
+request through `hr_embed()`, whether a document reader sends it or your own
+code does. You can use the core with no document at all. The parts below each link to the core guide that covers them in
 depth.
 
 ### A call
@@ -315,8 +315,9 @@ with intervals (`vignette("evaluate")` and `vignette("compare")`).
 
 ## The document layer
 
-The document layer asks questions of documents, and every request it makes goes
-through `hr_call()`, under the same limits and into the same trace.
+The document layer asks questions of documents. Its requests go through
+`hr_call()` and `hr_embed()`, which check them against the same limits and
+record them in a trace of the same kind, returned in `ans$trace`.
 
 A long document does not fit in one request, so the document layer cuts it
 into chunks. Asking a question of a document **takes three decisions**, and
