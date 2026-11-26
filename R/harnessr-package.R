@@ -359,13 +359,15 @@ NULL
 #'     for API-side errors.}
 #'   \item{`usage`}{List with `input` and `output` token counts and their
 #'     `provenance`: `"reported"` by the provider, `"counted"` here with the
-#'     `"tiktoken"` tokenizer, or `"estimated"` with another one. `reasoning`
-#'     and `cached_input` are added when the provider reports them, as parts
-#'     of `output` and `input`.}
+#'     `"tiktoken"` tokenizer or as a zero for a request that failed or was
+#'     not sent, or `"estimated"` with another tokenizer. `reasoning` and
+#'     `cached_input` are added when the provider reports them, as parts of
+#'     `output` and `input`.}
 #'   \item{`status`, `finish_reason`, `retryable`, `model`, `raw`}{HTTP status,
 #'     the API's stop reason (`"length"` for a reply cut off at the output cap,
-#'     whatever the provider called it), whether a retry could help, the model
-#'     id the call asked for, and the parsed response body.}
+#'     whatever the provider called it, and `NA` when the client reports none),
+#'     whether a retry could help, the model id the call asked for, and the
+#'     parsed response body.}
 #'   \item{`cached`}{`TRUE` when the reply came from an [hr_cache()] or an
 #'     [hr_replay_client()] rather than the network.}
 #'   \item{`served_model`, `response_id`, `fingerprint`}{What the provider said

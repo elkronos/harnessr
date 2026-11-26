@@ -115,7 +115,7 @@ str(unclass(res), give.attr = FALSE)
 | `text` | The reply, one string. `""` when `ok` is `FALSE`, never `NULL`. Line breaks are kept. |
 | `error` | What went wrong, or `NULL`. |
 | `status` | The HTTP status. `NA` when the client gave none, as a mock or a handler usually does, and `0` when no request was sent (a refusal, a prompt that leaves no room for a reply). |
-| `usage` | `input` and `output` tokens, and `provenance`: `"reported"` by the provider, `"counted"` here with the `"tiktoken"` tokenizer or as a zero for a request that was not sent, or `"estimated"` with another tokenizer. `reasoning` and `cached_input` appear when the provider reports them, as parts of `output` and `input`. |
+| `usage` | `input` and `output` tokens, and `provenance`: `"reported"` by the provider, `"counted"` here with the `"tiktoken"` tokenizer or as a zero for a request that failed or was not sent, or `"estimated"` with another tokenizer. `reasoning` and `cached_input` appear when the provider reports them, as parts of `output` and `input`. |
 | `model` | The model the call asked for. Prices, the cache and a replay look the call up by it. |
 | `finish_reason` | Why the reply ended. `"length"` means it was cut off at the output cap, whatever the provider called it. `NA` when the client reports none, as the mock above does. |
 | `retryable` | Whether trying the same request again could help (a rate limit, a server error). |
