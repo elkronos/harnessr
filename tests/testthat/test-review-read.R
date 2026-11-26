@@ -148,7 +148,9 @@ test_that("an ellmer chat's own unpriced model is refused, override or not", {
   skip_if_not_installed("ellmer")
   local_registries()
   hr_register_model("claude-test", context_window = 200000, max_output = 8000)
-  hr_options(max_cost_usd = 1)
+  # Unpriced requests are sent by default; refusing them takes
+  # allow_unpriced = FALSE.
+  hr_options(max_cost_usd = 1, allow_unpriced = FALSE)
   ch <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 200)))
   cl <- hr_ellmer_client(fake_chat("claude-test"))
   expect_identical(harnessr:::client_billed_model(cl), "claude-test")
