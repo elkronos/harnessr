@@ -20,7 +20,15 @@ chunks read two ways can take one request or dozens, and can find a fact or
 miss it.
 
 This guide explains each reader, runs them all on one document, and gives you a
-way to choose. `vignette("harnessr")` introduces the package and its ideas.
+way to choose.
+
+The readers build on three pieces of the core. Each one sizes its prompts to
+the model's window with `hr_budget()` ("How much room a prompt has:
+`hr_budget()`" in `vignette("context")`). Each takes a reasoning effort, one
+for the whole read or one per stage (`vignette("effort")`). Each sends its
+requests with `hr_call()`, under the run's limits and into the run's trace
+("The trace" in `vignette("core")`). `vignette("harnessr")` introduces the
+package.
 
 ## Setting up
 
@@ -140,8 +148,8 @@ with one set of instructions and one reply. Its cost still grows with the
 document's length. The model sees everything at once, so it can connect facts
 from different places.
 
-The context window sets the limit. If the document does not fit, `stuff` sends
-what fits, warns, and marks the answer partial (`on_overflow = "error"` makes it
+The context window sets the limit: `stuff` fills the room `hr_budget()` leaves
+for the input. If the document does not fit, `stuff` sends what fits, warns, and marks the answer partial (`on_overflow = "error"` makes it
 stop instead). Very long prompts also dilute attention, and a model misses
 details in the middle of a long prompt more easily.
 
@@ -411,8 +419,9 @@ saves most there; `?gr_read_spec` suggests a starting profile. Names follow the
 rules in "One effort for every call, or one per stage" in `vignette("effort")`:
 `map` covers `map.answer`, and an unnamed value covers the rest.
 
-`hr_trace()` records every request a run makes. Here `map_reduce` reads the eight
-chunks at low effort and merges at high:
+`hr_trace()` records every request a run makes ("The trace" in
+`vignette("core")`). Here `map_reduce` reads the eight chunks at low effort and
+merges at high:
 
 ```{r}
 spec <- gr_read_spec("map_reduce", model = "gpt-5.6-luna",
@@ -622,8 +631,10 @@ the answer partial: `rerank` to word-matching order, `iterative` to a single
 retrieval, `preview` to reading everything. You still get an answer, and
 `partial` tells you it came by the fallback.
 
-Every call that asks for JSON (these three, model segmentation, screening,
-claims, outlines and extraction) checks the reply's types, `enum` values and
+`hr_call()` itself does not parse a structured reply ("Structured replies" in
+`vignette("core")`). Every call in the document layer that asks for JSON (these
+three, model segmentation, screening, claims, outlines and extraction) checks
+the reply's types, `enum` values and
 `required` fields, through nested objects and arrays, before using it.
 harnessr treats a reply that fails as one that did not parse: the reader takes
 its failure path, the cache does not keep the reply, and the reason says where
@@ -1280,6 +1291,9 @@ hr_options(old)
   chunkings for nothing before you read.
 - `vignette("review")`: reading many documents, and literature reviews with
   `extract` and `screen`.
-- `vignette("runs")`: limits, the trace, caching and replaying a run.
+- `vignette("core")`: the calls every reader makes, the trace and refusals.
+- `vignette("context")` and `vignette("effort")`: the budgets and the
+  reasoning effort the readers build on.
+- `vignette("runs")`: limits, caching and replaying a run.
 - `vignette("extending")`: registering a reader of your own.
 - `?gr_read_spec`: every reading setting, with its default and allowed range.
