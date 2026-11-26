@@ -111,7 +111,9 @@ before `premise`, which stays last).
 * `?hr_budget` gives the default reply reserve as `output_reserve_share` of
   the usable window rather than a fixed quarter, and says that a reserve
   leaving no input room, an explicit one included, drops to
-  `min_output_tokens` before the error.
+  `min_output_tokens` before the error. `?hr_options` says that
+  `output_reserve_share` does not change how much of a document a reader
+  fits, since the readers give `max_answer_tokens` as the reserve.
 * `?gr_result` lists every field a result carries, including `cached`,
   `served_model`, `response_id`, `fingerprint`, `attempts` and, for a
   request the limits did not send, `refused` and `refusal`.
