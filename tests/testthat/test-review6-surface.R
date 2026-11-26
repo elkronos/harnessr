@@ -514,7 +514,7 @@ test_that("the pkgdown workflow builds every Markdown page change and publishes 
 test_that("every release heading in NEWS.md is one the site's changelog keeps", {
   path <- test_path("..", "..", "NEWS.md")
   if (!file.exists(path)) path <- system.file("NEWS.md", package = "harnessr")
-  skip_if(!nzchar(path) || !file.exists(path), "NEWS.md is not available")
+  expect_true(file.exists(path))
   y <- readLines(path, warn = FALSE, encoding = "UTF-8")
   fence <- cumsum(grepl("^\\s*```", y)) %% 2L == 1L
   heads <- sub("^#\\s+", "", y[!fence & grepl("^# ", y)])
