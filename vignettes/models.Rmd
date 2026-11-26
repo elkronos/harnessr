@@ -438,8 +438,8 @@ again. To clear the warning, check your provider's current prices and set
 every price the entry has again, `cached_input_usd` included when it has one:
 `hr_register_model()` then stamps the current month, and so does a row of
 `hr_load_models()` with a blank `as_of`. A change that leaves one of the
-entry's prices out keeps the older month, and the warning stays. A row that
-gives `as_of` sets the month to it. A model with no price is never stale,
+entry's prices out keeps the older month, and the warning stays, even when the
+row gives a newer `as_of`. A model with no price is never stale,
 and its `as_of`, the month its limits were checked, does not count.
 
 ## Counting tokens {#counting-tokens}
