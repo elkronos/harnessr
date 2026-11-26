@@ -1,25 +1,24 @@
 # Choosing how the model reads
 
-Once a document is cut into chunks, something has to decide how the
-model works through them. Send everything at once? Ask each chunk
-separately and combine the answers? Find the few chunks most like the
-question and ignore the rest? These are *reading strategies*, which
-harnessr calls *readers*. They decide most of the cost of a run and much
-of the quality of its answer. The same chunks read two ways can take one
-request or dozens, and can find a fact or miss it.
+Once a document is cut into chunks, a *reading strategy* decides how the
+model works through them. It can send everything in one request, ask
+each chunk separately and combine the answers, or pick the few chunks
+most like the question and ignore the rest. harnessr calls these
+strategies *readers*. The reader sets most of a run’s cost and much of
+its answer’s quality: the same chunks read two ways can take one request
+or dozens, and can find a fact or miss it.
 
-This guide explains each reader in plain terms, shows how they differ on
-the same document, and gives a way to choose.
+This guide explains each reader, runs them all on one document, and
+gives you a way to choose.
 [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
 introduces the package and its ideas.
 
 ## Setting up
 
-The examples use a stand-in for a real model, so they run for free. This
-one answers each kind of request the way a model would: it scores an
-excerpt when asked to score and quotes when asked to quote, so every
-reader can do its normal work. You do not need to follow its details; it
-plays the part of the model.
+The examples run for free because a stand-in plays the model. It answers
+each kind of request as a model would: it scores an excerpt when a
+reader asks for a score and quotes when a reader asks for a quotation,
+so every reader does its normal work. You can skip its details.
 
 ``` r
 
@@ -53,11 +52,11 @@ stand_in <- function(messages, params) {
 }
 ```
 
-`embedder = "lexical"` makes the readers that search for similar text
-use simple word matching instead of a paid embedding service; more on
-that below.
+With `embedder = "lexical"`, the readers that search for similar text
+use word matching computed on your machine instead of a paid embedding
+service. “Embeddings” below covers the difference.
 
-Now the document, cut into chunks along its section headings:
+Cut the example report into chunks at its section headings:
 
 ``` r
 
@@ -68,8 +67,8 @@ gr_chunk_stats(chunks)
 #> 1 structural 8          557  16   76.5 69.6 102        0
 ```
 
-Eight chunks. A real report would have hundreds, and the differences
-below would be correspondingly larger.
+That gives eight chunks. A real report can have hundreds, and the
+differences below grow with it.
 
 ## Listing the readers
 
@@ -104,16 +103,17 @@ gr_readers()[, c("name", "signature", "cost_calls")]
 #> 12                                          1
 ```
 
-`cost_calls` is how many requests a reader makes, as a formula in **N**,
-the number of chunks. A reader whose count grows with N makes a hundred
-times as many requests on a document a hundred times longer. But you pay
-for tokens, not requests, and a reader that looks at every chunk sends
-every token: `stuff` makes one request whatever the length, yet that
-request carries the whole document, so its cost grows with the document
-too. Each request also repeats the instructions and writes its own
-reply, so among readers that see everything, more requests cost more.
-The readers that look at a selection of chunks (the `topk` ones below)
-cost roughly the same however long the document is.
+`cost_calls` gives the number of requests a reader makes as a formula in
+**N**, the number of chunks. If the count grows with N, a document a
+hundred times longer takes a hundred times as many requests.
+
+You pay for tokens, though, and a reader that looks at every chunk sends
+every token. `stuff` makes one request at any length, but that request
+carries the whole document, so its cost grows with the document too.
+Each request also repeats the instructions and writes its own reply, so
+among readers that see everything, more requests cost more. The readers
+that look at a selection of chunks (the `topk` ones below) cost about
+the same at any document length.
 
 `signature` describes how a reader works, in three parts separated by
 `|`:
@@ -126,15 +126,15 @@ cost roughly the same however long the document is.
   alone), `tree` (answers are combined in stages), or `forward` (each
   request builds on the one before).
 
-The built-in readers all have different signatures, and `ensemble`
-refuses members that share one: two readers with the same signature
-would be the same method under two names.
+No two built-in readers share a signature, and `ensemble` refuses
+members that do: two readers with one signature are one method under two
+names.
 
 ## Every reader on one document
 
-Here is the same question put to the same eight chunks by each
-general-purpose reader. `extract` and `screen` are left out: they are
-built for literature reviews and need a schema or criteria.
+Each general-purpose reader below gets the same question on the same
+eight chunks. `extract` and `screen` are left out because they are built
+for literature reviews and need a schema or criteria.
 
 ``` r
 
@@ -160,27 +160,28 @@ do.call(rbind, lapply(readers, read_with))
 #> 10     ensemble       11           8   FALSE
 ```
 
-The stand-in gives every reader the same answer, and none of the runs
-degraded (`partial` is `FALSE`). What differs is the work: from one
-request to eleven for eight chunks, and from reading everything to
-relying on a single passage. On a long document the gap widens: the
-number of requests grows with the document for some readers and not at
-all for others, and the cost grows for every reader that reads the whole
-document.
+Every reader gets the same answer from the stand-in, and no run degraded
+(`partial` is `FALSE`). The work differs: from one request to eleven for
+eight chunks, and from reading every chunk to relying on one passage. A
+long document widens the gap. For some readers the number of requests
+grows with the document and for others it stays fixed, and the cost
+grows for every reader that reads the whole document.
 
 ## The readers
 
 ### `stuff`: everything in one request
 
-Puts the whole document into a single prompt. It is the simplest reader,
-and usually the cheapest way to have the model read all of a document,
-with one set of instructions and one reply. Its cost still grows with
-the document’s length. The model sees everything at once, so it can
-connect facts from different places. The limit is the context window: if
-the document does not fit, `stuff` sends what fits, warns, and marks the
-answer partial (`on_overflow = "error"` makes it stop instead). Very
-long prompts also dilute attention; details in the middle of a long
-prompt are more easily missed.
+`stuff` puts the whole document into a single prompt. It is the simplest
+reader, and usually the cheapest way to have the model read all of a
+document, with one set of instructions and one reply. Its cost still
+grows with the document’s length. The model sees everything at once, so
+it can connect facts from different places.
+
+The context window sets the limit. If the document does not fit, `stuff`
+sends what fits, warns, and marks the answer partial
+(`on_overflow = "error"` makes it stop instead). Very long prompts also
+dilute attention, and a model misses details in the middle of a long
+prompt more easily.
 
 **Use it for** documents comfortably inside the model’s context window.
 **Recipe:** `"fast"`, which
@@ -190,11 +191,11 @@ model with a small context window.
 
 ### `map_reduce`: every chunk separately, then combined
 
-Asks the question of each chunk on its own (“map”), then combines the
-answers in stages (“reduce”). Nothing is skipped, each request is small,
-and the per-chunk requests can run in parallel. It costs N requests plus
-the combining steps, and a fact that only makes sense across two chunks
-can be missed, because no single request sees both.
+`map_reduce` asks the question of each chunk on its own (the “map”),
+then combines the answers in stages (the “reduce”). It skips nothing,
+each request is small, and the per-chunk requests can run in parallel.
+It costs N requests plus the combining steps. It can miss a fact that
+only makes sense across two chunks, because no single request sees both.
 
 **Use it for** questions where every mention matters: “list every risk
 named in this report”. **Recipe:** `"thorough"`, which
@@ -203,97 +204,98 @@ uses by default for a longer document.
 
 ### `refine`: a draft revised chunk by chunk
 
-Reads the chunks in order, keeping a running answer and revising it with
-each new chunk. Later text can correct earlier conclusions, which suits
-documents whose argument develops. It costs N requests that cannot run
-in parallel, and the running answer can drift.
+`refine` reads the chunks in order and keeps a running answer, revising
+it with each new chunk. Later text can correct earlier conclusions,
+which suits documents whose argument develops. It costs N requests that
+cannot run in parallel, and the running answer can drift.
 
 **Use it for** narratives and arguments that build. **Recipe:**
 `"narrative"`.
 
 ### `skim`: quote first, then answer
 
-For each chunk, asks the model to copy out any passages that bear on the
-question, then answers once from those passages alone. The final answer
-rests on quotations, which harnessr checks against the text (see below).
-It costs N + 1 requests; the per-chunk step can use a cheaper model
-through `skim_model`.
+For each chunk, `skim` asks the model to copy out any passages that bear
+on the question, then answers once from those passages alone. The final
+answer rests on quotations, and harnessr checks them against the text
+(see “Checking what an answer rests on” below). It costs N + 1 requests,
+and `skim_model` can put the per-chunk step on a cheaper model.
 
 **Use it for** questions where you want the answer tied to exact
 wording. **Recipe:** `"precise"`.
 
 ### `hierarchical`: summaries of summaries
 
-Summarises each chunk, then summarises groups of summaries (`fan_in` at
-a time), level by level, until everything fits in one prompt, and
-answers from that. It suits questions about a whole long document, such
-as “what is this report’s overall argument?”, at the price of detail
-lost in summarising. `summary_model` can use a cheaper model for the
-summaries; `max_levels` caps the depth.
+`hierarchical` summarises each chunk, then summarises the summaries in
+groups of `fan_in`, level by level, until everything fits in one prompt,
+and answers from that. It suits questions about a whole long document,
+such as “what is this report’s overall argument?”, and loses detail in
+the summarising. `summary_model` can put the summaries on a cheaper
+model, and `max_levels` caps the depth.
 
 **Use it for** long, structured documents where you want an overview.
 **Recipe:** `"survey"`.
 
 ### `retrieve`: only the most relevant chunks
 
-Turns the question and every chunk into *embeddings* (lists of numbers
-that place similar text close together) and sends only the `top_k`
-chunks closest to the question, in a single request. The cost of the
-answer does not grow with the document, which makes it the usual choice
-for finding one fact in something long. The risk: a chunk that answers
-the question but does not *look* like it is never sent.
+`retrieve` turns the question and every chunk into *embeddings* (lists
+of numbers that place similar text close together) and sends only the
+`top_k` chunks closest to the question, in a single request. The cost of
+the answer does not grow with the document, so `retrieve` is the usual
+choice for finding one fact in something long. The risk is a chunk that
+answers the question but does not *look* like it: it can rank below the
+`top_k` cut and never reach the model.
 
 **Use it for** a specific fact in a long document. **Recipe:**
 `"needle"`.
 
 ### `rerank`: shortlist, then let the model judge
 
-Makes a quick word-matching shortlist (`rerank_candidates` chunks, 20 by
-default), asks the model to score each for relevance from 0 to 10, and
-answers from the chunks scoring at least `rerank_min_score`. The model’s
-judgement is better than word matching, at the price of one scoring
-request per shortlisted chunk. `skim_model` can do the scoring more
-cheaply.
+`rerank` makes a quick word-matching shortlist (`rerank_candidates`
+chunks, 20 by default), asks the model to score each from 0 to 10 for
+relevance, and answers from the chunks scoring at least
+`rerank_min_score`. The model judges relevance better than word matching
+does, at the price of one scoring request per shortlisted chunk.
+`skim_model` can do the scoring more cheaply.
 
 If no chunk could be scored, for example because the provider does not
-support the structured replies the scoring needs, it falls back to the
-word-matching order and warns. If only some chunks were scored, the
-answer is marked partial.
+support the structured replies the scoring needs, `rerank` falls back to
+the word-matching order and warns. If only some chunks were scored, it
+marks the answer partial.
 
 **Use it for** long documents where word matching alone picks badly,
 including scanned ones. **Recipe:** `"scanned"`.
 
 ### `iterative`: look, decide what is missing, look again
 
-Retrieves a few chunks and asks the model whether it can answer yet, and
-if not, what it should look for next. Then it retrieves again, up to
-`max_rounds` times. It suits questions needing several facts from
-different places (“how did the drop in margin affect the dividend?”).
-`ans$notes$queries` records what it searched for in each round, and
-`ans$notes$stop_reason` why it stopped.
+`iterative` retrieves a few chunks and asks the model whether it can
+answer yet and, if not, what to look for next. Then it retrieves again,
+up to `max_rounds` times. It suits questions that need several facts
+from different places (“how did the drop in margin affect the
+dividend?”). `ans$notes$queries` records what it searched for in each
+round, and `ans$notes$stop_reason` why it stopped.
 
 **Use it for** multi-step questions. **Recipe:** `"research"`.
 
 ### `preview`: plan, then read
 
-Shows the model an outline of the document (section headings, sizes, and
-short excerpts) and asks which sections to read in full, which to skim,
-and which to skip. Then it reads accordingly. A section the plan does
-not mention is read, never skipped, so silence cannot lose part of the
-document; the plan is recorded in `ans$notes$plan`, so “sections 3 and 5
-were not read” is visible. If no usable plan comes back, it reads
-everything and marks the answer partial.
+`preview` shows the model an outline of the document (section headings,
+sizes and short excerpts) and asks which sections to read in full, which
+to skim and which to skip. Then it reads accordingly. It reads every
+section the plan does not mention, so a plan’s silence cannot lose part
+of the document. `ans$notes$plan` records the plan, so you can see that
+“sections 3 and 5 were not read”. If no usable plan comes back,
+`preview` reads everything and marks the answer partial.
 
 **Use it for** long documents with clear sections, when most of them are
 irrelevant to the question.
 
 ### `ensemble`: several readers, compared
 
-Runs two or more different readers (`members`; by default `retrieve` and
-`map_reduce`) and asks the model to reconcile their answers. It costs
-the sum of its members plus one request, and pays off when a wrong
-answer is expensive. Members must have different signatures, because
-running the same method twice is not a second opinion.
+`ensemble` runs two or more different readers (`members`, by default
+`retrieve` and `map_reduce`) and asks the model to reconcile their
+answers. It costs the sum of its members plus one request, and pays off
+when a wrong answer is expensive. Members must have different
+signatures: the same method run twice gives no second opinion.
 
 **Use it for** high-stakes questions. **Recipe:** `"consensus"`.
 
@@ -319,8 +321,9 @@ to the literature-review workflow in
 | long document, most sections irrelevant | `preview` | none | depends on the plan |
 | a wrong answer would be costly | `ensemble` | `"consensus"` | as its members |
 
-If unsure, run two or three on a document where you already know the
-answer and compare (see “Trying readers on your own documents” below).
+If you are unsure, run two or three readers on a document whose answer
+you already know and compare them (see “Trying readers on your own
+documents” below).
 
 ## Recipes
 
@@ -353,7 +356,7 @@ do.call(rbind, lapply(names(gr_recipes()), function(n) {
 defaults to `"auto"`, which reads a document of up to 50,000 tokens
 (less on a model with a small context window) with `"fast"`, in one
 request, and a longer one with `"thorough"`, one request per chunk. Both
-send every chunk. `ans$recipe` says which was used.
+send every chunk, and `ans$recipe` names the one used.
 [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md),
 [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 and the review functions take one fixed recipe and refuse `"auto"`.
@@ -369,37 +372,36 @@ gr_recipes("thorough")
 #>   read    : map_reduce [all|N+logN|tree] model=(the client's)
 ```
 
-A recipe is a starting point. Any of its settings can be overridden by
-name in the call, as in
-`answer_document(file, question, "needle", top_k = 3)`, and
+You can override any of a recipe’s settings by name in the call, as in
+`answer_document(file, question, "needle", top_k = 3)`.
 [`gr_recipe()`](https://elkronos.github.io/harnessr/reference/gr_recipe.md)
-builds one from scratch (there is an example under “Trying readers on
-your own documents” below).
+builds a recipe from scratch, with an example under “Trying readers on
+your own documents” below.
 
 `"legacy"` reproduces the previous release’s behaviour (digit stripping,
 3000-token paragraph chunks, no overlap), so you can measure the
-difference rather than assume it.
+difference instead of assuming it.
 
 ## Choosing and placing chunks
 
 `retrieve`, `rerank` and `iterative` choose which chunks the model sees.
-These settings control the choice and where the chosen chunks go; each
-says which readers it applies to.
+The settings below control that choice and where the chosen chunks go,
+and each names the readers it applies to.
 
 **`top_k`** (`retrieve`, `rerank`, `iterative`) is how many chunks to
 send, 6 by default. For `iterative` it is how many each round adds: the
 chunks gathered in earlier rounds stay in the prompt as long as they
-fit. Too few and the answer can be missed; too many and you pay for text
-that does not help.
+fit. With too few, the model can miss the answer; with too many, you pay
+for text that does not help.
 
 **`min_score`** (`retrieve`) drops chunks less similar to the question
 than a threshold, though the single best chunk is always kept.
 
 **`mmr`** (`retrieve`, `iterative`) stops near-duplicates crowding each
-other out. Plain top-k picks the chunks most like the question; if three
-paragraphs say the same thing, all three get in. Below 1, `mmr` balances
-relevance against similarity to what is already picked (0.7 is a
-reasonable start):
+other out. Plain top-k picks the chunks most like the question, so if
+three paragraphs say the same thing, all three get in. Below 1, `mmr`
+weighs relevance against similarity to the chunks already picked (0.7 is
+a reasonable start):
 
 ``` r
 
@@ -422,17 +424,17 @@ rbind("top-k (mmr = 1)" = picked(1), "mmr = 0.3" = picked(0.3))
 #> mmr = 0.3          1    4    5
 ```
 
-Plain top-k spent all three places on the same fact; `mmr = 0.3` kept
-the best one and used the other two for something different. It costs
-nothing extra.
+Plain top-k spent all three places on the same fact. `mmr = 0.3` kept
+the best one and used the other two for something different, at no extra
+cost.
 
 **`context_order`** (`retrieve`, `rerank`, `iterative`) decides where
 the chosen chunks sit in the prompt. Models attend best to the beginning
 and end of a long prompt, so `"edges"` puts the best chunk first and the
 second-best last; `"document"` keeps the order they appear in the
 document, which reads more naturally when chunks are consecutive; the
-default `"relevance"` puts the best first. It never changes which chunks
-were chosen, only where they sit.
+default `"relevance"` puts the best first. `context_order` moves the
+chosen chunks and leaves the choice alone.
 
 **`restate`** (every reader but `extract` and `screen`) repeats the
 question before the excerpts as well as after them, because a question
@@ -440,8 +442,8 @@ asked once, after several thousand tokens of text, is a long way from
 the start of the prompt. `"auto"` does this when the text is long,
 `"always"` and `"never"` override.
 
-Whether `mmr`, `context_order` or `restate` help depends on your
-documents and model; test them rather than assume.
+`mmr`, `context_order` and `restate` help on some documents and models
+and not on others, so test them on yours.
 
 ## Embeddings
 
@@ -449,11 +451,11 @@ documents and model; test them rather than assume.
 ([`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md))
 need *embeddings*. By default harnessr asks the model provider for them,
 which costs a little and needs an internet connection.
-`hr_options(embedder = "lexical")` uses word-matching vectors computed
-locally instead: free, offline and exactly repeatable, but they match
-words rather than meaning, so “turnover” will not find “revenue”. Use
-lexical vectors for practice and testing, and real embeddings for real
-work.
+`hr_options(embedder = "lexical")` computes word-matching vectors on
+your machine instead. They are free, offline and exactly repeatable, but
+they match words and not meaning, so “turnover” will not find “revenue”.
+Use lexical vectors for practice and testing, and real embeddings for
+real work.
 
 ``` r
 
@@ -468,14 +470,15 @@ gr_embedders()[, c("name", "deterministic", "description")]
 
 ## Reasoning effort, stage by stage
 
-The default models reason before they answer. That reasoning is billed
-as output and counts against the same cap as the reply, so it is part of
-what every request costs. `effort` in
+The default models reason before they answer. The provider bills that
+reasoning as output and counts it against the same cap as the reply, so
+it adds to every request’s cost. `effort` in
 [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
-sets how much of it to do: one value, such as `"low"`, for every
-request, or a vector named by stage. It is sent only to models harnessr
-lists as reasoning models (`hr_model_info(model)$reasoning`). By default
-nothing is sent, and each request goes out at the provider’s default.
+sets how much reasoning to ask for: one value, such as `"low"`, for
+every request, or a vector named by stage. harnessr sends it only to
+models it lists as reasoning models (`hr_model_info(model)$reasoning`).
+By default it sends nothing, and each request goes out at the provider’s
+default.
 
 Every request a reader makes carries a label naming its stage:
 
@@ -492,8 +495,8 @@ Every request a reader makes carries a label naming its stage:
 | `preview` | `preview.skim` (each skimmed section) | `preview.plan`, `preview.answer` |
 | `ensemble` | as its members | as its members, then `ensemble.adjudicate` |
 
-The per-chunk requests are many and each does a small job, so they are
-where a lower effort saves most;
+The per-chunk requests are many and each does a small job, so a lower
+effort saves most there;
 [`?gr_read_spec`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
 suggests a starting profile. A name covers its own label and every label
 that starts with it and a dot, so `map` covers `map.answer`, and an
@@ -517,10 +520,11 @@ with(as.data.frame(tr), table(stage, effort))
 #>   reduce        1   0
 ```
 
-`model = "gpt-5.6-luna"` names a reasoning model: with the stand-in’s
-own model nothing would be sent, and the trace would have no `effort`
-column. A request at `"high"` can spend the whole output cap reasoning
-and come back cut off, so give it room with `max_answer_tokens`.
+`model = "gpt-5.6-luna"` names a reasoning model. With the stand-in’s
+own model, harnessr would send no effort and the trace would have no
+`effort` column. A request at `"high"` can spend the whole output cap
+reasoning and come back cut off, so give it room with
+`max_answer_tokens`.
 [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 (below) counts recipes that differ only in effort as different, so you
 can test what a lower effort costs.
@@ -530,9 +534,9 @@ records.
 
 ## Asking for citations
 
-With `cite = TRUE` the model is asked to cite the chunks it used, as
-`[chunk 3]`. Each chunk id leads back to a page and section through
-`ans$evidence`:
+With `cite = TRUE`, the reader asks the model to cite the chunks it
+used, as `[chunk 3]`. `ans$evidence` leads each chunk id back to a page
+and section:
 
 ``` r
 
@@ -547,14 +551,14 @@ ans$evidence[ans$evidence$chunk_id == 2, c("chunk_id", "section")]
 #> 2        2 Summary
 ```
 
-A citation to a chunk the model was never sent is caught and recorded in
-`ans$notes$cited_unknown`, and marks the answer partial. `hierarchical`
-does not support citations, because it answers from summaries rather
-than chunks.
+If the model cites a chunk it was never sent, harnessr records the
+citation in `ans$notes$cited_unknown` and marks the answer partial.
+`hierarchical` does not support citations, because it answers from
+summaries and not from chunks.
 
 ## Checking what an answer rests on
 
-`ans$evidence` holds different things depending on the reader:
+The contents of `ans$evidence` depend on the reader:
 
 | reader | `evidence$text` holds |
 |----|----|
@@ -576,9 +580,9 @@ gr_verify_evidence(skimmed)[, c("chunk_id", "verified", "match")]
 #> 1        2     TRUE     1
 ```
 
-Here is a model that invents one. The passage is fluent, on topic,
-attributed to a real chunk, and not in the document, so it cannot be
-caught by eye:
+The model below invents one. Its passage is fluent, on topic and
+attributed to a real chunk, yet the document does not contain it, and
+you could not catch it by eye:
 
 ``` r
 
@@ -598,29 +602,34 @@ invented$partial
 #> [1] TRUE
 ```
 
-`match` is 1 for an exact quotation once spacing, quote marks, dashes
-and capitals are folded away, since a faithful quotation can differ in
-those. A changed figure is not folded away. Below 1, `match` is the
-fraction of the passage carried by its longest consecutive run in the
-source, so where a change falls matters as much as how much changed: a
-changed last word leaves a run of nine in ten and scores 0.9, while a
-changed word in the middle splits the passage and scores about 0.5.
-Below about 0.3 there is no quotation left, only shared vocabulary. A
-run is used rather than word overlap because overlap cannot tell a
-quotation from a paraphrase built from the same words. A passage that
-does not verify is marked `verified = FALSE` and counted in
+`match` scores how much of a passage the source holds:
+
+- It is 1 for an exact quotation once spacing, quote marks, dashes and
+  capitals are folded away, since a faithful quotation can differ in
+  those. A changed figure is not folded away.
+- Below 1, it is the fraction of the passage carried by its longest
+  consecutive run in the source. The place of a change matters as much
+  as its size: a changed last word leaves a run of nine in ten and
+  scores 0.9, while a changed word in the middle splits the passage and
+  scores about 0.5.
+- Below about 0.3, no quotation is left, only shared vocabulary.
+
+The check uses a run instead of word overlap because overlap cannot tell
+a quotation from a paraphrase built from the same words. A passage that
+does not verify gets `verified = FALSE` and counts in
 `ans$notes$unverified_evidence`, and any one of them makes the answer
 partial.
 
 `gr_read_spec(verify = TRUE)` runs the same check inside
-[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md):
-it writes the check’s columns onto `$evidence`, marks the answer partial
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md).
+It writes the check’s columns onto `$evidence`, marks the answer partial
 when a quotation is not found, counts the quotations it checked in
 `notes$quotes_checked`, and records a `read.verify` step in the trace.
-It also holds `iterative` to quoting: each step must list the passages
+
+It also holds `iterative` to quoting. Each step must list the passages
 its answer rests on, word for word with their chunk numbers, and the
-loop stops only when every one is found in the chunk it names. A run
-that ends with none accepted keeps the refused answer in
+loop stops only when every one is found in the chunk it names. If a run
+ends with none accepted, it keeps the refused answer in
 `notes$unverified_answer` and reports the answer as not in the document.
 
 ``` r
@@ -634,17 +643,19 @@ checked$evidence[, c("verified", "match", "quote_status", "quote_sim")]
 #> 1     TRUE     1     verbatim         1
 ```
 
-The last columns come from a second matcher, recorded beside `verified`:
-`quote_status`, `quote_sim`, `quote_coverage`, `quote_edits` and
-`quote_critical_ok`. It expands ligatures, joins words hyphenated across
-a line, and scores the closest window of the source by character edits,
-with numbers and negations required to be identical. Its statuses are
-`verbatim`, `near_verbatim`, `unverified`, and `not_checked` for a
-passage too long to score. On a labelled set of 343 true and 162 false
-quotations it rejects 1.2% of true ones, against 36.4% for the existing
-check, and accepts none with a changed digit, number word, comparison
-sign or negation. It does accept 25 of 46 quotations with one content
-word swapped as `near_verbatim`, so it decides nothing in this release:
+The `quote_` columns come from a second matcher, which harnessr records
+beside `verified`: `quote_status`, `quote_sim`, `quote_coverage`,
+`quote_edits` and `quote_critical_ok`. It expands ligatures, joins words
+hyphenated across a line, and scores the closest window of the source by
+character edits, with numbers and negations required to be identical.
+Its statuses are `verbatim`, `near_verbatim`, `unverified`, and
+`not_checked` for a passage too long to score.
+
+On a labelled set of 343 true and 162 false quotations, the second
+matcher rejects 1.2% of true ones, against 36.4% for the existing check,
+and accepts none with a changed digit, number word, comparison sign or
+negation. It does accept 25 of 46 quotations with one content word
+swapped as `near_verbatim`, so in this release it decides nothing:
 `verified` and `match` still decide.
 
 The other columns of `ans$evidence` are `page`, filled in only for a
@@ -656,13 +667,14 @@ cost nothing and always run.
 ## Questions that assume something false
 
 A question can take for granted something the document contradicts: “Why
-did revenue fall in 2024?” of a report in which revenue rose. A reader
-then either answers on the question’s terms or says the answer is not in
-the document, and either way what the document does say is lost. With
-`premise = TRUE` in
+did revenue fall in 2024?” asked of a report in which revenue rose. A
+reader then either answers on the question’s terms or says the answer is
+not in the document, and either way you lose what the document does say.
+
+With `premise = TRUE` in
 [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
-the model is told that if the excerpts state the opposite of something
-the question assumes, it should say so in one sentence and give what
+the reader tells the model to say so in one sentence when the excerpts
+state the opposite of something the question assumes, and to give what
 they state instead. That sentence is `ans$answer` and `ans$premise`, and
 [`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md)
 is `FALSE` for it. Excerpts that are merely silent still count as not
@@ -677,9 +689,9 @@ members (`ans$notes$premise_members`).
 [`?gr_read_spec`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
 describes the rest.
 
-This stand-in plays a model that finds the summary contradicts the
-question and the other chunks silent. `FALSE_PREMISE:` is how the model
-is asked to open such a reply:
+The stand-in below plays a model that finds the summary contradicting
+the question and the other chunks silent. The reader asks the model to
+open such a reply with `FALSE_PREMISE:`, as here:
 
 ``` r
 
@@ -701,19 +713,20 @@ ans$notes$premise_chunks
 #> [1] 2
 ```
 
-The verdict is the model’s reading of the excerpts, not something
-harnessr checks, so weigh it as you would any answer. The check is off
-by default because it makes the prompts longer, so a cache or a recorded
-run made without it does not answer a run with it. `extract` and
-`screen` ignore it.
+The verdict is the model’s reading of the excerpts. Under the default
+`premise_verdict = "sentence"`, harnessr does not check it, so weigh it
+as you would any answer; `"structured"` (under “Premise checks” below)
+asks for a quotation and checks it. The check is off by default because
+it makes the prompts longer, so a cache or a recorded run made without
+it does not answer a run with it. `extract` and `screen` ignore it.
 
 ## Trying readers on your own documents
 
-The best way to choose is to test on a few documents where you already
-know the answer.
+To choose, test readers on a few documents whose answers you already
+know.
 [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
-runs several configurations on one document, extracting the text once
-and sharing chunks between configurations that cut them the same way:
+runs several configurations on one document. It extracts the text once
+and shares chunks between configurations that cut them the same way:
 
 ``` r
 
@@ -733,35 +746,36 @@ cmp$summary[, c("recipe", "reader", "settings", "chunks_used", "not_found", "par
 ```
 
 `settings` names whatever each configuration changed from the defaults,
-so rows that differ only in a number can be told apart. Two
-configurations that would do exactly the same work are run once, with a
-warning, rather than paid for twice.
+so you can tell apart rows that differ only in a number.
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
+runs two configurations that would do exactly the same work once, with a
+warning, so you do not pay twice.
 
 ## When a provider cannot do structured replies
 
 `rerank`, `iterative` and `preview` ask the model to reply in a fixed
-structure (JSON), which most current providers support. Where the
-structure is not supported or the reply cannot be read, each one falls
-back, warns, and marks the answer partial: `rerank` to word-matching
-order, `iterative` to a single retrieval, `preview` to reading
-everything. The answer is still produced; `partial` tells you it came by
-the fallback.
+structure (JSON), which most current providers support. If the provider
+does not support the structure or the reply cannot be read, each one
+falls back, warns, and marks the answer partial: `rerank` to
+word-matching order, `iterative` to a single retrieval, `preview` to
+reading everything. You still get an answer, and `partial` tells you it
+came by the fallback.
 
 Every call that asks for JSON (these three, model segmentation,
 screening, claims, outlines and extraction) checks the reply’s types,
 `enum` values and `required` fields, through nested objects and arrays,
-before using it. A reply that fails is treated as one that did not
-parse: the reader takes its failure path, the reply is not cached, and
-the reason says where the reply broke the schema, as in
+before using it. harnessr treats a reply that fails as one that did not
+parse: the reader takes its failure path, the cache does not keep the
+reply, and the reason says where the reply broke the schema, as in
 `$.groups[0]: expected array, got 1`.
 [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 still reads each field’s value itself, so “1,204” in an integer field is
-still 1204; only the shape of its replies is checked.
+still 1204; the check covers only the shape of its replies.
 
 ## When the answer is not what you expected
 
-The answer object and its trace record enough to find the cause without
-guessing. In order of how often each is the cause:
+The answer object and its trace hold enough to find the cause. The table
+lists causes from the most common to the least:
 
 | symptom | check | likely cause |
 |----|----|----|
@@ -781,16 +795,17 @@ Test for the marker with `is_not_found(ans$answer)` rather than
 `grepl("NOT_IN_DOCUMENT", ...)`: a real answer can quote the marker, and
 models decorate it (`**NOT_IN_DOCUMENT.**`).
 
-Two habits make all of this cheaper: run
+Two habits keep this cheap: run
 [`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md)
 before you spend anything, and keep `hr_options(max_cost_usd = ...)` set
-to something you would not mind paying by accident.
+to an amount you would not mind paying by accident.
 
 ## Choosing the settings
 
-Each walkthrough below takes one reading setting or group: what it
-controls and what it trades off, the signs in your results that point to
-changing it, where its default came from, and how to test a change.
+Each walkthrough below covers one reading setting or group in four
+parts: what it controls and trades off, the signs in your results that
+point to changing it, where its default came from, and how to test a
+change.
 [`vignette("settings")`](https://elkronos.github.io/harnessr/articles/settings.md)
 lists every reading setting with its default, and `gr_settings("read")`
 gives each one’s evidence.
@@ -800,10 +815,10 @@ The tests use
 which builds one arm per value of a setting, and
 [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md),
 which runs the arms on a reference. Here they run on one question about
-the example report and the stand-in model above, so they show what each
+the example report, with the stand-in model above. They show what each
 value sends and what
 [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
-reports, not which value answers better.
+reports, and they cannot show which value answers better.
 [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)
 sweeps `top_k` on a reference of 32 questions with dev and test splits
 and reads the result with intervals.
@@ -827,16 +842,20 @@ calls <- function(bench) {
 ### Which reader
 
 **What it controls.** The reader decides how the chunks reach the model
-(see “The readers” above). The main trade is between readers that send
-every chunk (`map_reduce`, `refine`, `hierarchical`, `skim`), whose cost
-grows with the document and which cannot miss a chunk, and readers that
-pick a few (`retrieve`, `rerank`, `iterative`), whose cost does not grow
-with the document and which answer only from what they picked. Among the
-first group, `map_reduce` reads each chunk alone, `refine` carries a
-draft through the document in order, `hierarchical` answers from
-summaries, and `skim` answers from passages it quotes, which `verify`
-can check. `skim_model` and `summary_model` put the per-chunk work of
-`skim` and `hierarchical` on a cheaper model.
+(see “The readers” above). The main trade is between two groups:
+
+- Readers that send every chunk (`map_reduce`, `refine`, `hierarchical`,
+  `skim`). Their cost grows with the document, and they cannot miss a
+  chunk.
+- Readers that pick a few (`retrieve`, `rerank`, `iterative`). Their
+  cost does not grow with the document, and they answer only from what
+  they picked.
+
+Within the first group, `map_reduce` reads each chunk alone, `refine`
+carries a draft through the document in order, `hierarchical` answers
+from summaries, and `skim` answers from passages it quotes, which
+`verify` can check. `skim_model` and `summary_model` put the per-chunk
+work of `skim` and `hierarchical` on a cheaper model.
 
 **Signs it needs changing.** `NOT_IN_DOCUMENT` from `retrieve` for a
 fact you can find in the file, with `ans$evidence` holding other chunks,
@@ -847,8 +866,8 @@ the other way. An answer that misses how an argument develops points to
 
 **Where the default came from.**
 [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
-defaults to `map_reduce`, chosen because it reads the whole document at
-any length; no comparison of readers is recorded (`untested`).
+defaults to `map_reduce` because it reads the whole document at any
+length. No comparison of readers is recorded (`untested`).
 [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
 chooses `"fast"` or `"thorough"` by length (`auto_max_tokens` in
 [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)).
@@ -871,8 +890,8 @@ aggregate(cbind(calls, tokens_in) ~ param.reader, bench, mean)
 #> 5         skim     9      1328
 ```
 
-On eight chunks the four readers that send every chunk make 8 or 9
-requests and send 1273 to 1839 prompt tokens; `retrieve` makes one
+On eight chunks, the four readers that send every chunk make 8 or 9
+requests and send 1273 to 1839 prompt tokens, while `retrieve` makes one
 request of 584. `refine` sends the most because every request carries
 the draft so far.
 
@@ -892,8 +911,8 @@ finding the answer at rank 5 when `top_k` is 4. An answer built from
 several unrelated chunks, or a cost per question far above what one fact
 needs, points to a smaller one.
 
-**Where the default came from.** 6, a common starting value for
-retrieval, not tuned here (`untested`). `"needle"` uses 8.
+**Where the default came from.** The default of 6 is a common starting
+value for retrieval, not tuned here (`untested`). `"needle"` uses 8.
 
 **How to test it.**
 
@@ -914,23 +933,24 @@ The prompt grows from 289 tokens at `top_k = 2` to 909 at 12. In
 a `top_k` sweep on a different arm, the `"fast"` recipe with the
 `retrieve` reader and 40-token sentence chunks, found `top_k = 2` more
 accurate than 4 on 32 test questions, with an interval from 1.8 to 12.0
-points, and cheaper. That result is for its arm and its stand-in model;
-yours is found the same way.
+points, and cheaper. That result holds for its arm and its stand-in
+model; find yours the same way.
 
 ### Diversity: `mmr`
 
 **What it controls.** Below 1, `mmr` trades relevance for diversity when
 `retrieve` and `iterative` pick chunks, so near-duplicates do not fill
-every place (see “Choosing and placing chunks” above). It costs nothing.
+every place (see “Choosing and placing chunks” above). It costs no
+request.
 
 **Signs it needs changing.** `ans$evidence` holding several chunks that
 say the same thing, from a document that repeats itself (an abstract, a
 summary, a conclusion), points to `mmr` below 1. Answers that miss the
 best chunk after lowering it point back up.
 
-**Where the default came from.** 1, plain top-k, the selection used
-before the setting existed (`untested`). 0.7 is a common starting point
-for a balance.
+**Where the default came from.** The default of 1 is plain top-k, the
+selection used before the setting existed (`untested`). 0.7 is a common
+starting point for a balance.
 
 **How to test it.**
 
@@ -943,10 +963,10 @@ hr_sweep_check(bench)
 ```
 
 At 0.7 the three chunks picked were the ones plain top-k picked, so the
-requests were the same; only 0.3 changed them on this report. A sweep of
-`mmr` is worth running only on documents that repeat themselves, and
+requests were the same; only 0.3 changed them on this report. Sweep
+`mmr` only on documents that repeat themselves, and let
 [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
-says when it reached none.
+tell you which values sent the same requests.
 
 ### Word matching: `lexical_blend`, `bm25_k1`, `bm25_b` and `fusion`
 
@@ -990,18 +1010,21 @@ Each value of `lexical_blend` picked different chunks here, while
 `bm25_b` at 0.3 picked the same three as at 0.75.
 
 `fusion` decides how the two rankings are combined, for `retrieve` and
-`iterative` alike. `"default"` is the blend above, which `retrieve`
-applies only on lexical embeddings and `iterative` never did; `"rrf"` is
-reciprocal rank fusion (Cormack, Clarke and Buettcher 2009), which adds
-`1 / (rrf_k + rank)` from each ranking, with any embeddings. It uses
-ranks, not scores, so one ranking’s scale cannot swamp the other’s, at
-the price of ignoring how far apart the scores are. Its constant
-`rrf_k = 60` is the paper’s (`cited`); `fusion` itself is `untested`.
-Neither costs a request. A fused score lies between 0 and
+`iterative` alike:
+
+- `"default"` is the blend above, which `retrieve` applies only on
+  lexical embeddings and `iterative` never did.
+- `"rrf"` is reciprocal rank fusion (Cormack, Clarke and Buettcher
+  2009), which adds `1 / (rrf_k + rank)` from each ranking, with any
+  embeddings. It works on ranks, so one ranking’s scale cannot swamp the
+  other’s, at the price of ignoring how far apart the scores are.
+
+The constant `rrf_k = 60` is the paper’s (`cited`); `fusion` itself is
+`untested`. Neither costs a request. A fused score lies between 0 and
 `2 / (rrf_k + 1)`, so a `min_score` set for cosine passes no chunk under
 `"rrf"`; `retrieve` then reads its best chunk alone and sets
-`notes$below_min_score`. Under `mmr` below 1, the fused scores are
-rescaled to 0 to 1 before they are weighed against similarity.
+`notes$below_min_score`. Under `mmr` below 1, harnessr rescales the
+fused scores to 0 to 1 before weighing them against similarity.
 
 ``` r
 
@@ -1020,8 +1043,8 @@ On this report `"rrf"` with `rrf_k = 60` picked the same two chunks as
 the blend, and `rrf_k` does nothing under `"default"`, so
 [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
 lists both as sending the same requests. `"rrf"` with `rrf_k = 5` is not
-listed: it sent different requests. Where arms differ, compare `correct`
-by `param.fusion` and `param.rrf_k` on a reference.
+listed: it sent different requests. If arms differ, compare `correct` by
+`param.fusion` and `param.rrf_k` on a reference.
 
 ### Placement: `context_order` and `restate`
 
@@ -1029,7 +1052,7 @@ by `param.fusion` and `param.rrf_k` on a reference.
 of relevance, in document order, or with the best at the two ends of the
 prompt (`"edges"`). `restate` repeats the question before the excerpts;
 under `"auto"` that happens when they are longer than `restate_tokens`
-(1200). Both change only where text sits, not which text is sent, and
+(1200). Both move text around and leave the choice of text alone, and
 `restate` adds the question’s length to each request.
 
 **Signs they need changing.** Right answers from short prompts and
@@ -1038,10 +1061,10 @@ placement: `"edges"`, or `restate = "always"`. Answers that misread
 chunks that follow on from each other point to `"document"`.
 
 **Where the defaults came from.** `"relevance"` is the order the readers
-used before the setting existed; the alternatives were added to be
+used before the setting existed. The alternatives were added to be
 compared, and no comparison is recorded. `restate = "auto"` was added so
-a comparison could measure it, and nothing has. `restate_tokens = 1200`
-is an arbitrary number, kept from when it was a constant. Both are
+a comparison could measure it, and none has. `restate_tokens = 1200` is
+an arbitrary number, kept from when it was a constant. Both are
 `untested`.
 
 **How to test them.**
@@ -1121,26 +1144,27 @@ hr_sweep_check(bench)
 ```
 
 `cite` added 22 prompt tokens to each run. `verify` sent the same
-requests as no check, as it should: it acts on the reply, so its effect
-is in which answers are marked partial (`ans$partial`,
-`ans$notes$unverified_evidence`), not in what is sent. Score it with a
-scorer that counts a partial answer as wrong, or compare the `partial`
-rate by hand.
+requests as no check, because it acts on the reply. Its effect shows in
+which answers come back partial (`ans$partial`,
+`ans$notes$unverified_evidence`). Score it with a scorer that counts a
+partial answer as wrong, or compare the `partial` rate by hand.
 
 ### Outcomes: `answer_format`
 
-**What it controls.** Every answer carries `ans$outcome`: `"answered"`,
+**What it controls.** Every answer carries `ans$outcome`, and
+`is_not_found(ans)` reads it. The outcome is one of `"answered"`,
 `"partial"`, `"not_found"`, `"refused"` (a limit stopped the run) or
 `"failed"` (every model request the run made failed, whichever reader
-made it), and `is_not_found(ans)` reads it. `answer_format` decides how
-the answering request reports the found or not-found part. `"parsed"`
-sends the free-text request and looks for `NOT_IN_DOCUMENT` in the
-reply. `"schema"` sends the request with a JSON schema holding `answer`
-and `outcome`, so a reply such as “The excerpt does not mention revenue”
-is a not-found when the model says so in `outcome`, not an answer. A
-forced schema costs a few prompt tokens and needs a provider that
-supports structured output; published comparisons disagree on whether it
-changes answer quality.
+made it).
+
+`answer_format` decides how the answering request reports the found or
+not-found part. `"parsed"` sends the free-text request and looks for
+`NOT_IN_DOCUMENT` in the reply. `"schema"` sends the request with a JSON
+schema holding `answer` and `outcome`. A reply such as “The excerpt does
+not mention revenue” then counts as a not-found when the model says so
+in `outcome`. A forced schema costs a few prompt tokens and needs a
+provider that supports structured output; published comparisons disagree
+on whether it changes answer quality.
 
 **Signs it needs changing.** Answers that say in words that the document
 is silent, counted as answers because they lack the sentinel, point to
@@ -1148,9 +1172,8 @@ is silent, counted as answers because they lack the sentinel, point to
 `FALSE`) point back to `"parsed"` for that provider.
 
 **Where the default came from.** `"parsed"` is what the readers sent
-before the setting existed (`untested`). The choice is left open until a
-live comparison on the default model settles it, so the default does not
-change here.
+before the setting existed (`untested`). The default stays until a live
+comparison on the default model settles the choice.
 
 **How to test it.**
 
@@ -1180,17 +1203,22 @@ by `param.answer_format`.
 **What they control.** `premise = TRUE` tells the answering requests to
 say when the excerpts contradict an assumption in the question (see
 “Questions that assume something false”). `premise_verdict` decides how
-they say it. `"sentence"` is a `FALSE_PREMISE:` sentence in the reply.
-`"structured"` asks for a `premise_status` field and the `quote` from
-the excerpts that states the contrary, in a JSON schema, and checks the
-quote against the excerpts that request was shown with the matcher
-[`gr_verify_evidence()`](https://elkronos.github.io/harnessr/reference/gr_verify_evidence.md)
-uses (and against the document, where it was shown passages or summaries
-a model wrote); the answer gains `ans$premise_verdict`. In `map_reduce`,
-a chunk’s verdict goes to the merge only when its quote is found in that
-chunk; the others are dropped and listed in `notes$premise_dropped`. The
-trade is a longer prompt and a schema the provider must support, for a
-verdict that has to point at its evidence.
+they say it:
+
+- `"sentence"` is a `FALSE_PREMISE:` sentence in the reply.
+- `"structured"` asks, in a JSON schema, for a `premise_status` field
+  and the `quote` from the excerpts that states the contrary. harnessr
+  checks the quote against the excerpts that request was shown, with the
+  matcher
+  [`gr_verify_evidence()`](https://elkronos.github.io/harnessr/reference/gr_verify_evidence.md)
+  uses, and against the document where the request was shown passages or
+  summaries a model wrote. The answer gains `ans$premise_verdict`.
+
+In `map_reduce`, a chunk’s verdict goes to the merge only when its quote
+is found in that chunk; the reader drops the others and lists them in
+`notes$premise_dropped`. You pay with a longer prompt and a schema the
+provider must support, and get a verdict that has to point at its
+evidence.
 
 **Signs they need changing.** Questions that take something false for
 granted, answered on their own terms, point to `premise = TRUE`.
@@ -1236,9 +1264,9 @@ structured verdict’s quote verifies
 
 **What it controls.** `effort` sets how much a reasoning model reasons,
 for every request or by stage (see “Reasoning effort, stage by stage”).
-Reasoning is billed as output and shares the reply’s cap, so lower
-effort is cheaper and faster, and higher effort can help the few
-requests that judge or combine.
+The provider bills reasoning as output and counts it against the reply’s
+cap, so lower effort is cheaper and faster, and higher effort can help
+the few requests that judge or combine.
 
 **Signs it needs changing.** `tokens_reasoning` in a benchmark, or the
 trace, taking most of the output of per-chunk requests points to `"low"`
@@ -1274,11 +1302,12 @@ here only the requests differ.
 
 ### Merges: `max_merge_levels`
 
-**What it controls.** When the findings of `map_reduce`, `skim` and the
-other merging readers do not fit one merge request, they are merged in
-levels. `max_merge_levels` caps the levels; past it the reader returns
-its findings unmerged and cut, and marks the answer partial. `fan_in`
-and `max_levels` play the same parts for `hierarchical`’s summaries.
+**What it controls.** If the findings of `map_reduce`, `skim` and the
+other merging readers do not fit one merge request, the reader merges
+them in levels. `max_merge_levels` caps the levels. Past the cap, the
+reader returns its findings unmerged and cut, and marks the answer
+partial. `fan_in` and `max_levels` play the same parts for
+`hierarchical`’s summaries.
 
 **Signs it needs changing.** A partial answer whose notes say a merge
 fell back to joining the answers, on a very long document, points to a
@@ -1306,35 +1335,42 @@ can bind.
 
 ### What a request keeps: `context_policy` and `refine_state`
 
-**What they control.** When the text a request carries does not fit, a
+**What they control.** If the text a request carries does not fit, a
 reader cuts it, and every reader keeps the start of what it cuts.
 `context_policy`, an
 [`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md),
-states once what to do instead: which pieces are never cut (`pin`),
-which are cut first (`cut_order`), and which part of a cut piece is kept
-(`keep`: `"head"`, `"tail"` or `"both"` ends). The readers have no
-scores for their pieces, so they read a `"scored"` rule as `"head"`;
+states once what to do instead:
+
+- which pieces are never cut (`pin`);
+- which are cut first (`cut_order`);
+- which part of a cut piece is kept (`keep`: `"head"`, `"tail"` or
+  `"both"` ends).
+
+The readers have no scores for their pieces, so they read a `"scored"`
+rule as `"head"`;
 [`hr_truncate()`](https://elkronos.github.io/harnessr/reference/hr_truncate.md)
 and
 [`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md)
-take scores directly. It applies to `refine`’s draft and excerpt, the
-findings a merge combines, `hierarchical`’s summaries and `preview`’s
-outline and skims. The readers that pack whole chunks write a
-`"truncate"` step naming the chunks they left out, and with
-`order_merges = TRUE` merges and the `ensemble` adjudication place their
-findings by `context_order`. `refine_state` decides what `refine`
-carries down the document: a draft it rewrites with each chunk
-(`"draft"`), or a numbered ledger of findings that each request adds to,
-replaces or drops from, with one more request at the end to answer from
-it (`"ledger"`). A rewritten draft can lose a finding no later chunk
-restores; a ledger keeps every finding no edit names, word for word, and
+take scores directly. The policy applies to `refine`’s draft and
+excerpt, the findings a merge combines, `hierarchical`’s summaries and
+`preview`’s outline and skims. The readers that pack whole chunks write
+a `"truncate"` step naming the chunks they left out. With
+`order_merges = TRUE`, merges and the `ensemble` adjudication place
+their findings by `context_order`.
+
+`refine_state` decides what `refine` carries down the document. Under
+`"draft"`, it carries a draft it rewrites with each chunk. Under
+`"ledger"`, it carries a numbered ledger of findings that each request
+adds to, replaces or drops from, with one more request at the end to
+answer from it. A rewritten draft can lose a finding no later chunk
+restores. A ledger keeps every finding no edit names, word for word, and
 costs one more request.
 
 **Signs they need changing.** `"truncate"` steps in the trace (`where`,
-`tokens_dropped`) on the requests whose answers are wrong say a cut lost
-what was needed; `dropped_part` says which part went. A fact stated
-early in a long document and missing from `refine`’s answer, or a figure
-that a later correction should have replaced, points to
+`tokens_dropped`) on the requests whose answers are wrong show that a
+cut lost what was needed, and `dropped_part` names the part that went. A
+fact stated early in a long document and missing from `refine`’s answer,
+or a figure that a later correction should have replaced, points to
 `refine_state = "ledger"`.
 [`gr_condensation_check()`](https://elkronos.github.io/harnessr/reference/gr_condensation_check.md)
 (see
@@ -1343,8 +1379,8 @@ builds a test of exactly that.
 
 **Where the defaults came from.** `context_policy = NULL` keeps the cuts
 every reader made before the setting existed, and
-`refine_state = "draft"` the state `refine` carried. Neither has been
-compared with the alternatives (`untested`).
+`refine_state = "draft"` keeps the state `refine` carried. Nobody has
+compared either with the alternatives (`untested`).
 
 **How to test them.**
 
@@ -1371,7 +1407,7 @@ aggregate(cbind(calls, tokens_in, correct) ~ param.refine_state, bench, mean)
 ```
 
 The ledger made 9 requests to the draft’s 8, the last one answering from
-the list, and sent 2251 prompt tokens to 1839, since its instructions
+the list, and sent 2251 prompt tokens to 1839 because its instructions
 are longer. Both answered right. To try a policy, give one arm an
 [`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md)
 and compare the `"truncate"` steps of the two:
@@ -1389,23 +1425,27 @@ length(arms)
 #> [1] 2
 ```
 
-The example report fits every request whole, so nothing is cut here; on
+The example report fits every request whole, so nothing is cut here. On
 your own long documents, run the arms with
 [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
 as above.
 
 ### Preview safeguards: `unskip_k` and `reread_on`
 
-**What they control.** `preview` follows a plan its first request makes,
-and a section the plan skips is never read. `unskip_k` reads the `k`
-sections that match the question’s words best (BM25 over each section’s
-text) even when the plan skips them, so a plan cannot drop the one
-section that holds the question’s words; it costs no request, but the
-answer prompt grows by the sections it adds. `reread_on = "not_found"`
-follows an answer of `NOT_IN_DOCUMENT` with one more request over the
-sections not read in full, so it trades at most one request for a second
-look. Every skip is in the trace as a `preview.skip` step with its
-score, whatever the settings.
+**What they control.** `preview` follows a plan its first request makes.
+By default it does not read a section the plan skips. Two settings guard
+against a bad plan:
+
+- `unskip_k` reads the `k` sections that match the question’s words best
+  (BM25 over each section’s text) even when the plan skips them, so a
+  plan cannot drop the one section that holds the question’s words. It
+  costs no request, but the answer prompt grows by the sections it adds.
+- `reread_on = "not_found"` follows an answer of `NOT_IN_DOCUMENT` with
+  one more request over the sections not read in full, trading at most
+  one request for a second look.
+
+Whatever the settings, the trace records every skip as a `preview.skip`
+step with its score.
 
 **Signs they need changing.** `NOT_IN_DOCUMENT` from `preview` for a
 fact you can find, where `ans$notes$plan` shows its section skipped, or
@@ -1417,8 +1457,8 @@ answers point to `reread_on = "not_found"`.
 `reread_on = "never"`), so `preview` makes the requests it made before
 they existed (`untested`).
 
-**How to test them.** Here the plan skips the summary, which holds the
-revenue figure:
+**How to test them.** In this test, the plan skips the summary, which
+holds the revenue figure:
 
 ``` r
 
@@ -1451,7 +1491,7 @@ hr_sweep_check(bench)
 ```
 
 `unskip_k = 1` put the summary back into the answer prompt, 106 prompt
-tokens more. `reread_on` sent nothing more here, because the stand-in
+tokens more. `reread_on` sent nothing more here because the stand-in
 model never answers `NOT_IN_DOCUMENT`, and
 [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
 lists those arms as sending the same requests as the arms without it.
@@ -1460,7 +1500,7 @@ Test it on questions your reader misses.
 ### Low rerank scores: `low_score`
 
 **What it controls.** `rerank` drops every candidate the model scores
-below `rerank_min_score` (4 of 10). When that drops all of them, the
+below `rerank_min_score` (4 of 10). If that drops all of them, the
 default (`low_score = "not_found"`) makes no answer request and returns
 `NOT_IN_DOCUMENT` with `notes$retrieval_low_score = TRUE`.
 `"read_top_k"` sends the 5 best-scored candidates to the answer request
@@ -1479,7 +1519,7 @@ do not hold them, after switching, point back.
 before the setting existed (`untested`). `rerank_min_score = 4` was set
 when the reader was written and not tuned.
 
-**How to test it.** Here a cut of 10 rejects every candidate:
+**How to test it.** In this test, a cut of 10 rejects every candidate:
 
 ``` r
 
@@ -1501,11 +1541,12 @@ At the default the run ends after the scoring requests and is wrong;
 
 [`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
 builds one stage of a run (ingest, segment or read) as a step, a
-function of `(input, ctx)`, and
+function of `(input, ctx)`.
 [`gr_step_retrieve()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
 ranks the chunks and keeps the best, as `retrieve` does, without asking
-for an answer. Each step’s settings are checked when it is built. Inside
-an [`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md)
+for an answer. Both check a step’s settings when they build it. Inside
+an
+[`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md),
 the steps use the run’s client and trace, so a benchmark counts and
 limits their requests:
 
@@ -1530,9 +1571,11 @@ The hand-built arm ranks with `retrieve`’s ranking and then reads the
 two chunks it kept with `stuff`, so it sent 267 prompt tokens to the
 `"needle"` recipe’s 797.
 [`?gr_step`](https://elkronos.github.io/harnessr/reference/gr_step.md)
-says what passes between the steps;
-[`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md),
-which will take the same steps, is not in this release.
+says what passes between the steps.
+[`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
+runs steps like these in order as one arm and checks their order, and
+[`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md)
+covers it.
 
 ## Next
 

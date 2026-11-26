@@ -1,55 +1,55 @@
 # Many documents and literature reviews
 
 [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
-asks one question of one document. Most real work has a folder of them,
-and a literature review has a folder, a search behind it, and a write-up
-at the end that somebody else has to be able to check. This guide covers
-that work in the order it happens:
+asks one question of one document. You may have a folder of documents
+instead, or a literature review: a folder, the search that found it, and
+a write-up that someone else must be able to check. In the order you do
+it:
 
-1.  Asking one question of every document, with
+1.  Ask one question of every document with
     [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md).
-2.  Starting a review from a database search, with
+2.  Start a review from a database search with
     [`gr_search()`](https://elkronos.github.io/harnessr/reference/gr_search.md)
     and
     [`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md).
-3.  The review itself: one trace for every stage,
+3.  Run the review: one trace for every stage,
     [`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md),
     then
-    [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md),
-    measuring the screening against a person with
+    [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md).
+    Measure the screening against a person with
     [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md)
     and
     [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
     (recall against a target, when ranked screening can stop, several
-    reviewers), then
-    [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
-    and its agreement with a person’s table, and
+    reviewers). Then run
+    [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md),
+    check its agreement with a person’s table, and write with
     [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md).
-4.  Writing from claims instead of from rows, with
+4.  Write from claims instead of from rows with
     [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
     [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
     and
     [`gr_gaps()`](https://elkronos.github.io/harnessr/reference/gr_gaps.md).
-5.  Counting and reporting the whole run, with
+5.  Count and report the whole run with
     [`gr_flow()`](https://elkronos.github.io/harnessr/reference/gr_flow.md)
     and
     [`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md).
 
 [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
-introduces the package and its ideas, and how one document is read is in
-[`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md).
-Read
+introduces the package and its ideas, and
+[`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
+shows how one document is read. If you have not set spending limits or a
+cache, read
 [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
-first if you have not set spending limits or a cache: this guide points
-to it for both, and for replay. Comparing whole configurations on a
-labelled set of questions, with intervals, is in
+first: this guide points to it for both, and for replay. To compare
+whole configurations on a labelled set of questions, with intervals, see
 [`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md).
 
 ## Setting up
 
 Everything below runs offline.
 [`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
-stands in for the model: its handler is an ordinary R function.
+stands in for the model, and its handler is an ordinary R function.
 `embedder = "lexical"` keeps retrieval free and deterministic.
 
 ``` r
@@ -61,20 +61,20 @@ cl <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollar
 
 ## Reading many documents
 
-Before reading a folder you have not read before,
-[`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md)
-lists what is in it: which extractor reads each file, which have no text
-layer and which would be skipped, with no model calls and no key.
+Before you read a new folder, list it with
+[`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md).
+It shows which extractor reads each file, which files have no text layer
+and which would be skipped, and it makes no model calls and needs no
+key.
 [`vignette("ingest")`](https://elkronos.github.io/harnessr/articles/ingest.md)
-shows it on a folder and covers what to do about files with no extractor
-or no text layer.
+runs it on a folder and says what to do about files with no extractor or
+no text layer.
 
 [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 runs several recipes over one document.
 [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
-runs one recipe over many, and returns one row per document. That is the
-shape the work usually has: a folder, one question, and a table at the
-end.
+runs one recipe over many documents and returns one row per document: a
+folder and a question go in, and a table comes out.
 
 ``` r
 
@@ -90,30 +90,28 @@ out$summary[, c("document", "not_found", "chunks_used", "calls", "status")]
 #> 2 south.txt     FALSE           1     1     ok
 ```
 
-A directory is expanded by the extractor registry, so registering an
-extractor changes which files get picked up. A document keeps the folder
-it came from, so `2019/report.txt` and `2020/report.txt` stay
-distinguishable instead of collapsing to one name. The full summary also
-carries `answer`, `partial`, `reader`, `chunks`, `cached`, `tokens_in`,
-`tokens_out`, `cost_usd`, `seconds` and `error`, and
-`write.csv(out$summary, ...)` is a reasonable end to a run.
+The extractor registry expands a directory, so registering an extractor
+changes which files get picked up. Each document keeps the folder it
+came from, so `2019/report.txt` and `2020/report.txt` stay two names.
+The full summary also carries `answer`, `partial`, `reader`, `chunks`,
+`cached`, `tokens_in`, `tokens_out`, `cost_usd`, `seconds` and `error`.
+To keep it, end the run with `write.csv(out$summary, ...)`.
 
 [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 does five things a [`lapply()`](https://rdrr.io/r/base/lapply.html) does
 not.
 
-One bad file costs one row. An unreadable document gets
+**One bad file costs one row.** An unreadable document gets
 `status = "failed"` and its error in the `error` column, and the other
-hundred and ninety-nine answers survive. Pass `on_error = "stop"` if you
-would rather it aborted.
+hundred and ninety-nine answers survive. Pass `on_error = "stop"` to
+abort instead.
 
-Budgets are per document, and the run has its own. Every document gets
+**Each document has a budget, and so does the run.** Each document gets
 its own trace, so `hr_options(max_calls =)` and
-`hr_options(max_cost_usd =)` apply to each one exactly as if you had
-read it alone, and one enormous document cannot starve the rest. On its
-own that leaves the run unbounded: two hundred documents under a
-400-call ceiling is a corpus ceiling of eighty thousand calls. So there
-are two run-level ceilings.
+`hr_options(max_cost_usd =)` apply to it as if you had read it alone,
+and one enormous document cannot starve the rest. That leaves the run
+itself unbounded: two hundred documents under a 400-call ceiling can
+make eighty thousand calls. Two run-level ceilings bound it:
 
 ``` r
 
@@ -122,23 +120,24 @@ out <- gr_read_many(reports, "What was revenue?", "fast", client = cl,
                     max_total_usd   = 20)     # checked after each one
 ```
 
-`max_total_calls` is checked before a document, so the overshoot is
-bounded by one document’s own ceiling. `max_total_usd` can only be
-checked after one, since what a document costs is not knowable until it
-has been read. It also needs a model with a registered price, or cost is
-unknown rather than zero and you get a `gr_corpus_cost_unknown` warning
-instead of a silent free pass. Documents past either ceiling are marked
-`"skipped"` rather than dropped. Set neither and the run says once what
-its worst case is.
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
+checks `max_total_calls` before each document, so the run can overshoot
+it by at most one document’s own ceiling. It checks `max_total_usd`
+after each document, because a document’s cost is known only once it has
+been read. The cost ceiling also needs a model with a registered price.
+Without one, cost is unknown, not zero, and you get a
+`gr_corpus_cost_unknown` warning. Documents past either ceiling keep
+their rows, marked `"skipped"`. Set neither, and a message states the
+run’s worst case once, before any call.
 [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
 and
 [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 take the same two arguments.
 
-A run can be resumed. Point `store =` at a directory and each result is
-written as it completes and restored on a later run. Combined with a
-durable response cache, restarting a four-hour job costs approximately
-nothing:
+**A run can be resumed.** Point `store =` at a directory: each result is
+written as it completes and restored on a later run. Add a durable
+response cache, and a restarted four-hour job pays for almost nothing
+twice:
 
 ``` r
 
@@ -148,34 +147,33 @@ gr_read_many(reports, "What was revenue?", "thorough",
 ```
 
 The store is keyed on the document’s path, size and mtime, the question,
-the whole pipeline and the model, so an edited document is a new job,
-not a stale hit. An
+the whole pipeline and the model. An edited document is therefore read
+again, and never served from the store. A later session reuses the store
+or cache of an
 [`hr_backend_client()`](https://elkronos.github.io/harnessr/reference/hr_backend_client.md)
-needs a stable `id` for a store or a cache to be reused by a later
-session;
+only if you give that client a stable `id`;
 [`hr_client()`](https://elkronos.github.io/harnessr/reference/hr_client.md)
 and
 [`hr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/hr_ellmer_client.md)
-already know what they are.
+identify themselves.
 
-The same document is read once. The same paper reaches you from three
+**The same document is read once.** One paper can reach you from three
 databases under three filenames. A source whose cleaned text repeats one
 already read is not read again: its row is filled in from the first
 copy, `status` is `"duplicate"`, and `duplicate_of` names the row it
-repeats. Every source you passed still has a row, so
+repeats. Every source you passed keeps a row, so
 `subset(out$summary, is.na(duplicate_of))` is the deduplicated set and
 `sum(!is.na(out$summary$duplicate_of))` is the number to report as
-removed. A response cache already made the second copy’s calls free;
-what it could not do was stop the duplicate appearing in the results as
-a second, independent document.
+removed. A response cache would make the second copy’s calls free, but
+the duplicate would still appear in the results as a second document.
 
 `document_id`, beside `document` in the summary, is the hash of that
-cleaned text. Cite with it. A filename changes when the file is renamed,
-collides between folders, and does not exist at all for a document
-passed as text, while the id is the same string for the same document in
-every run and on every machine.
+cleaned text. Cite with it. A filename changes when you rename the file,
+collides between folders, and does not exist for a document passed as
+text. The id is the same string for the same document in every run and
+on every machine.
 
-You can see what it cost. `out$trace` holds the run’s calls, and
+**You can see what it cost.** `out$trace` holds the run’s calls, and
 [`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md)
 prices them at each step’s own model, counting only the calls that were
 issued. The mock client has no price, so this bill is zero;
@@ -191,9 +189,9 @@ hr_trace_cost(out$trace)[, c("model", "calls", "paid_calls", "usd")]
 
 ## From a search to a review
 
-A folder of PDFs cannot say which databases were searched, with what
-query, on what date, or how many records came back, and no care further
-down substitutes for that.
+A folder of PDFs does not record which databases you searched, with what
+query, on what date, or how many records came back, and nothing later in
+the review can recover it.
 [`gr_search()`](https://elkronos.github.io/harnessr/reference/gr_search.md)
 records the search, and
 [`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md)
@@ -238,55 +236,54 @@ recs
 #>     reported as sought-but-not-retrieved, not quietly dropped.
 ```
 
-Hand `recs` to
+Pass `recs` to
 [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
 and
 [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
-wherever you would have passed a folder. Four things follow from it that
-a folder cannot give you.
+wherever you would pass a folder. A record set gives you four things a
+folder cannot.
 
-The flow counts start at identification.
+**The flow counts start at identification.**
 [`gr_flow()`](https://elkronos.github.io/harnessr/reference/gr_flow.md)
-begins at records identified rather than at “sources given”, which is
-already past the step that decides whether anyone can reproduce the
-search.
+begins at records identified. From a folder it begins at “sources
+given”, after the steps that let someone else repeat the search: records
+identified, duplicates removed and reports sought.
 
-Records with no document stay visible. Fourteen reports sought and not
-retrieved is a finding about the review, and a folder represents it as
-nothing at all.
+**Records with no document stay visible.** Fourteen reports sought and
+not retrieved is a finding about the review. A folder leaves no trace of
+them.
 
-Duplicates are settled by DOI, not by text. The same paper from three
-databases is one record, and `duplicate_of` names the row each one
-repeats. Where a DOI is missing (preprints, conference papers),
-normalised title and year are the fallback, but two records that both
-have DOIs and differ are never merged, because similar titles happen and
-merging two studies is the error this whole path exists to avoid.
+**Duplicates are matched by DOI instead of by text.** The same paper
+from three databases is one record, and `duplicate_of` names the row
+each one repeats. For a record with no DOI (preprints, conference
+papers), normalised title and year are the fallback. Two records that
+both have DOIs and differ are never merged: similar titles happen, and
+merging two studies is the error this path exists to avoid.
 
-Authors and years become facts.
+**Authors and years come from data.**
 [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
-cites by name, and without an export those names came from asking a
-model to read a title page. That is the one part of a citation that must
-be exactly right, resting on the loosest guarantee in the pipeline. From
-an export they are data, joined onto the extraction table, and the model
-is still never shown them.
+cites by name. Without an export, those names come from a model reading
+a title page: the least checked step in the pipeline supplies the one
+part of a citation that must be exact. From an export they are data,
+joined onto the extraction table, and the model is never shown them.
 
-Matching records to files uses the path the export recorded, then the
-DOI in the filename, then the title, then first-author surname and year,
-which is how people name downloads. An ambiguous match is no match: two
-Smith 2019 papers and one `smith2019.pdf` claim nothing, because a coin
-flip presented as a match is how one paper’s findings get attributed to
-another.
+[`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md)
+matches records to files by the path the export recorded, then the DOI
+in the filename, then the title, then first-author surname and year, the
+way people name downloads. An ambiguous match is no match: two Smith
+2019 papers and one `smith2019.pdf` claim nothing, so a guess cannot
+attribute one paper’s findings to another.
 
 ### Does the search find the papers you already know?
 
-Before the search is final, test it against papers the team already
+Before you settle the search, test it against papers your team already
 knows are relevant: the seed set.
 [`gr_search_recall()`](https://elkronos.github.io/harnessr/reference/gr_search_recall.md)
-matches each seed to the search’s records by the same rules
+matches each seed to the search’s records by the rules
 [`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md)
 uses for duplicates, and gives the share found with an exact interval. A
-seed used to write the search was bound to be found, so mark it
-`used_to_build` and it is left out of the figure:
+seed you used to write the search was bound to be found, so mark it
+`used_to_build` to leave it out of the figure:
 
 ``` r
 
@@ -312,29 +309,31 @@ known$missed[, c("label", "reason")]
 #> 1 Ng 2018: Spacing effects in vocabulary learning not_in_records
 ```
 
-One of the two seeds kept out of the search was found, and its 95%
-Clopper-Pearson interval runs from 1.3% to 98.7%: two seeds say almost
-nothing, and a real seed set needs dozens. The figure is relative
-recall, the share of the known papers the search found, not of every
-relevant paper, and known papers are usually the easiest to find.
+The search found one of the two seeds not used to build it. The 95%
+Clopper-Pearson interval runs from 1.3% to 98.7%, so two seeds tell you
+almost nothing; a real seed set needs dozens. The figure is relative
+recall: the share of the known papers the search found. It is not the
+share of every relevant paper, and known papers are usually the easiest
+to find.
+
 `reason` says why each seed was missed. A seed the matching rules
 refused, for a title too short to tell papers apart or one shared by
 records with different DOIs, counts as missed and is listed in
-`$refused`, so check those by hand. `tier =` gives the figure for each
-group of seeds as well, and `gr_audit_report(recall = known)` adds it to
-the report.
+`$refused`; check those by hand. `tier =` also gives the figure for each
+group of seeds, and `gr_audit_report(recall = known)` adds it to the
+report.
 
 ### Is each file the paper its record names?
 
-A record matched to a file by first author and year can get another
-paper by the same author in the same year. When the documents come from
-a record set,
+A match by first author and year can pair a record with another paper by
+the same author from the same year. For documents that come from a
+record set,
 [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md),
 [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
 and
 [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 look for the record’s DOI and title in the opening of each document’s
-text, and say in an `identity` column whether they found either:
+text, and an `identity` column records whether they found either:
 
 ``` r
 
@@ -349,21 +348,24 @@ read$summary[, c("document", "identity")]
 #> 1 smith2019.txt    FALSE
 ```
 
-`smith2019.txt` was matched to “Cognitive load and retention” by its
-name, but its text is about spacing and prints neither that title nor
-the DOI, so `identity` is `FALSE` and the run warns with class
-`gr_identity_mismatch`. Nothing is dropped and
+[`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md)
+matched `smith2019.txt` to “Cognitive load and retention” by its name.
+Its text is about spacing and prints neither that title nor the DOI, so
+`identity` is `FALSE` and
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
+warns with class `gr_identity_mismatch`. The file is still read and
+kept, and
 [`gr_flow()`](https://elkronos.github.io/harnessr/reference/gr_flow.md)
-counts the same: the column, the `warnings` cell and the audit report
-say which files to check by hand. `NA` means there was nothing to check,
+counts the same. The column, the `warnings` cell and the audit report
+list the files to check by hand. `NA` means there was nothing to check,
 such as a record with only a short title.
 
 ## The review: protocol, screen, extract, write
 
 The single-document pipeline (ingest, segment, read) answers a question.
-A corpus job usually wants a table, and a review wants a table plus the
-account of it. Four functions cover that, and they compose in one
-direction:
+A corpus job usually needs a table, and a review needs a table plus an
+account of how it was made. Four functions cover that, each feeding the
+next:
 
 [`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md)
 →
@@ -375,19 +377,19 @@ direction:
 
 ### One trace for the whole review
 
-Passing the same `trace =` to
+Pass the same `trace =` to
 [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md),
 [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md),
 [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
 [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
 and
 [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
-accumulates the whole review in one place. It is a parent: each stage
-still records on a trace of its own, which is what its `$trace` returns
-and what `hr_options(max_calls =)` is measured against, and adds its
-calls to the shared one when it finishes. So the screening cannot spend
-the write-up’s ceiling, the shared trace’s totals are the sum of the
-stages’, and each request is counted once.
+to collect the whole review in one place. The shared trace is a parent.
+Each stage still records on a trace of its own, which its `$trace`
+returns and which `hr_options(max_calls =)` is measured against, and
+adds its calls to the parent when it finishes. The screening therefore
+cannot spend the write-up’s ceiling, the parent’s totals are the sum of
+the stages’, and each request is counted once.
 
 [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
 records its calls on `attr(outline, "trace")`, which
@@ -400,10 +402,9 @@ total a review’s cost, pass one trace to every stage, or add
 
 ### The protocol
 
-A protocol is what you fix before reading anything: which documents
-count, what to collect from the ones that do, and what the write-up has
-to cover. Fixing it first matters because a criterion invented while
-reading is a criterion fitted to what was found.
+A protocol fixes, before you read anything, which documents count, what
+to collect from them, and what the write-up must cover. Fix it first: a
+criterion invented while reading is fitted to what you found.
 
 ``` r
 
@@ -435,18 +436,19 @@ lists four templates to start from: `bibliography`, `claims`,
 [`gr_protocol_save()`](https://elkronos.github.io/harnessr/reference/gr_protocol_save.md)
 and
 [`gr_protocol_read()`](https://elkronos.github.io/harnessr/reference/gr_protocol_save.md)
-round-trip a protocol through a JSON file, so it can be shared, diffed
-and cited alongside the results.
+round-trip a protocol through a JSON file, so you can share it, diff it
+and cite it beside the results.
 
 ### Screening
 
-Screening is one call per document, and nothing is dropped. Every
-document gets a decision and a reason. There is no retrieval step that
-could quietly remove a source before one is recorded. A file that could
-not be read gets `status = "failed"` and no decision rather than a
-silent exclusion, and `"unclear"` is an answer rather than a forced
-guess, because forcing a binary call on an excerpt that does not settle
-it is how automated screening loses studies.
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
+makes one call per document and drops nothing. Every document gets a
+decision and a reason, and no retrieval step runs first that could
+remove a source before its decision is recorded. A file that could not
+be read gets `status = "failed"` and no decision, so it is not counted
+as excluded. The screener may answer `"unclear"`: forcing include or
+exclude on an excerpt that does not settle it is how automated screening
+loses studies.
 
 This stand-in screener includes the northern report and cannot decide
 about the southern one:
@@ -473,8 +475,10 @@ screened$table[, c("document", "decision", "criterion", "verified")]
 ```
 
 The reply must fit the schema the request sent. A decision outside
-`include`, `exclude` and `unclear` is a failed call, not a guess at what
-the model meant, and it is not cached, so running again asks again.
+`include`, `exclude` and `unclear` counts as a failed call, and
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
+does not guess what the model meant. A failed reply is not cached, so a
+second run asks again.
 
 `screened$forward` holds the included and unclear records, the set to
 read at full text, and `screened$deferred` holds the unclear ones, for a
@@ -489,10 +493,10 @@ basename(screened$deferred)
 ```
 
 [`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md)
-records that person’s decision. It needs to know who decided, and it
-records when (in UTC) and, optionally, why, in the table and as a
-`"screen.resolve"` step in the trace. `forward`, `deferred` and
-`included` are rebuilt, and the screener’s own decision is kept in
+records that person’s decision. You must say who decided (`by =`). It
+records when (in UTC) and, if you give a reason, why, both in the table
+and as a `"screen.resolve"` step in the trace. It rebuilds `forward`,
+`deferred` and `included`, and keeps the screener’s own decision in
 `screener_decision`:
 
 ``` r
@@ -510,29 +514,28 @@ compares against `screener_decision`, so a person’s correction is not
 credited to the screener. Duplicates of a resolved record take the same
 decision.
 
-Hand `screened` itself to
+Pass `screened` itself to
 [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md).
-In this release that reads the included records only, and warns (class
+In this release
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
+then reads the included records only, and warns (class
 `gr_unclear_dropped`) when it leaves unclear ones out; from the next
-release it reads `$forward`. Pass `screened$forward` to read the unclear
-records now. `screened$included` works too, but a character vector of
-paths cannot carry the search forward, so the audit’s search section and
-the bibliographic columns are lost with it.
-`table(screened$table$criterion)` is the breakdown a flow diagram asks
-for.
+release it reads `$forward`. To read the unclear records now, pass
+`screened$forward`. `screened$included` works too, but a character
+vector of paths cannot carry the search, so you lose the audit’s search
+section and the bibliographic columns. `table(screened$table$criterion)`
+gives the breakdown a flow diagram asks for.
 
 ### Knowing how good the screening is
 
 [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
-gives every document a decision. Nothing in the run says whether those
-decisions were any good, and a screener that discards a fifth of the
-eligible studies produces a carefully audited review of the wrong
-corpus.
+gives every document a decision, but nothing in the run shows whether
+the decisions were right. A screener that discards a fifth of the
+eligible studies yields a carefully audited review of the wrong corpus.
 
-The tempting substitute is running the model twice and reporting the
-agreement. It measures the wrong thing: two passes share weights, priors
-and blind spots, so they agree most confidently where they are both
-wrong. Only a reference standard settles it.
+Running the model twice and reporting the agreement does not answer
+that. Two passes share weights, priors and blind spots, so they agree
+most confidently where both are wrong. You need a reference standard:
 [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md)
 draws a sample for a person to screen by hand, and
 [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
@@ -575,17 +578,19 @@ gr_calibrate(big, check)
 #>     whole stratum judged. Hand-screen more before quoting a figure.
 ```
 
-Which rows you sample changes which questions the sample can answer. A
-sample of exclusions contains no kept records, so sensitivity would
-compute to 0% and specificity to 100%. Both are artifacts of the frame,
-alarming or flattering, and neither is a fact about the screener, so
+The rows you sample decide the questions the sample can answer. A sample
+of exclusions contains no kept records, so sensitivity would compute to
+0% and specificity to 100%. Both figures come from the frame and say
+nothing about the screener, so
 [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
-reports what the frame supports and refuses the rest. The frame travels
-as a column in the CSV, because that file gets emailed, opened in Excel
-and read back a fortnight later, and an attribute survives none of that.
-In a blind sheet the column is an opaque key, so the person filling it
-in cannot tell from it what the model decided, and the CSV is UTF-8 with
-a byte-order mark so Excel opens accented names intact.
+reports what the frame supports and refuses the rest.
+
+The frame travels as a column in the CSV, because the file gets emailed,
+opened in Excel and read back a fortnight later, and an attribute
+survives none of that. In a blind sheet the column is an opaque key, so
+the person filling it in cannot tell from it what the model decided. The
+CSV is UTF-8 with a byte-order mark, so Excel opens accented names
+intact.
 
 A sample drawn from everything screened (`of = "all"`) supports the
 rest. This one is the eight-record example from
@@ -640,27 +645,31 @@ cal
 #>     Hand-screen more before quoting a figure.
 ```
 
-`"unclear"` counts as a deferral to a person, not as a miss, because a
-record the screener could not settle goes to a person, and counting it
-as a failure would punish the one behaviour that makes it safe. Two
-sensitivities are reported. Sensitivity as deployed is the share of
-eligible studies that were kept, by `"include"` or by `"unclear"`, and
-is the one where a shortfall is permanent. Strict sensitivity is the
-share actively included. The gap between them is the reading you still
-have to do. The rate of `"unclear"` decisions is the “deferred to a
-person” line, with its interval, and `cal$decisions` holds the 3x2
-counts behind it all.
+[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
+counts `"unclear"` as a deferral to a person, not as a miss. A record
+the screener could not settle goes to a person, and counting it as a
+failure would punish the behaviour that keeps screening safe. It reports
+two sensitivities:
 
-Accuracy is not reported, and kappa is not reported alone. At a
-realistic inclusion rate a screener that excluded everything scores
-about 95% accurate and finds nothing. Agreement is taken on the same
-decision sensitivity uses, kept (include or unclear) against excluded,
-in `cal$agreement$kept`, with strict include against the rest beside it
-in `cal$agreement$strict`. Each table gives Cohen’s kappa next to PABAK
-and Gwet’s AC1, with intervals, the prevalence and bias indices, and the
-class-wise sensitivity, specificity, PPV and NPV, because at a few
-eligible records in a hundred kappa moves with prevalence as much as
-with agreement:
+- Sensitivity as deployed is the share of eligible studies kept, by
+  `"include"` or by `"unclear"`. A shortfall here is permanent.
+- Strict sensitivity is the share actively included.
+
+The gap between them is the reading you still have to do. The “deferred
+to a person” line is the rate of `"unclear"` decisions, with its
+interval, and `cal$decisions` holds the 3x2 counts behind all of it.
+
+[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
+reports no accuracy, and kappa only beside other statistics. At a
+realistic inclusion rate, a screener that excluded everything scores
+about 95% accurate and finds nothing. `cal$agreement$kept` measures
+agreement on the decision sensitivity uses, kept (include or unclear)
+against excluded, and `cal$agreement$strict` gives strict include
+against the rest. Each table gives Cohen’s kappa next to PABAK and
+Gwet’s AC1, with intervals, the prevalence and bias indices, and the
+class-wise sensitivity, specificity, PPV and NPV. With a few eligible
+records in a hundred, kappa moves with prevalence as much as with
+agreement:
 
 ``` r
 
@@ -679,49 +688,48 @@ cal$agreement$kept$stats
 ```
 
 `cal$agreement$kept$paradox` is `TRUE` when the prevalence index is
-above 0.8 in absolute value, where kappa says more about prevalence than
-about agreement. The kappa interval is a percentile bootstrap over
-documents, B = 2000, under a fixed seed, so the same sample gives the
-same interval and the session’s random stream is untouched;
+above 0.8 in absolute value. There, kappa reflects prevalence more than
+agreement. The kappa interval is a percentile bootstrap over documents,
+B = 2000, under a fixed seed, so the same sample gives the same interval
+and the session’s random stream is untouched;
 `cal$agreement$kept$bootstrap` holds B and the seed. AC1 uses Gwet’s
-(2008) variance. Where the screener and the person agree on every
-record, disagree on every record, or the sample holds fewer than 10
-records, as here, the kappa and AC1 intervals are left empty with a
-`note` saying why, instead of a zero-width interval such as \[1.00,
-1.00\].
+(2008) variance. If the screener and the person agree on every record,
+disagree on every record, or the sample holds fewer than 10 records, as
+here, the kappa and AC1 intervals are left empty with a `note` saying
+why, instead of a zero-width interval such as \[1.00, 1.00\].
 
-Before this release kappa was taken over the screener’s three labels
-against the person’s two, so every `"unclear"` counted as a
-disagreement. On this example that gave 0.33 where the
-kept-against-excluded figure is 0.50. The old figure is no longer
-reported.
+Before this release, kappa compared the screener’s three labels with the
+person’s two, so every `"unclear"` counted as a disagreement. On this
+example that gave 0.33, where the kept-against-excluded figure is 0.50.
+The old figure is no longer reported.
 
-A rate from three observations is not a finding. The intervals on the
-rates are Wilson score intervals, which stay sensible at zero and one
-where the textbook interval collapses to a point, and `$adequate` says
-when the sample cannot support a claim. What is enough depends on the
-frame: enough eligible studies for sensitivity in a sample of everything
-screened (`min_positives`, 10 by default), and for a sample of one
-stratum (exclusions, or kept records) an interval no wider than 10
-points, or the whole stratum judged. `$missed` is the list of studies
-the screener discarded and a person did not, which is usually more use
-than any rate.
+The intervals on the rates are Wilson score intervals, which stay
+sensible at zero and one, where the textbook interval collapses to a
+point. `$adequate` says when the sample is too small to support a claim.
+The bar depends on the frame:
 
-Pass the result to `gr_audit_report(calibration = )` and it becomes a
-section of the report, with the 3x2 counts and every statistic above, so
-the figure a reviewer asks for sits next to the run it describes instead
-of being copied into a methods section by hand.
+- In a sample of everything screened, sensitivity needs enough eligible
+  studies (`min_positives`, 10 by default).
+- In a sample of one stratum (exclusions, or kept records), the interval
+  must be no wider than 10 points, or the whole stratum judged.
+
+`$missed` lists the studies the screener discarded and a person did not.
+It is often more use than any rate.
+
+Pass the result to `gr_audit_report(calibration = )` to add it to the
+report as a section, with the 3x2 counts and every statistic above. The
+figure a reviewer asks for then sits next to the run it describes, and
+nobody has to copy it into a methods section by hand.
 
 ### Recall against a target
 
 Sensitivity as deployed is recall: the share of eligible studies the
 screener kept. A review usually sets a target for it, such as 95%, and
-the claim worth making is that recall is at least the target, at a
-stated confidence. A sample of the exclusions alone cannot support that
-claim, because it counts none of the eligible records that were kept.
-The design that can is the one people use anyway: judge every record the
-screener kept, and a sample of what it excluded. `of = "stacked"` draws
-both in one sheet.
+claims that recall is at least the target at a stated confidence. A
+sample of the exclusions alone cannot support that claim, because it
+counts none of the eligible records that were kept. For that, judge
+every record the screener kept and a sample of what it excluded, the
+design reviewers already use. `of = "stacked"` draws both in one sheet.
 
 Recall here is relative to the reference: the share of the records the
 person judged eligible that the screener kept. An eligible study the
@@ -732,8 +740,8 @@ so wherever they give recall.
 The target fixes how many exclusions to judge. Recall is K / (K + M),
 with K the eligible records kept and M the eligible records excluded, so
 a target is a cap on M. If a pilot suggests about 50 of the 72 kept
-records are eligible, 95% recall allows floor(50 x 0.05 / 0.95) = 2 of
-them to have been lost.
+records are eligible, 95% recall allows floor(50 x 0.05 / 0.95) = 2
+eligible records to have been lost among the exclusions.
 [`gr_screen_sample_size()`](https://elkronos.github.io/harnessr/reference/gr_screen_sample_size.md)
 gives the number of the 340 exclusions to judge so that, if none of them
 turns out eligible, the bound on M is 2:
@@ -747,13 +755,15 @@ gr_screen_sample_size(frame = "stacked", max_lost = 2,
 ```
 
 215 is the exact size from the hypergeometric distribution of a frame of
-340 records; the binomial rule, which ignores that the frame is finite,
-asks for 508. For a sample of everything screened (`frame = "all"`) the
-rule is k \>= ln(alpha) / ln(T) eligible records with no miss: 59 for
-95% recall at 95% confidence, which at 5% prevalence means drawing 1180
-records. A frame of 500 records at that prevalence holds about 25
-eligible records, too few for any sample of it to show the target, so
-the size is the whole frame; judged whole, recall is known exactly:
+340 records. The binomial rule, which ignores that the frame is finite,
+asks for 508.
+
+For a sample of everything screened (`frame = "all"`), the rule is k \>=
+ln(alpha) / ln(T) eligible records with no miss: 59 for 95% recall at
+95% confidence. At 5% prevalence that means drawing 1180 records. A
+frame of 500 records at that prevalence holds about 25 eligible records,
+too few for any sample of it to show the target. The size is then the
+whole frame, and judged whole, recall is known exactly:
 
 ``` r
 
@@ -763,7 +773,8 @@ gr_screen_sample_size(0.95, 0.95, prevalence = 0.05,
 #> 1        59 500       1180
 ```
 
-So draw every kept record and 215 of the exclusions:
+For the stacked design, draw every kept record and 215 of the
+exclusions:
 
 ``` r
 
@@ -788,19 +799,20 @@ recall$verdict$met
 #> [1] TRUE
 ```
 
-Each stratum is weighted by how much of it was judged: all 72 kept
-records count once, and each of the 215 sampled exclusions stands for
-340 / 215 of them. Recall is the ratio of the weighted
-(Horvitz-Thompson) totals, from
+[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
+weights each stratum by how much of it was judged. All 72 kept records
+count once, and each of the 215 sampled exclusions stands for 340 / 215
+of them. Recall is the ratio of the weighted (Horvitz-Thompson) totals,
+from
 [`hr_ht_estimate()`](https://elkronos.github.io/harnessr/reference/hr_ht_estimate.md).
 M is bounded exactly from the hypergeometric distribution of what the
-sample found, and the one-sided lower bound on recall is K / (K + M_U),
-here 50 / 52 = 0.962, above the target. No bootstrap is used: with no
-eligible record in the sample every resample also finds none, and the
-interval would be \[1, 1\].
+sample found. The one-sided lower bound on recall is K / (K + M_U), here
+50 / 52 = 0.962, above the target. There is no bootstrap: with no
+eligible record in the sample, every resample would also find none and
+give the interval \[1, 1\].
 
 One eligible record among the sampled exclusions is enough to miss the
-target. It stands for 340 / 215 records, and the bound has to allow for
+target. It stands for 340 / 215 records, and the bound must allow for
 more than that:
 
 ``` r
@@ -814,31 +826,31 @@ missed$verdict$met
 #> [1] FALSE
 ```
 
-A blind stacked sheet keeps each row’s stratum and inclusion probability
+A blind stacked sheet hides each row’s stratum and inclusion probability
 inside its `sampled_from` key, one key per row, and lists the rows in
-the run’s order rather than by stratum, so the person filling it in
-cannot tell which records the screener kept. A kept sheet and an
-excluded sheet drawn separately and joined with
-[`rbind()`](https://rdrr.io/r/base/cbind.html) are read the same way
-with `gr_calibrate(of = "stacked")`. On a stacked reference the result
-also has `lost` (M with its bounds), `false_exclusion`, `work_saved`,
-`unclear_rate`, `strata` and `verdict`; agreement statistics are left
-out there, since unweighted they would be distorted the same way
-unweighted sensitivity is.
+the run’s order instead of by stratum. The person filling it in cannot
+tell which records the screener kept. If you draw a kept sheet and an
+excluded sheet separately and join them with
+[`rbind()`](https://rdrr.io/r/base/cbind.html),
+`gr_calibrate(of = "stacked")` reads them the same way. On a stacked
+reference the result also has `lost` (M with its bounds),
+`false_exclusion`, `work_saved`, `unclear_rate`, `strata` and `verdict`.
+It leaves out the agreement statistics, which unweighted would be
+distorted the same way unweighted sensitivity is.
 
 ### When prioritised screening can stop
 
 [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
 reads every record once, so it has no stopping point to choose.
-Screening that reads records in ranked order, most likely relevant
-first, does: after enough irrelevant records in a row, the rest are
-probably irrelevant too.
+Screening in ranked order, most likely relevant first, does: after
+enough irrelevant records in a row, the rest are probably irrelevant
+too.
 [`gr_stop_test()`](https://elkronos.github.io/harnessr/reference/gr_stop_test.md)
-makes that a test. After each screened record it gives the p-value for
-recall still being below `target`, given how many records are left, and
-the first point where screening may stop at `alpha` (Callaghan and
-Muller-Hansen 2020). Here 1,000 records are screened in ranked order:
-the first 100 are relevant, the next 400 are not, and 500 are unread:
+turns that into a test. After each screened record it gives the p-value
+for recall still being below `target`, given how many records are left,
+and the first point where screening may stop at `alpha` (Callaghan and
+Muller-Hansen 2020). Here 1,000 records are in ranked order: the first
+100 are relevant, the next 400 are not, and 500 are unread:
 
 ``` r
 
@@ -849,10 +861,10 @@ gr_stop_test(seen)
 ```
 
 The test treats the last records screened as a random draw from those
-left, which a ranking is not: when the ranker works it is cautious, and
-when it ranks worse than chance it cannot be trusted. Nor is it
-corrected for looking after every record. Report the rule and its
-settings with the result.
+left, and a ranking is not one. If the ranker works, the test is
+cautious; if the ranker does worse than chance, you cannot trust the
+test. It is also not corrected for checking after every record. Report
+the rule and its settings with the result.
 [`hr_baseline_ranker()`](https://elkronos.github.io/harnessr/reference/hr_baseline_ranker.md)
 simulates such an order with a cheap model and no calls, and
 [`gr_stop_test()`](https://elkronos.github.io/harnessr/reference/gr_stop_test.md)
@@ -862,10 +874,10 @@ shows it.
 
 ### Several reviewers
 
-One person’s decisions are a reference, but not a perfect one, and how
-far two people agree is the yardstick for how far a screener agrees with
-either. `gr_reference(reviewers = k)` writes one decision column per
-reviewer and a `consensus` column for an adjudicator:
+One person’s decisions make an imperfect reference. Agreement between
+two people is the yardstick for a screener’s agreement with either.
+`gr_reference(reviewers = k)` writes one decision column per reviewer
+and a `consensus` column for an adjudicator:
 
 ``` r
 
@@ -883,9 +895,9 @@ pair$human_decision_2[c(3, 11, 25)] <- "include"
 ```
 
 [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
-compares the screener with the reviewers’ consensus, and it will not
-guess one: a disagreement nobody settled stops it, saying how many there
-were.
+compares the screener with the reviewers’ consensus and does not guess
+one. A disagreement nobody settled stops it with an error that says how
+many there are:
 
 ``` r
 
@@ -894,14 +906,18 @@ tryCatch(gr_calibrate(big, pair), error = function(e) cat(conditionMessage(e)))
 ```
 
 [`gr_reference_consensus()`](https://elkronos.github.io/harnessr/reference/gr_reference_consensus.md)
-forms one decision per document by a rule. `"majority"` takes the
-decision of more than half the reviewers, and settles a tie by the
-`consensus` column where it is filled and otherwise as include, so a
-reference never excludes a record half its reviewers included. With two
-reviewers every disagreement is a tie. `"any_include"` carries a record
-forward unless every reviewer excluded it, and `"adjudicated"` takes the
-`consensus` column and stops where it is empty. `consensus_from` says
-how each row’s decision was reached:
+forms one decision per document by a rule:
+
+- `"majority"` takes the decision of more than half the reviewers. It
+  settles a tie by the `consensus` column where that is filled, and
+  otherwise as include, so a reference never excludes a record half its
+  reviewers included. With two reviewers every disagreement is a tie.
+- `"any_include"` carries a record forward unless every reviewer
+  excluded it.
+- `"adjudicated"` takes the `consensus` column and stops where it is
+  empty.
+
+`consensus_from` says how each row’s decision was reached:
 
 ``` r
 
@@ -936,10 +952,10 @@ both$reviewers$sensitivity[, c("reviewer", "statistic", "estimate", "lower", "up
 ```
 
 The adjudicator settled the three conflicts as not eligible, and recall
-is measured against that. `$worst_case` measures it again with every
+is measured against that. `$worst_case` measures recall again with every
 record the reviewers split on counted as eligible, the worst case for
-the screener, and [`print()`](https://rdrr.io/r/base/print.html) shows
-it beside the main estimate:
+the screener. [`print()`](https://rdrr.io/r/base/print.html) shows it
+beside the main estimate:
 
 ``` r
 
@@ -958,30 +974,30 @@ unlist(both$worst_case$recall[c("estimate", "lower", "upper")])
 ```
 
 The screener excluded all three, so counted as eligible they are three
-misses and recall falls. If the two figures lead to different
-conclusions, the review’s claim rests on how the conflicts were settled,
-and the report should say so. Under `rule = "any_include"` the consensus
-already counts conflicts as eligible, and the two agree.
+misses, and recall falls from 1 to 0.77. If the two figures lead to
+different conclusions, the review’s claim rests on how the conflicts
+were settled; say so in the report. Under `rule = "any_include"` the
+consensus already counts conflicts as eligible, and the two agree.
 
-`$reviewers` gives every pair of reviewers the observed agreement,
+For every pair of reviewers, `$reviewers` gives the observed agreement,
 kappa, PABAK, AC1 and the prevalence and bias indices from
 [`hr_agreement()`](https://elkronos.github.io/harnessr/reference/hr_agreement.md),
-never kappa alone, and Krippendorff’s alpha over all of them with three
-reviewers or more. It also gives each reviewer’s sensitivity and
-specificity against the consensus, which says what one person screening
-alone would have missed. Each reviewer is part of the consensus they are
-scored against, so these figures run higher than against an independent
-reference, the more so with fewer reviewers. On a stacked reference both
-are weighted the way recall is.
+and with three reviewers or more, Krippendorff’s alpha over all of them.
+It also gives each reviewer’s sensitivity and specificity against the
+consensus: what one person screening alone would have missed. Each
+reviewer is part of the consensus they are scored against, so these
+figures run higher than they would against an independent reference, and
+more so with fewer reviewers. On a stacked reference both are weighted
+the way recall is.
 
 ### Extraction
 
-Extraction fills the protocol’s fields from every chunk of each included
-document, then reconciles them. The result is one typed row per
-document, and every filled cell carries the sentence it came from,
-checked against the chunk it was attributed to. A paragraph about one
-paper cannot be compared with a paragraph about two hundred others; a
-table can be sorted, counted, filtered and published.
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
+fills the protocol’s fields from every chunk of each included document,
+then reconciles them. The result is one typed row per document. Every
+filled cell carries the sentence it came from, checked against the chunk
+it was attributed to. You can sort, count, filter and publish a table;
+two hundred paragraphs, one per paper, cannot be compared.
 
 ``` r
 
@@ -1004,15 +1020,15 @@ table$table[, c("document", "region", "revenue", "year", "n_unverified")]
 #> 2 south.txt  south    51.8 2025            0
 ```
 
-Reconciling the chunks costs nothing by default. Where the document
+Reconciling the chunks costs nothing by default. If the document
 contradicts itself, `conflicts` names the field and the earliest chunk’s
 value is kept; `resolve = "model"` spends one call per disagreeing field
 to have the model choose instead.
 
-`n_unverified` is the column to look at before believing a row: zero
-means every value in it can be pointed at in the document.
-`table$evidence` is the long form, one row per supported cell, with the
-quote, the page it is on, and whether the quote appears there.
+Check `n_unverified` before you trust a row: zero means every value in
+it has a quote found in the document. `table$evidence` is the long form,
+one row per supported cell, with the quote, the page it is on, and
+whether the quote appears there.
 
 ``` r
 
@@ -1033,16 +1049,16 @@ table$evidence[, c("document_id", "field", "quote", "verified")]
 #> 6     TRUE
 ```
 
-Nothing is discarded for failing that check; `require_quote = TRUE`
-makes discarding a choice rather than a surprise. A value is read by its
-field’s type, so “1,204” in an integer field is 1204, and a value the
-field does not allow is reported as one it could not read.
+A value that fails the check is kept. To discard such values, set
+`require_quote = TRUE`. Each value is read by its field’s type, so
+“1,204” in an integer field is 1204, and a value the field does not
+allow is reported as one it could not read.
 
 ### Agreement on extracted fields
 
-`n_unverified` says whether a value can be found in the document, not
-whether it is the value a person would have taken. For that, have a
-person fill the same fields for a sample of documents
+`n_unverified` says whether a value can be found in the document. To
+learn whether a person would have taken the same value, have a person
+fill the same fields for a sample of documents
 (`gr_label_sheet("extraction", ...)` writes the sheet;
 [`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md)
 shows how sheets are read back) and compare the tables with
@@ -1096,14 +1112,16 @@ the field. In a nominal field that is one more category. A numeric field
 cannot place it on its scale, so it gets two rows: whether the field is
 reported at all, and the value where both tables report it. Alpha at the
 interval level gives partial credit for a near miss, so 94 against 93
-costs far less than 58 against 247, while percent agreement counts both
-as disagreements. Below 30 documents, or for a field that never varies,
-alpha is `NA` and a note says why; read percent agreement there. A
+costs far less than 58 against 247; percent agreement counts both as
+disagreements. Below 30 documents, or for a field that never varies,
+alpha is `NA` and a note says why; read percent agreement there.
+
+You can pass a
 [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
-result can be passed directly. A row that failed is left out of every
-field, and an empty cell in a row read only in part is left out rather
-than taken as not reported, so a document is never counted as reporting
-nothing because it was not read.
+result directly. A row that failed is left out of every field. An empty
+cell in a row read only in part is left out too, instead of being taken
+as not reported, so a document that was not read is never counted as
+reporting nothing.
 
 ### The write-up
 
@@ -1132,15 +1150,19 @@ cat(review$text_marked)
 `review$text_marked` is the text as the model wrote it, with its
 markers; `review$text` is the same with the citations rendered, which
 the next section covers. `review$citations` resolves each `[study n]` to
-its `document` and `document_id`. The markers are parsed back out and
-checked against the rows that exist; one pointing at a row that is not
-there is reported and marks the section partial. Duplicates never reach
-the write-up, so no study is counted twice.
+its `document` and `document_id`.
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
+parses the markers back out and checks them against the rows that exist.
+A marker pointing at a missing row is reported and marks its section
+partial. Duplicates never reach the write-up, so no study is counted
+twice.
 
-The citation check says which rows a sentence rests on, not what it says
-they found, and the figures are what a reader copies out of a review. So
-every number in the write-up is also looked for in the rows its sentence
-cites, as the writer was shown them:
+The citation check says which rows a sentence rests on. It does not
+check what the sentence says they found, and the figures are what a
+reader copies out of a review.
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
+therefore also looks for every number in the write-up in the rows its
+sentence cites, as the writer was shown them:
 
 ``` r
 
@@ -1153,12 +1175,12 @@ review$figures[, c("number", "studies", "backed", "basis")]
 #> 2   45.2    1, 2   TRUE cited row
 ```
 
-The check forgives form, such as `.61` for 0.61 or `1204` for 1,204, but
-not a changed digit. A figure found nowhere, such as 54.2 written for
-45.2, has `backed = FALSE`, is counted in `n_unbacked` and is warned
-about. It does not make the section partial, which is about citations. A
-figure the cited row carries was copied correctly, and it can still be
-the wrong figure for the sentence.
+The check accepts a change of form, such as `.61` for 0.61 or `1204` for
+1,204, but not a changed digit. A figure found nowhere, such as 54.2
+written for 45.2, has `backed = FALSE`, is counted in `n_unbacked` and
+raises a warning. It does not make the section partial; partial is about
+citations. A figure found in the cited row was copied correctly, and it
+can still be the wrong figure for the sentence.
 
 Each figure found in a row is also linked to the field it reports, and
 each carries the size of the pool it was checked against and the chance
@@ -1173,20 +1195,19 @@ review$figures[, c("number", "field", "pool", "chance")]
 ```
 
 A sentence that cites nothing is checked against every row its section
-was shown, where a match by chance is common: among 40 numbers, a “63%”
-matches one more often than not. There a figure counts only when its
+was shown, and there a chance match is common: among 40 numbers, a “63%”
+matches one more often than not. Such a figure counts only when its
 chance is below 0.05, or when the sentence names the field it matched
-(“n = 236” for a field `n`). The check is diagnostic only: it marks
-nothing partial and sends nothing.
+(“n = 236” for a field `n`). The check marks nothing partial and sends
+no request.
 
-The writer was shown each value with its check and its quote, as
+The writer sees each value with its check and its quote, as
 `revenue: 51.8 (verified quote: "...")`, and a value whose quote did not
-verify marked as such. `review$sentences` links every sentence of the
-text to the studies it cites that are verified records, those with at
-least one value whose quote verified, or flags it; `review$uncited`
-lists the studies the text cites nowhere, and whether a section was
-shown each. That is a count, not a quota: a review need not cite every
-study.
+verify is marked as such. `review$sentences` links each sentence of the
+text to the verified records it cites (studies with at least one value
+whose quote verified), or flags it. `review$uncited` lists the studies
+the text cites nowhere, and whether a section was shown each. A review
+need not cite every study; `$uncited` only lists them.
 
 ``` r
 
@@ -1217,14 +1238,18 @@ rechecked$recheck$unknown
 
 ### Citations a reader can use
 
-The model writes and the package checks `[study 2]` markers; extract the
-bibliographic fields alongside your own and they render as citations,
-with a reference list built from the studies the finished text cites.
-`cite_style = "auto"`, the default, names the studies when the table can
-name all of them; `"author-year"` asks for names and warns if they
-cannot be produced, `"numeric"` gives `(1, 2)`, and `"marker"` leaves
-`[study 1]` as written. A protocol for that adds the bibliographic
-fields:
+The model writes `[study 2]` markers and harnessr checks them. Extract
+the bibliographic fields alongside your own, and the markers render as
+citations, with a reference list built from the studies the finished
+text cites. `cite_style =` picks the form:
+
+- `"auto"`, the default, names the studies when the table can name all
+  of them.
+- `"author-year"` asks for names and warns if they cannot be produced.
+- `"numeric"` gives `(1, 2)`.
+- `"marker"` leaves `[study 1]` as written.
+
+A protocol for that adds the bibliographic fields:
 
 ``` r
 
@@ -1246,8 +1271,8 @@ protocol <- gr_protocol(
 ```
 
 [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
-takes the extraction table, so the shape it needs is easy to show
-directly:
+takes the extraction table, so a table built by hand shows the shape it
+needs:
 
 ``` r
 
@@ -1287,96 +1312,101 @@ cat(cited$text)
 #> - Smith, J., Okafor, A. (2019). Cognitive Load and Retention in Adult Learners. Journal of Educational Psychology 44(2).
 ```
 
-The model still writes `[study 3]`. Rendering happens afterwards, from
-the table, so a citation in the finished prose is a fact about the
-extraction rather than something the model asserted. Verifying “Smith &
-Okafor (2019)” would mean matching a name the model wrote against a name
-in the table, and the near-misses (Smith for Smyth, 2019 for 2018) are
-the errors that matter and also the ones fuzzy matching forgives.
-`cited$text_marked` keeps the marker form, so the check can be re-run on
-what you published.
+The model still writes `[study 3]`.
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
+renders the citation afterwards from the table, so a citation in the
+finished prose comes from the extraction and the model never asserts it.
+Checking a model-written “Smith & Okafor (2019)” would mean matching its
+name against a name in the table, and fuzzy matching forgives the near
+misses that matter (Smith for Smyth, 2019 for 2018). `cited$text_marked`
+keeps the marker form, so you can rerun the check on what you published.
 
-A study it cannot name makes the whole review fall back to markers.
+If one study cannot be named, the whole review falls back to markers.
 Citing some studies by name and others by number reads as a mistake, and
-inventing “n.d.” would assert something the extraction never found. Ask
-for a `citation` field directly if your sources are awkward; parsing an
-arbitrary author list is a heuristic and is treated as one.
+writing “n.d.” would assert something the extraction never found. If
+your sources are awkward, ask for a `citation` field directly; parsing
+an arbitrary author list is a heuristic and is treated as one.
 
 ### Revision passes
 
-Sections are written independently, which keeps each one answerable to
-its own brief, so nothing joins them: terms drift, a study gets
-introduced twice, there are no transitions. `coherence = TRUE` adds
-three revision passes over the finished draft: `"structure"` reorders
-and merges, `"cut"` removes repetition, and `"register"` polishes
-sentences. Each is forbidden from doing the others’ job, and each is a
-call, so they are off by default. Name a subset if you want fewer:
-`coherence = "cut"`.
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
+writes each section on its own, which keeps it answerable to its own
+brief but leaves nothing joining the sections: terms drift, a study gets
+introduced twice, and there are no transitions. `coherence = TRUE` adds
+three revision passes over the finished draft:
 
-A revision pass may reorganise prose. It may not make the review claim
-more than the draft did. The passes are the one step that could quietly
-undo everything above them, so their output is checked rather than
-trusted, and a pass that fails a check is discarded, leaving
+- `"structure"` reorders and merges.
+- `"cut"` removes repetition.
+- `"register"` polishes sentences.
+
+Each pass is told not to do the others’ job. Each is a call, so they are
+off by default. Name a subset for fewer, as in `coherence = "cut"`.
+
+A revision pass may reorganise prose, but it may not make the review
+claim more than the draft did. The passes could undo every check above
+them, so
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
+checks their output. A pass that fails a check is discarded, leaving
 `review$draft`, the text from before the passes.
 
-A revision that added or lost a citation is discarded. That check is
-necessary and not sufficient, because the most damaging thing an editing
-pass does leaves the citations exactly where they were: editing for
-impact means deleting hedges, and the hedges are where the uncertainty
-lives. “Three small trials suggest a modest benefit” comes back as
-“trials show a benefit”, with the same markers and studies and a claim
-the evidence does not carry. So a revision is also discarded if it
-introduces a universal quantifier that was not there, uses a booster
-(“demonstrates”, “establishes”, “confirms”) more often than the draft
-did, or carries fewer hedges than the draft’s rate implies.
+A revision that added or lost a citation is discarded. That check alone
+misses the most damaging edit, which leaves the citations in place:
+editing for impact deletes hedges, and the hedges carry the uncertainty.
+“Three small trials suggest a modest benefit” comes back as “trials show
+a benefit”, with the same markers and studies and a claim the evidence
+does not carry. A revision is therefore also discarded if it:
 
-All three are matched on whole words. As bare substrings, “improved”
-counted as an instance of “prove”, so a draft saying “outcomes improved”
-licensed a revision saying “proves the drug works”, and a revision that
-added the hedge “unproven” was rejected for introducing a booster.
-Boosters are counted rather than merely listed, so saying “demonstrates”
-three times where the draft said it once is introducing it.
+- introduces a universal quantifier that was not there,
+- uses a booster (“demonstrates”, “establishes”, “confirms”) more often
+  than the draft did, or
+- carries fewer hedges than the draft’s rate implies.
+
+All three are matched on whole words. An earlier version matched bare
+substrings, so “improved” counted as an instance of “prove”: a draft
+saying “outcomes improved” licensed a revision saying “proves the drug
+works”, and a revision that added the hedge “unproven” was rejected for
+introducing a booster. Boosters are counted, so writing “demonstrates”
+three times where the draft wrote it once counts as introducing it.
 
 The hedge test scales with how much claim-bearing prose survived, so a
-shorter revision may carry fewer hedges, but never none if the draft had
-any. It does not promise that every legitimate cut passes: a pass that
-removes the most heavily hedged sentence lowers the rate and is refused.
-The cost of that is a discarded pass and a warning; the draft stands.
+shorter revision may carry fewer hedges, but not none if the draft had
+any. Some legitimate cuts fail: a pass that removes the most heavily
+hedged sentence lowers the rate and is refused. That costs a discarded
+pass and a warning, and the draft stands.
 
-Hedges and universal quantifiers are measured on sentences carrying a
-citation, because headings, framing and transitions are exactly what an
-editing pass should be free to rewrite, and “the evidence, all of which
-is relevant” is not a claim. Boosters are measured on all of the prose
-except headings, because there is no register in which an editing pass
-should introduce “demonstrates” into a review at all, and the uncited
-framing between the claims is where such a sentence gets written.
+Hedges and universal quantifiers are measured on sentences that carry a
+citation. Headings, framing and transitions are what an editing pass
+should be free to rewrite, and “the evidence, all of which is relevant”
+is not a claim. Boosters are measured on all the prose except headings:
+an editing pass should not introduce “demonstrates” into a review in any
+register, and the uncited framing between claims is where such a
+sentence gets written.
 
 Two more checks need no model call. A `cut` pass that did not shorten
-the review is discarded, since a cut that cut nothing was a polish under
-the wrong name. And a revision pass that writes a figure its draft did
-not have, or changes which studies are cited, is discarded; the figure
-check runs on the draft and again on the revised text.
+the review is discarded. A revision pass that writes a figure its draft
+did not have, or changes which studies are cited, is also discarded; the
+figure check runs on the draft and again on the revised text.
 `review$coherence` has one row per pass: what ran, whether it was kept
-and why not, with `words_before` and `words_after`, so a pass that
-halved the review can be seen.
+and why not, with `words_before` and `words_after`, so you can see a
+pass that halved the review.
 
 ## Writing from claims instead of from rows
 
 The write-up above was drafted from the whole table, one section at a
-time, and the prose shows it: the model goes row by row. “Smith (2019)
-found X. Garcia (2022) found Y.” That enumeration is a common sign of a
-weak review, and it follows directly from what the prompt holds. The
-structure has the same problem. The outline was fixed before anything
-was read, so the shape of the review is your hypothesis, when often the
-strongest thing a review has to say is structural: that a literature
-splits into three incompatible measures, and that the argument about
-effect size is an argument about measurement.
+time, and the model goes row by row: “Smith (2019) found X. Garcia
+(2022) found Y.” That enumeration is a common sign of a weak review, and
+it follows from what the prompt holds. The outline has the same problem.
+You fixed it before reading anything, so the review’s shape is your
+hypothesis. Often the strongest thing a review can say is about
+structure: that a literature splits into three incompatible measures,
+and that the argument about effect size is an argument about
+measurement.
 
 [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md)
 computes the relations between studies first. Each claim names the
 studies that support it, the studies that contradict it, and the field
-that distinguishes them. The stand-in below plays all three stages that
-follow:
+that distinguishes them. The stand-in below plays the model for all
+three stages that follow:
 
 ``` r
 
@@ -1413,11 +1443,11 @@ cm$claims[, c("claim", "moderator", "n_support", "n_contradict", "sign_p")]
 #> 2            0      1
 ```
 
-The claims model was shown each value with its check and its quote. A
-value whose quote did not verify, or that came with none, is left out of
-the claims prompt by default (`unverified = "exclude"`), so no claim
-rests on it, and is listed in `cm$unverified`. Here every quote
-verified, so nothing was left out:
+The claims model sees each value with its check and its quote. By
+default (`unverified = "exclude"`), a value whose quote did not verify,
+or that came with none, is left out of the claims prompt, so no claim
+rests on it, and `cm$unverified` lists it. Here every quote verified, so
+nothing was left out:
 
 ``` r
 
@@ -1425,21 +1455,24 @@ nrow(cm$unverified)
 #> [1] 0
 ```
 
-`sign_p` is the exact sign test of each claim’s direction tally, its
+`sign_p` is the exact sign test of each claim’s direction tally: its
 supporting studies out of all it names. A section ranks its claims by
-it, so a claim five studies agree on comes before one three support and
-three contradict. The test is two-sided, so a claim that more of its
+it, so a claim five studies agree on comes before one that three support
+and three contradict. The test is two-sided, so a claim that more of its
 studies contradict than support is ranked last instead, however small
-its p. With five studies or fewer no tally can reach p \< 0.05, and
+its p. With five studies or fewer, no tally can reach p \< 0.05, and
 `print(cm)` says so: read such a tally as a count of directions
-(Campbell et al. 2020; Boon and Thomson 2021). A moderator a claim names
-is tested in `cm$moderators`: declared in advance (`moderators =`) or
-exploratory, with Fisher’s exact p of the split, the smallest p a split
-of that many studies can give, and a Holm adjustment over the declared
-ones. A split of one study against one is always exploratory.
+(Campbell et al. 2020; Boon and Thomson 2021).
+
+[`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md)
+tests each moderator a claim names, declared in advance (`moderators =`)
+or exploratory, and reports it in `cm$moderators`. It gives Fisher’s
+exact p of the split, the smallest p a split of that many studies can
+give, and a Holm adjustment over the declared ones. A split of one study
+against one is always exploratory.
 [`?gr_claims`](https://elkronos.github.io/harnessr/reference/gr_claims.md)
-lists the ICEMAN items to assess a moderator against; nothing scores
-them for you.
+lists the ICEMAN items to assess a moderator against; you score them
+yourself.
 
 The first claim splits one southern report from one northern one by
 `region`, so its moderator is exploratory, and its Fisher p of 1 is the
@@ -1453,25 +1486,29 @@ cm$moderators[, c("claim_id", "moderator", "exploratory", "fisher_p", "min_p")]
 ```
 
 `cm$support` is the long form (`claim_id`, `study`, `role`); join it to
-the extraction to reach documents and quotes. Every study number in it
-was checked against the table, the same check the `[study n]` markers in
-finished prose get, one link earlier. A number that is not in the table
-is dropped and counted. A claim left with no supporting study is dropped
-entirely, because a claim attached to nothing is an opinion. A
-`moderator` naming a column the table does not have is cleared, because
-an invented explanation for a real disagreement is the most convincing
-error this layer can make. `cm$dropped` records all of it, so a thin
-claims table can be told apart from a thin literature.
+the extraction to reach documents and quotes.
+[`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md)
+checks every study number in it against the table, as the `[study n]`
+markers in finished prose are checked, one link earlier:
+
+- A study number that is not in the table is dropped and counted.
+- A claim left with no supporting study is dropped.
+- A `moderator` naming a column the table does not have is cleared. An
+  invented explanation for a real disagreement would be the hardest
+  error in this layer to spot.
+
+`cm$dropped` records all of it, so you can tell a thin claims table from
+a thin literature.
 
 [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
-then derives the sections from the claims and hands them back as an
-ordinary outline you can accept, edit or throw away;
-`attr(outline, "claims")` is the assignment of claims to sections.
+then derives the sections from the claims and returns an ordinary
+outline you can accept, edit or discard; `attr(outline, "claims")` holds
+the assignment of claims to sections.
 [`gr_gaps()`](https://elkronos.github.io/harnessr/reference/gr_gaps.md)
-computes what the corpus does not contain (a declared category nobody
-studied, a dimension with no variation, a claim nobody has replicated, a
-disagreement nothing explains) in R, with no model call, so the gap list
-is something you can check by counting:
+computes in R, with no model call, what the corpus does not contain: a
+declared category nobody studied, a dimension with no variation, a claim
+nobody has replicated, a disagreement nothing explains. You can check
+the gap list by counting:
 
 ``` r
 
@@ -1484,14 +1521,14 @@ gr_gaps(cm, extraction = table)[, c("kind", "dimension", "detail")]
 ```
 
 That outline is one grouping of the claims, and the grouping is the
-review’s argument. `alternatives = 2` asks for a second, shown the first
-and asked to group the claims by a different principle. How far apart
-two outlines are is counted, not asked: `distance` is how far each lies
-from the first, the share of pairs of claims that one puts together and
-the other apart. One that groups the claims as an earlier one did,
-whatever its headings, is dropped. Nothing ranks them, and
+review’s argument. `alternatives = 2` asks for a second: the model is
+shown the first and asked to group the claims by a different principle.
+`distance` counts how far each outline lies from the first, as the share
+of pairs of claims that one puts together and the other apart. An
+outline that groups the claims as an earlier one did, whatever its
+headings, is dropped. Nothing ranks the outlines;
 [`gr_outline_pick()`](https://elkronos.github.io/harnessr/reference/gr_outline_pick.md)
-hands back the one you choose:
+returns the one you choose:
 
 ``` r
 
@@ -1504,9 +1541,9 @@ names(gr_outline_pick(two, 2))
 #> [1] "The comparison"  "The reports"     "What is missing"
 ```
 
-Each ends with the closing section for the gaps, which holds no claims
-here. The first outline is the same whatever `alternatives` says, and a
-review written from a picked one records which it was.
+Each outline ends with the closing section for the gaps, which holds no
+claims here. The first outline is the same whatever `alternatives` is,
+and a review written from a picked one records which it was.
 
 ``` r
 
@@ -1523,9 +1560,10 @@ The stand-in wrote the same sentence for the gaps section too, citing
 two studies that section was not shown, so `n_unsupplied` counts them
 and the section is marked partial.
 
-With claims, `from_claims$contradictions` lists any sentence that states
-a claim and cites a study on its contradicting side without a hedge or a
-word of contrast, found by counting words rather than by asking a model:
+With claims, `from_claims$contradictions` lists each sentence that
+states a claim and cites a study on its contradicting side without a
+hedge or a word of contrast. It is found by counting words, with no
+model call:
 
 ``` r
 
@@ -1537,60 +1575,61 @@ from_claims$contradictions[, c("section", "claim_id", "study")]
 Here the stand-in’s sentence states the first claim, that revenue is
 higher in the south, and cites the northern report, which the claim
 lists as contradicting it. The sentence cites it as the comparison,
-which is sound; the check cannot tell that from citing it as agreement,
+which is sound. The check cannot tell that from citing it as agreement,
 so it flags the sentence for a person to read and marks nothing partial.
-When claims come from several batches, the reconcile pass keeps apart
-two findings whose words point different ways (an effect against none, a
-benefit against a harm, a rise against a fall) or that name different
-populations from a short list, and a merged claim takes the wording most
-studies support, so the claims do not depend on the order of the table.
-The check reads English words, not meaning: “improves mood” and “reduces
-mood” are not told apart, since a fall can be good or bad, and a
-population outside the list is not recognised, so a merge it should have
-refused can still happen. The `note` of each merged claim names the
-wordings it absorbed, for a person to read.
+
+If claims come from several batches, the reconcile pass keeps two
+findings apart when their words point different ways (an effect against
+none, a benefit against a harm, a rise against a fall) or when they name
+different populations from a short list. A merged claim takes the
+wording most studies support, so the claims do not depend on the order
+of the table. The check reads English words and not meaning: “improves
+mood” and “reduces mood” are not told apart, since a fall can be good or
+bad, and a population outside the list is not recognised, so a merge it
+should have refused can still happen. The `note` of each merged claim
+names the wordings it absorbed, for a person to read.
 
 Each section now argues its own claims and is shown only the studies
-those claims rest on, ordered so a twelve-person pilot stops getting the
-same space as a two-thousand-person trial. `claims_missed` is the
-citation check run backwards: a section handed a claim and not writing
-it up did not do what the outline promised, is marked partial, and says
-which claim it left out. `cite_style = "author-year"` and
-`coherence = TRUE` work here as they do above.
+those claims rest on, ordered so a twelve-person pilot no longer gets
+the same space as a two-thousand-person trial. `claims_missed` runs the
+citation check backwards: a section handed a claim that it does not
+write up is marked partial and names the claim it left out.
+`cite_style = "author-year"` and `coherence = TRUE` work here as they do
+above.
 
-The schema this wants as input is the `claims` protocol
-(`gr_protocols("claims")`). `design` and `finding` are coded as enums so
-studies can be compared mechanically, each paired with the paper’s own
-wording so the coding can be checked rather than trusted. `finding` is
-coded relative to your question, which is what lets a non-interventional
-literature have contradictions at all, and why that template is refused
-until you replace the placeholder question in it.
+The input schema for this is the `claims` protocol
+(`gr_protocols("claims")`). It codes `design` and `finding` as enums so
+studies can be compared mechanically, and pairs each with the paper’s
+own wording so you can check the coding. `finding` is coded relative to
+your question. That lets a non-interventional literature have
+contradictions at all, and it is why the template is refused until you
+replace its placeholder question.
 
-Two things it does not do. It does not rank study designs when deciding
-emphasis: that would assert a cohort study beats a qualitative one, and
-the Cochrane Handbook discourages totalling per-item scores into one
-number. Design is a grouping variable here, describing what
-distinguishes the sides of a disagreement, not a score. And nothing asks
-a model to judge which of its own inputs are stale or wrong. If two
-studies conflict, both are reported and the conflict is named, because
-“the model decided this one was wrong” is not something anyone can
-check.
+The claims layer does not rank study designs when deciding emphasis:
+that would assert a cohort study beats a qualitative one, and the
+Cochrane Handbook discourages totalling per-item scores into one number.
+Design is a grouping variable that describes what distinguishes the
+sides of a disagreement. No model is asked to judge which of its own
+inputs are stale or wrong either. If two studies conflict, both are
+reported and the conflict is named, because nobody can check “the model
+decided this one was wrong”.
 
 ## Choosing the settings
 
-Each walkthrough below takes one group of review settings: what it
+Each walkthrough below covers one group of review settings: what it
 controls and what it trades off, the signs in your results that point to
 changing it, where its default came from, and how to test a change.
 [`vignette("settings")`](https://elkronos.github.io/harnessr/articles/settings.md)
 lists every argument of every review stage with its default.
 
-A setting of a review stage is tested the way a reading setting is: as
-arms of a benchmark, one per value, on a reference a person labelled.
+Test a review setting the way you test a reading setting: as arms of a
+benchmark, one per value, on a reference a person labelled.
 [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
-builds them from a function of the setting, and “Screening settings” in
+builds the arms from a function of the setting, and “Screening settings”
+in
 [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)
 compares two values of `screen_tokens` that way on 16 records, with
-intervals. Where a setting changes no request, the walkthrough shows its
+intervals. If a setting changes no request, the walkthrough shows its
 effect on the objects above instead.
 
 ### Screening calibration: `recall_target`, `conf` and `max_width`
@@ -1606,24 +1645,24 @@ Raising either asks for more records judged by hand. `max_width` is the
 widest interval a sample of one stratum may have for its headline rate
 to count as adequate.
 
-**Signs they need changing.** These are choices for the review, not
-tuning: set them before you see the sample, from what the review
+**Signs they need changing.** These are choices for the review, so do
+not tune them: set them before you see the sample, from what the review
 promises. A protocol that promises 95% recall needs
 `recall_target = 0.95`; a field that reports recall at 90% or 99% needs
-that instead. A `$verdict` that is not met with no misses in the sample
-means the sample is too small for the target, not that the screener
+that instead. If `$verdict` is not met although the sample has no
+misses, the sample is too small for the target and the screener has not
 failed; draw the size
 [`gr_screen_sample_size()`](https://elkronos.github.io/harnessr/reference/gr_screen_sample_size.md)
 gives.
 
 **Where the defaults came from.** `recall_target = 0.95` is a target
 reviews commonly set, and `conf = 0.95` the conventional level; both are
-choices, not measured values. `max_width = 0.10` was set when the rule
-was written (`untested`).
+choices, and neither was measured. `max_width = 0.10` was set when the
+rule was written (`untested`).
 
-**How to test them.** Nothing here calls a model, so the effect of each
-value is computed directly. On the stacked sheet above, judged with no
-misses:
+**How to test them.** Nothing here calls a model, so you can compute the
+effect of each value directly. On the stacked sheet above, judged with
+no misses:
 
 ``` r
 
@@ -1662,26 +1701,28 @@ c(width_0.10 = gr_calibrate(big, check)$adequate,
 
 The interval on the rate of eligible records among those 60 is wider
 than 10 points and narrower than 20, so the sample is adequate under the
-wider bar only. A wider bar does not make the sample say more; it says
-less is enough.
+wider bar only. Widening the bar accepts a less precise figure; the
+sample says no more than before.
 
 ### Screening replies: `criteria_schema`, `samples` and `sample_rule`
 
-**What it controls.** What each screening reply holds. `"decision"` asks
-for a decision, a reason, the deciding criterion and a quote.
-`"per_criterion"` also asks, for every criterion of the protocol,
-whether the excerpt shows it `"met"`, `"not_met"` or `"not_reported"`,
-records them in a `criteria_status` column, and holds an exclusion to
-them: a reply that excludes a document although no inclusion criterion
-is `"not_met"` and no exclusion criterion is `"met"` (for example, when
-the excerpt does not report a criterion) is recorded as `"unclear"`, for
-a person to decide. `samples` sends each screening request that many
-times, as separate draws, and `sample_rule` combines them:
-`"include_if_any"` includes a document any draw included and excludes
-one only when every draw excluded it, so a study one draw would keep is
-not lost to the others; `"majority"` takes the decision most draws gave.
-The table then records each draw’s decision (`sample_decisions`) and the
-share that included (`include_share`).
+**What it controls.** `criteria_schema` sets what each screening reply
+holds. `"decision"` asks for a decision, a reason, the deciding
+criterion and a quote. `"per_criterion"` also asks, for every criterion
+of the protocol, whether the excerpt shows it `"met"`, `"not_met"` or
+`"not_reported"`, and records the answers in a `criteria_status` column.
+It then holds an exclusion to them: a reply that excludes a document
+although no inclusion criterion is `"not_met"` and no exclusion
+criterion is `"met"` (for example, when the excerpt does not report a
+criterion) is recorded as `"unclear"`, for a person to decide.
+
+`samples` sends each screening request that many times, as separate
+draws, and `sample_rule` combines them. `"include_if_any"` includes a
+document any draw included and excludes one only when every draw
+excluded it, so a study one draw would keep is not lost to the others.
+`"majority"` takes the decision most draws gave. The table then records
+each draw’s decision (`sample_decisions`) and the share that included
+(`include_share`).
 
 **Signs it needs changing.** Exclusions whose reasons say the excerpt
 does not mention something (“the age of participants is not given”) are
@@ -1698,9 +1739,9 @@ was written with; it has not been compared with `"per_criterion"`.
 `"include_if_any"` was chosen so that no study a draw would keep is
 lost; neither has been compared (`untested`).
 
-**How to test it.** It changes the request, a schema and one more
-instruction, so the first test is what it does to the same reply. This
-stand-in excludes the southern report for a figure it says is not
+**How to test it.** `criteria_schema` changes the request (a schema and
+one more instruction), so first test what it does to the same reply.
+This stand-in excludes the southern report for a figure it says is not
 reported:
 
 ``` r
@@ -1728,7 +1769,8 @@ per$table[, c("document", "decision", "criteria_status")]
 #> 2 Reports a revenue figure: not_reported; Is a forecast rather than a result: not_met
 ```
 
-The southern report is held back as `"unclear"` instead of excluded.
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
+holds the southern report back as `"unclear"` instead of excluding it.
 Three draws from a stand-in that includes the southern report once in
 three show `include_if_any`:
 
@@ -1748,8 +1790,9 @@ sampled$table[, c("document", "decision", "sample_decisions", "include_share")]
 #> 2 south.txt  include exclude, include, exclude     0.3333333
 ```
 
-On your own records, compare the two with labels, one arm per value, as
-in “Knowing how good the screening is” above, with `labelled` an
+On your own records, compare the two values against labels, one arm per
+value, as in “Knowing how good the screening is” above. Here `labelled`
+is an
 [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)
 of a person’s decisions:
 
@@ -1771,22 +1814,26 @@ times the screening requests for the second arm.
 ### Extraction: `resolve`, `agreement_columns` and `require_quote`
 
 **What they control.** `resolve` decides what happens when two chunks of
-one document give different values for a field: `"first"` keeps the
-earlier one and records the disagreement in `conflicts`, for nothing;
-`"vote"` keeps the value most chunks gave, also for nothing, with a tie
-going to the earliest value as under `"first"`; `"model"` spends one
-request per disagreeing field to choose. `agreement_columns = TRUE` adds
-a `<field>_agreement` column (how many of the chunks that reported the
-field give its most common value, as `"2/3"`) and a `<field>_conflict`
-column for each field; it changes no request. `require_quote = TRUE`
-drops any value whose quotation does not verify, so the table holds
-fewer values, each with a quotation found in the document.
+one document give different values for a field:
+
+- `"first"` keeps the earlier value and records the disagreement in
+  `conflicts`, at no cost.
+- `"vote"` keeps the value most chunks gave, also at no cost; a tie goes
+  to the earliest value, as under `"first"`.
+- `"model"` spends one request per disagreeing field to choose.
+
+`agreement_columns = TRUE` adds a `<field>_agreement` column (how many
+of the chunks that reported the field give its most common value, as
+`"2/3"`) and a `<field>_conflict` column for each field; it changes no
+request. `require_quote = TRUE` drops any value whose quotation does not
+verify, so the table holds fewer values, each with a quotation found in
+the document.
 
 **Signs they need changing.** Many rows with `conflicts` filled, on
 fields where the later value is the right one (a corrected figure, a
 final sample size after dropouts), point to `resolve = "model"`, or to
-`"vote"` when the value most chunks repeat is usually the right one;
-turn on `agreement_columns` to see how lopsided each conflict is.
+`"vote"` when the value most chunks repeat is usually the right one.
+Turn on `agreement_columns` to see how lopsided each conflict is.
 `n_unverified` above zero on fields you will publish points to
 `require_quote = TRUE`, or to reading those values by hand. A protocol
 that says “no quote, no datum” needs it on.
@@ -1799,7 +1846,7 @@ unasked; `n_unverified` counts the same values without dropping them.
 Both are `untested`.
 
 **How to test them.** `require_quote` changes no request, only which
-values are kept, so its effect shows on one run:
+values are kept, so one run shows its effect:
 
 ``` r
 
@@ -1816,8 +1863,8 @@ so both keep the same values here. On your own documents, compare the
 two tables with
 [`gr_extract_agreement()`](https://elkronos.github.io/harnessr/reference/gr_extract_agreement.md)
 against a person’s, as above. `resolve` changes requests only where
-chunks disagree, so it is tested as arms on a labelled reference, one
-arm per value. With `fields_ref` an
+chunks disagree, so test it as arms on a labelled reference, one arm per
+value. With `fields_ref` an
 [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)
 of documents labelled with a person’s value for one field and
 `my_client` your client:
@@ -1850,36 +1897,42 @@ agreed$table[, c("document", "revenue", "revenue_agreement", "revenue_conflict")
 ```
 
 The `"fast"` recipe cuts chunks of up to 4,000 tokens, so each of these
-short reports is one chunk and every agreement here is `"1/1"` and
-nothing conflicts. On documents cut into many chunks, a field with
-`"1/3"` and a conflict is one to read by hand.
+short reports is one chunk, every agreement here is `"1/1"` and nothing
+conflicts. On documents cut into many chunks, read a field with `"1/3"`
+and a conflict by hand.
 
 ### Synthesis: `unverified`, `coherence_rounds`, `figure_bands`, `prominence` and `revision_check`
 
-**What they control.** `unverified`, on
-[`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
-says whether the claims prompt leaves out a value whose quote did not
-verify (`"exclude"`) or shows it marked unverified (`"include"`).
-`coherence_rounds` is how many rounds each revision pass of `coherence`
-may run; each round is a request, and every round is checked as a single
-pass is. `figure_bands` sets how near a value a qualified figure must be
-to count as backed: “about 50” within `about` of a value (10%), “more
-than 50” within `over` above it, “fewer than 50” within `under` below
-it. It sends nothing; it changes what `$figures` reports. `prominence`
-sets the shares of a section’s claims, by rank, that the writing prompt
-asks for two or three sentences and for one or two; it is used only with
-`claims`. `revision_check = "judge"` puts a model judge behind the
-word-counting guard of the `coherence` passes: each sentence a kept
-revision changed is graded against the draft sentences it came from, and
-one that claims more (“is associated with” made “reduces”, which no word
-list catches) or says what they do not is flagged. It costs a request
-per changed sentence, and it only flags: the revision is kept as it was,
-and a person reads the flags.
+**What they control.**
+
+- `unverified`, on
+  [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
+  says whether the claims prompt leaves out a value whose quote did not
+  verify (`"exclude"`) or shows it marked unverified (`"include"`).
+- `coherence_rounds` is how many rounds each revision pass of
+  `coherence` may run. Each round is a request, and each round is
+  checked as a single pass is.
+- `figure_bands` sets how near a value a qualified figure must be to
+  count as backed: “about 50” within `about` of a value (10%), “more
+  than 50” within `over` above it, “fewer than 50” within `under` below
+  it. It sends nothing; it changes what `$figures` reports.
+- `prominence` sets the shares of a section’s claims, by rank, that the
+  writing prompt asks for two or three sentences and for one or two. It
+  is used only with `claims`, and shares out the sentence budget over
+  claims ranked by the sign test of their direction tally, then by study
+  weight.
+- `revision_check = "judge"` puts a model judge behind the word-counting
+  guard of the `coherence` passes. The judge grades each sentence a kept
+  revision changed against the draft sentences it came from, and flags
+  one that claims more (“is associated with” made “reduces”, which no
+  word list catches) or says what they do not. It costs a request per
+  changed sentence. It only flags: the revision is kept as it was, and a
+  person reads the flags.
 
 **Signs they need changing.** A long `cm$unverified` list for values you
 can see in the documents points to the extraction’s quotes, not to
-`"include"`: look at why they failed. A `$coherence` table where the
-last allowed round still changed the text, with nothing discarded,
+`"include"`. Look at why the quotes failed. A `$coherence` table where
+the last allowed round still changed the text, with nothing discarded,
 points to another round. `$figures` rows with `backed = FALSE` for a
 rounded figure that is right (“about 50 million” for 51.8) point to a
 wider `about`; rows backed for a figure you would call wrong point to a
@@ -1899,10 +1952,8 @@ the check of figures was written, and
 `prominence = c(top = 1/3, middle = 1/3)`, thirds, when claims were
 added. `revision_check = "lexicon"` keeps the guard as it was; the judge
 is not validated against people’s labels. All are `untested`.
-`prominence` shares out the sentence budget over claims ranked by the
-sign test of their direction tally, then by study weight.
 
-**How to test them.** `figure_bands` is tested on a draft, with no
+**How to test them.** Test `figure_bands` on a draft; it sends no
 request. Here the writer rounds 51.8 to “about 50”:
 
 ``` r
@@ -1932,9 +1983,9 @@ narrower band the figure is unbacked and
 [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
 warns.
 
-`revision_check` is tested on one revision. Here the revising model
-turns the draft’s “was higher in” into “caused”, and a stand-in judge
-calls that stronger:
+Test `revision_check` on one revision. Here the revising model turns the
+draft’s “was higher in” into “caused”, and a stand-in judge calls that
+stronger:
 
 ``` r
 
@@ -1969,8 +2020,8 @@ in “caused”, and the judge only flags. Under `"judge"` the `flagged`
 column counts the sentence, and `$revision_flags` holds it with the
 judge’s reason.
 
-`coherence_rounds` and `prominence` change what is sent, so they are
-tested as arms. With `review_ref` an
+`coherence_rounds` and `prominence` change what is sent, so test them as
+arms. Here `review_ref` is an
 [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)
 of review questions labelled by a person, `my_scorer` an
 [`hr_scorer()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md)
@@ -2040,25 +2091,30 @@ gr_flow(screened, table)[, c("stage", "n")]
 #> 16      values unsupported 0
 ```
 
-The records screened split into include, exclude, unclear, could not be
-read (no screening call was made) and screening call failed (a call was
-made and its reply failed or was not the form asked for), and those five
-rows sum to “screened”. “resolved by a person” counts the decisions a
-person made with
+The records screened split into five rows that sum to “screened”:
+include, exclude, unclear, could not be read (no screening call was
+made) and screening call failed (a call was made and its reply failed or
+was not the form asked for). “resolved by a person” counts the decisions
+a person made with
 [`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md),
 “kept for full text” is `$forward`, and “deferred to full text” is the
 unclear part of it, `$deferred`. Pass `records =` to start the counts at
 identification, and `claims =` to add the claim-level counts.
 
 [`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md)
-writes the whole chain out as one self-contained HTML file for the
-reviewer or co-author whose question is “how do you know?”. It holds the
-protocol as fixed in advance, what happened to every document (the
-screener’s decision, and who resolved each record, when and why), every
-value with its quote and page and whether the quote is there, what was
-written and which rows each claim rests on, every claim with the studies
-for and against it and where each one ended up, and what it cost. It
-takes the objects the run already produced:
+writes the whole chain to one self-contained HTML file, for the reviewer
+or co-author who asks “how do you know?”. It holds:
+
+- the protocol as fixed in advance;
+- what happened to every document: the screener’s decision, and who
+  resolved each record, when and why;
+- every value with its quote and page, and whether the quote is there;
+- what was written, and which rows each claim rests on;
+- every claim with the studies for and against it, and where each one
+  ended up;
+- what it cost.
+
+It takes the objects the run already produced:
 
 ``` r
 
@@ -2073,29 +2129,28 @@ result, and every argument is optional except the path and at least one
 stage to report on.
 
 The report’s header gives the time it was written and the harnessr
-version that wrote it, and below them, for each stage, when that stage
-ran and the version that ran it, read from the stage’s own trace. The
-times are shown side by side and not compared, so a report written
-months after the run shows both times and says nothing more. Only the
-version is checked: a stage run on a version other than the report’s is
-flagged:
+version that wrote it. Below them, for each stage, it gives when that
+stage ran and the version that ran it, read from the stage’s own trace.
+The times sit side by side without comparison, so a report written
+months after the run shows both times and nothing more. Only the version
+is checked: a stage run on a version other than the report’s is flagged:
 
 ``` r
 
 page <- gr_audit_report(tempfile(fileext = ".html"), screening = screened,
                         extraction = table, open = FALSE)
 grep("UTC</td>", readLines(page), value = TRUE)
-#> [1] "<tr><td>screening</td><td>2026-11-26 00:04:57 UTC</td><td>0.6.0.9000</td></tr>" 
-#> [2] "<tr><td>extraction</td><td>2026-11-26 00:04:58 UTC</td><td>0.6.0.9000</td></tr>"
+#> [1] "<tr><td>screening</td><td>2026-11-26 00:32:00 UTC</td><td>0.6.0.9000</td></tr>" 
+#> [2] "<tr><td>extraction</td><td>2026-11-26 00:32:02 UTC</td><td>0.6.0.9000</td></tr>"
 ```
 
-The report puts the failures near the top: unverified quotes, documents
-that could not be read, screening calls that failed or came back in the
-wrong form, and citations pointing at rows that do not exist are counted
-there. It also states what the checking does not establish: that a
-quoted sentence occurs in the document is not evidence that it supports
-the value taken from it. It says what each check looks at: a quote is in
-the chunk it was credited to, a number is one its quote states, a
+The report puts the failures near the top and counts them there:
+unverified quotes, documents that could not be read, screening calls
+that failed or came back in the wrong form, and citations pointing at
+rows that do not exist. It also states the limits of the checks. A
+quoted sentence that occurs in the document is not evidence that it
+supports the value taken from it. Each check looks at one thing: a quote
+is in the chunk it was credited to, a number is one its quote states, a
 citation names a row the section was given, and a figure in the write-up
 is in what the writer was shown for that sentence. None of them confirms
 that a value or a sentence is right.

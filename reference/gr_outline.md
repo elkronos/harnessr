@@ -205,11 +205,11 @@ o
 #> attr(,"claims_fingerprint")
 #> [1] "28ca983a36369f10"
 #> attr(,"trace")
-#> <gr_trace run_20261126000036.643_635ac8>  1 steps, 1 model calls, 240 in / 72 out tokens, 0 error(s)
+#> <gr_trace run_20261126002648.818_19b8cc>  1 steps, 1 model calls, 240 in / 72 out tokens, 0 error(s)
 #>   steps: outline.derive x1 
 #>   cost: $0.0000 across mock-model
 #>   usage: estimated locally for 100% of requests (the provider reported none)
-#>   started: 2026-11-26T00:00:36.643Z 
+#>   started: 2026-11-26T00:26:48.818Z 
 attr(o, "claims")
 #>         section claim_id
 #> 1 What it finds        1
