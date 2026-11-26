@@ -395,21 +395,21 @@ move.
   comparison to it, as it does to `max_cost_usd`.
 
 * **New `hr_governor()`** holds a run's limits: `max_calls`, `max_cost_usd`,
-  `max_tokens_total`, `max_output_tokens` (the largest output cap one request may carry; a
-  request with a larger one is refused, not cut down), `allowed_models` and
-  `allow_unpriced`. Attach one with the new `hr_trace(governor = )` argument;
-  a trace without one reads the limits from `hr_options()`, as before. The
-  new limits are also options, `max_tokens_total`, `max_output_tokens`,
-  `allowed_models` (all `NULL`, off) and `allow_unpriced` (`TRUE`), so every
-  trace's config snapshot now lists them. `as_json()` writes a trace's
-  `refusals` and `governor` when it has any, with `allowed_models` always as
-  an array. `gr_read_many()`, `gr_claims()`, `gr_outline()` and
-  `gr_synthesise()`, which keep a trace of their own and fold it into the one
-  they are given, hold their requests to what that trace's governor has
-  left: the calls (every recorded request, cache hits and embeddings
-  requests included), the dollars and the tokens. Without a governor,
-  `hr_options(max_calls =)` is a limit per document for `gr_read_many()` and
-  per stage for the others.
+  `max_tokens_total`, `max_output_tokens` (the largest output cap one request
+  may carry; a request with a larger one is refused, not cut down),
+  `allowed_models` and `allow_unpriced`. Attach one with the new
+  `hr_trace(governor = )` argument; a trace without one reads the limits from
+  `hr_options()`, as before. The new limits are also options,
+  `max_tokens_total`, `max_output_tokens`, `allowed_models` (all `NULL`, off)
+  and `allow_unpriced` (`TRUE`), so every trace's config snapshot now lists
+  them. `as_json()` writes a trace's `refusals` and `governor` when it has
+  any, with `allowed_models` always as an array. `gr_read_many()`,
+  `gr_claims()`, `gr_outline()` and `gr_synthesise()`, which keep a trace of
+  their own and fold it into the one they are given, hold their requests to
+  what that trace's governor has left: the calls (every recorded request,
+  cache hits and embeddings requests included), the dollars and the tokens.
+  Without a governor, `hr_options(max_calls =)` is a limit per document for
+  `gr_read_many()` and per stage for the others.
 
 * **A parallel batch cannot pass a limit.** Each worker's items are held to
   an equal share of the calls and dollars the run has left, and an item its
@@ -506,13 +506,13 @@ move.
   keys are unchanged; the trace of a run that cut nothing gains only the state
   lengths above.
 
-* New `gr_methods_text()` writes a plain paragraph for a methods section
-  from a result, a trace or a benchmark: the harnessr version, the models
-  asked for and the models the provider said answered, request and run
-  counts, the tokens sent (a request a cache or a recording answered sent
-  none, and its recorded tokens are given apart), the settings changed from
-  their defaults, and a hash of each system prompt by stage. It reads only the record and makes no claim
-  beyond it.
+* New `gr_methods_text()` writes a plain paragraph for a methods section from
+  a result, a trace or a benchmark: the harnessr version, the models asked for
+  and the models the provider said answered, request and run counts, the
+  tokens sent (a request a cache or a recording answered sent none, and its
+  recorded tokens are given apart), the settings changed from their defaults,
+  and a hash of each system prompt by stage. It reads only the record and
+  makes no claim beyond it.
 
 ## Cost reports say where their prices came from
 
@@ -596,16 +596,17 @@ and has a walkthrough that says how to test it with `hr_sweep()`.
   comparison on real documents is not part of this release.
 
 * `hr_effort_escalate()` is an effort policy that starts every stage low and
-  sends the next stage raised when a trigger fired in the one before: a cut,
-  a reply stopped at its cap, a reply that is not the JSON asked for or does
-  not fit its schema, a reply the caller names (such as `NOT_IN_DOCUMENT`
-  from every request of a stage), or an event the caller reports with
+  sends the next stage raised when a trigger fired in the one before: a cut, a
+  reply stopped at its cap, a reply that is not the JSON asked for or does not
+  fit its schema, a reply the caller names (such as `NOT_IN_DOCUMENT` from
+  every request of a stage), or an event the caller reports with
   `hr_effort_event()`. Effort changes only at stage boundaries, at most
-  `max_escalations` times a run. The stage after a raised one goes back to
-  the base effort unless it fired a trigger too and a raise is left. A cut
-  counts for the stage whose request it was made for. Each raise is an
-  `"effort.escalate"` step of the trace and its outcome an
-  `"effort.resolve"` step; `hr_effort_log()` lists them. `hr_call()` takes the policy as its `effort`.
+  `max_escalations` times a run. The stage after a raised one goes back to the
+  base effort unless it fired a trigger too and a raise is left. A cut counts
+  for the stage whose request it was made for. Each raise is an
+  `"effort.escalate"` step of the trace and its outcome an `"effort.resolve"`
+  step; `hr_effort_log()` lists them. `hr_call()` takes the policy as its
+  `effort`.
 
 * `gr_read_spec()` gains `effort_mode`. `"escalate"` makes the read's
   `effort` such a policy, starting at `effort` (`"low"` when unset) and
@@ -788,11 +789,11 @@ says what it trades off and how to test it with `hr_sweep()`.
 
 ## Pipeline options
 
-Each new setting below is off by default, so a default run sends the
-requests it sent before, keeps its store, cache and replay keys, and returns
-the tables it returned. Each is declared with its evidence (`untested` unless a source
-is named), is listed by `gr_settings_table()`, and has a walkthrough that
-says how to test it with `hr_sweep()`.
+Each new setting below is off by default, so a default run sends the requests
+it sent before, keeps its store, cache and replay keys, and returns the tables
+it returned. Each is declared with its evidence (`untested` unless a source is
+named), is listed by `gr_settings_table()`, and has a walkthrough that says
+how to test it with `hr_sweep()`.
 
 * `gr_extract()` gains `resolve = "vote"`, which keeps the value most of a
   document's chunks gave, for no extra request; a tie goes to the earliest
@@ -856,30 +857,30 @@ says how to test it with `hr_sweep()`.
 * `contextual` with `context_source = "llm"` now sends each chunk's section
   path from the document's headings (`"Methods > Participants"`) with its
   request, and declares its cost, one request per chunk and no more, in
-  `$extra$cost` and a `segment.cost` trace step. `proposition` keeps the page and
-  section of each batch on its chunks, and counts propositions with no
-  support in their batch (a number it does not give in any form, "1,200"
-  for "1200" or "twelve" for "12", or most words absent)
-  in `$extra$propositions_unsupported`. The new setting
-  `proposition_check = "drop"` drops them, counting them in
-  `$extra$propositions_dropped` with a `gr_proposition_dropped` warning; the
-  default, `"count"`, keeps every proposition as before. The new setting
-  `proposition_context_tokens` sends each batch that many tokens from the
-  end of the batch before it, as context; at its default, 0, each batch is
-  sent alone as before. The section path changes what `contextual` sends
-  under `"llm"`, an opt-in setting of an opt-in segmenter, so its cache and
-  replay keys change; no default segmenter sends anything new.
+  `$extra$cost` and a `segment.cost` trace step. `proposition` keeps the page
+  and section of each batch on its chunks, and counts propositions with no
+  support in their batch (a number it does not give in any form, "1,200" for
+  "1200" or "twelve" for "12", or most words absent) in
+  `$extra$propositions_unsupported`. The new setting `proposition_check =
+  "drop"` drops them, counting them in `$extra$propositions_dropped` with a
+  `gr_proposition_dropped` warning; the default, `"count"`, keeps every
+  proposition as before. The new setting `proposition_context_tokens` sends
+  each batch that many tokens from the end of the batch before it, as context;
+  at its default, 0, each batch is sent alone as before. The section path
+  changes what `contextual` sends under `"llm"`, an opt-in setting of an
+  opt-in segmenter, so its cache and replay keys change; no default segmenter
+  sends anything new.
 
 ## Screening
 
 * **Kappa is no longer reported alone.** Each agreement table carries Cohen's
   kappa, PABAK and Gwet's AC1 with intervals, the prevalence and bias indices,
   and the class-wise sensitivity, specificity, PPV and NPV;
-  `$agreement$kept$paradox` flags a table whose prevalence index is above 0.8 in absolute value, where
-  kappa says more about prevalence than agreement. `$decisions` holds the 3x2
-  counts, and `print()` and the audit report show them with the agreement
-  set. The rate of `"unclear"` decisions is the existing `"deferred to a
-  person"` metric, with its interval.
+  `$agreement$kept$paradox` flags a table whose prevalence index is above 0.8
+  in absolute value, where kappa says more about prevalence than agreement.
+  `$decisions` holds the 3x2 counts, and `print()` and the audit report show
+  them with the agreement set. The rate of `"unclear"` decisions is the
+  existing `"deferred to a person"` metric, with its interval.
 
 * **The kappa interval is a bootstrap over documents.** It is a percentile
   bootstrap with B = 2000 under a fixed seed, so the same sample gives the
@@ -943,20 +944,20 @@ says how to test it with `hr_sweep()`.
 
 * `gr_read_many()`, and so `gr_screen()` and `gr_extract()`, check that each
   file is the paper its record names when the sources come from a
-  `gr_records()`: the first 6,000 characters of its text are searched for
-  the record's DOI, as a whole DOI, and title, with any HTML markup such as
-  `<i>` taken out of the record's title. When the recipe's cleaning removes
-  digits (`remove_numbers`, in the `"legacy"` preset), the DOI is not looked
-  for and the title is compared without its digits. A last `identity`
-  column of `$summary` holds `TRUE`, `FALSE` or `NA` (nothing to check), and `FALSE` warns with class
-  `gr_identity_mismatch` and is added to `warnings`. Nothing is dropped and
-  `gr_flow()` is unchanged. `print()` counts the mismatches, and the audit
-  report lists them. A row restored from `store` keeps its check only when
-  the run that stored it checked the file against the same record; otherwise
-  `identity` is `NA`, the stored warning is dropped, and a note in `warnings`
-  says the check needs the document read again. A run without records has no
-  new column, even for rows it restores from a store a run over records
-  wrote, and those rows lose the stored warning.
+  `gr_records()`: the first 6,000 characters of its text are searched for the
+  record's DOI, as a whole DOI, and title, with any HTML markup such as `<i>`
+  taken out of the record's title. When the recipe's cleaning removes digits
+  (`remove_numbers`, in the `"legacy"` preset), the DOI is not looked for and
+  the title is compared without its digits. A last `identity` column of
+  `$summary` holds `TRUE`, `FALSE` or `NA` (nothing to check), and `FALSE`
+  warns with class `gr_identity_mismatch` and is added to `warnings`. Nothing
+  is dropped and `gr_flow()` is unchanged. `print()` counts the mismatches,
+  and the audit report lists them. A row restored from `store` keeps its check
+  only when the run that stored it checked the file against the same record;
+  otherwise `identity` is `NA`, the stored warning is dropped, and a note in
+  `warnings` says the check needs the document read again. A run without
+  records has no new column, even for rows it restores from a store a run over
+  records wrote, and those rows lose the stored warning.
 
 * Screening recall now says what it is relative to. `print()` on a
   `gr_calibrate()` result and the audit report state that recall is the share
@@ -1104,12 +1105,13 @@ says how to test it with `hr_sweep()`.
 
 * `gr_synthesise()` gains `$contradictions`: with `claims`, sentences that
   state a claim and cite a study on its contradicting side with no hedge
-  ("may", "suggest") and no word of contrast ("however", "mixed"). A
-  sentence states a claim when it stands in a section the claim was given,
-  points in the claim's direction in one of its clauses (so "improved mood,
-  with no adverse events" still states that mood improved) and shares at
-  least two content words with it. It is found by counting words, with no
-  model; `print()` counts them and the audit report lists them. Nothing is marked partial.
+  ("may", "suggest") and no word of contrast ("however", "mixed"). A sentence
+  states a claim when it stands in a section the claim was given, points in
+  the claim's direction in one of its clauses (so "improved mood, with no
+  adverse events" still states that mood improved) and shares at least two
+  content words with it. It is found by counting words, with no model;
+  `print()` counts them and the audit report lists them. Nothing is marked
+  partial.
 
 * **`gr_claims()` and `gr_outline()` record their calls the way the other
   review stages do.** Each records on a trace of its own and, given `trace =`,
@@ -1215,14 +1217,14 @@ says where its default came from; almost none has a measurement behind it.
   `output_reserve_share` and the near-verbatim settings join the store key
   of `gr_read_many()`.
 * **`gr_read_spec()`**: `accept_near_verbatim` (FALSE) lets a near-verbatim
-  quotation stop the `iterative` reader under `verify = TRUE`, and is
-  refused without it; `max_merge_levels` (6) caps the merge tree of
-  `map_reduce` and the other merging readers, and the worst case counted
-  before a run counts that many levels; `restate_tokens` (1200) is the
-  length above which `restate = "auto"` repeats the question; `bm25_k1` (1.5) and `bm25_b`
-  (0.75) are the BM25 parameters of rerank's prefilter and lexical retrieve,
-  the usual values in Robertson and Zaragoza (2009); `lexical_blend` (0.5)
-  weighs cosine against BM25 in an offline `retrieve`.
+  quotation stop the `iterative` reader under `verify = TRUE`, and is refused
+  without it; `max_merge_levels` (6) caps the merge tree of `map_reduce` and
+  the other merging readers, and the worst case counted before a run counts
+  that many levels; `restate_tokens` (1200) is the length above which `restate
+  = "auto"` repeats the question; `bm25_k1` (1.5) and `bm25_b` (0.75) are the
+  BM25 parameters of rerank's prefilter and lexical retrieve, the usual values
+  in Robertson and Zaragoza (2009); `lexical_blend` (0.5) weighs cosine
+  against BM25 in an offline `retrieve`.
 * **`gr_segment_spec()`**: `context_reply_tokens` (90) and
   `context_document_tokens` (1500) for `contextual` under
   `context_source = "llm"`, and `proposition_reply_tokens` (2000) for
@@ -1349,11 +1351,11 @@ says where its default came from; almost none has a measurement behind it.
   splits (`"dev"`, `"exploratory"`, `"calibration"`, `"test"`, `"final"`),
   inclusion probabilities, strata and coder labels, with a content hash.
   Labels, clusters, splits, inclusion probabilities and strata given with
-  names are matched to the items by name (`c(q2 = "Lima", q1 = "Paris")`
-  gives q1 Paris), and names that are not the item ids are an error of
-  class `hr_bad_reference`. Items can be added with `hr_reference_add()`
-  until a benchmark starts scoring the reference; after that every copy of it, and every reference
-  grown from it, refuses new items with an error of class
+  names are matched to the items by name (`c(q2 = "Lima", q1 = "Paris")` gives
+  q1 Paris), and names that are not the item ids are an error of class
+  `hr_bad_reference`. Items can be added with `hr_reference_add()` until a
+  benchmark starts scoring the reference; after that every copy of it, and
+  every reference grown from it, refuses new items with an error of class
   `hr_reference_locked`.
 
 * **New `hr_scorer()`** states the scoring contract (correct, outcome and
@@ -1529,28 +1531,27 @@ says where its default came from; almost none has a measurement behind it.
   clusters only.
 
 * **`hr_report()` gains `registration`.** Each registered contrast is
-  non-inferior only if the one-sided lower bound of the accuracy difference
-  is above -margin and, when it tests cost, the upper bound of the paired
-  cost difference (BCa cluster bootstrap) is below 0. The accuracy bound is
-  the cluster-robust t bound of the report's paired differences, taken
-  one-sided on C - 1 degrees of freedom (the Tango bound with items as
-  pairs when every cluster gives the same mean difference), so at one-sided
-  0.025 it is the lower end of the printed 95% contrast interval. A BCa
-  cluster bootstrap bound undercovered the paired difference in the
-  coverage simulation (92.9% with 40 clusters, 89.2% with 10). Confirmatory contrasts are tested with Holm's step-down procedure,
-  exploratory ones at alpha.
-  The design and achieved MDD are printed beside every verdict (the
-  achieved one on the linearised standard error and the same t quantiles
-  as `hr_mdd()`, and `NA` when the cluster variance is 0), and a
-  contrast that passed its registered test is reported as passed even when
-  the achieved MDD exceeds its margin. Tango's (1998) paired score interval
-  on effective counts, at most one pair per item, is given as a
-  cross-check. A changed registration, or one for another reference, is
-  refused.
-  Each contrast's `p_value` is the smallest one-sided level at which it
-  passes, found by bisection down to 1e-6. With a cost test the search
-  stops at 1 / (B + 1) (1 / 2001, about 5.0e-4, at B = 2000): below that
-  level the BCa cost bound is the most extreme resample and stops moving.
+  non-inferior only if the one-sided lower bound of the accuracy difference is
+  above -margin and, when it tests cost, the upper bound of the paired cost
+  difference (BCa cluster bootstrap) is below 0. The accuracy bound is the
+  cluster-robust t bound of the report's paired differences, taken one-sided
+  on C - 1 degrees of freedom (the Tango bound with items as pairs when every
+  cluster gives the same mean difference), so at one-sided 0.025 it is the
+  lower end of the printed 95% contrast interval. A BCa cluster bootstrap
+  bound undercovered the paired difference in the coverage simulation (92.9%
+  with 40 clusters, 89.2% with 10). Confirmatory contrasts are tested with
+  Holm's step-down procedure, exploratory ones at alpha. The design and
+  achieved MDD are printed beside every verdict (the achieved one on the
+  linearised standard error and the same t quantiles as `hr_mdd()`, and `NA`
+  when the cluster variance is 0), and a contrast that passed its registered
+  test is reported as passed even when the achieved MDD exceeds its margin.
+  Tango's (1998) paired score interval on effective counts, at most one pair
+  per item, is given as a cross-check. A changed registration, or one for
+  another reference, is refused. Each contrast's `p_value` is the smallest
+  one-sided level at which it passes, found by bisection down to 1e-6. With a
+  cost test the search stops at 1 / (B + 1) (1 / 2001, about 5.0e-4, at B =
+  2000): below that level the BCa cost bound is the most extreme resample and
+  stops moving.
 
 * **Dev-split rows are refused as evidence.** A report with a registration
   or `confirmatory = TRUE` errors with class `hr_dev_not_evidence` when the
@@ -1622,21 +1623,20 @@ says where its default came from; almost none has a measurement behind it.
 * **New `hr_judge_validate()` and `hr_judge_valid()`.** From blind human
   labels on a judge's decisions, the record gives Cohen's kappa with a
   bootstrap interval and the full `hr_agreement()` set, sensitivity and
-  specificity with Wilson intervals (and the sensitivity half-width), and
-  the swap-inconsistency rate. Items the judge left unresolved or failed
-  on count as not called positive, the rule `hr_scorer_judge()` applies, so
-  the figures describe the judge as the scorer uses it. Fewer than 50
-  human-positive or 50 human-negative items are refused with
-  `hr_judge_too_few_labels`, and the minimums cannot be lowered. Text labels
-  such as `"pass"` and `"fail"` default to the configuration's positive
-  grade. A `judge` column that shares no value with `human` (logical calls
-  beside `"pass"`/`"fail"` labels) is refused with `gr_bad_setting` rather
-  than counted as all negative. The optional columns `consistent`,
-  `outcome` and `config_hash` are read by exact name, so an extra column
-  such as `consistently_long` is ignored. The record is keyed by the
-  configuration hash; `hr_judge_valid()` is `FALSE`, naming what changed, when the model,
-  rubric, prompt, schema, orders, aggregation or positive grade differ, or
-  when the record was edited.
+  specificity with Wilson intervals (and the sensitivity half-width), and the
+  swap-inconsistency rate. Items the judge left unresolved or failed on count
+  as not called positive, the rule `hr_scorer_judge()` applies, so the figures
+  describe the judge as the scorer uses it. Fewer than 50 human-positive or 50
+  human-negative items are refused with `hr_judge_too_few_labels`, and the
+  minimums cannot be lowered. Text labels such as `"pass"` and `"fail"`
+  default to the configuration's positive grade. A `judge` column that shares
+  no value with `human` (logical calls beside `"pass"`/`"fail"` labels) is
+  refused with `gr_bad_setting` rather than counted as all negative. The
+  optional columns `consistent`, `outcome` and `config_hash` are read by exact
+  name, so an extra column such as `consistently_long` is ignored. The record
+  is keyed by the configuration hash; `hr_judge_valid()` is `FALSE`, naming
+  what changed, when the model, rubric, prompt, schema, orders, aggregation or
+  positive grade differ, or when the record was edited.
 
 * **New `hr_scorer_judge()`**, a benchmark scorer that grades each output
   against its label with a grade-mode judge. It refuses to be built
@@ -1788,24 +1788,23 @@ says where its default came from; almost none has a measurement behind it.
   differs from the run's, and names the fields.
 
 * **New `hr_gate_threshold()`** picks a threshold by Learn-then-Test: the
-  thresholds are tested from strict to loose with a one-sided
-  Clopper-Pearson bound on the error among accepted items, or on the miss
-  rate for exclusions, and the loosest one before the first failure is kept.
-  The bound is taken on an effective sample, `n / deff` items with
-  `k / deff` errors, where the design effect `deff` is the cluster variance
-  of the error rate over the variance with each item its own cluster, never
-  below 1. Items from one document are not independent: with 30 documents
-  of 20 items, a true error rate of 0.12 and an intraclass correlation of
-  0.3, a gate at `alpha = 0.10` and `delta = 0.05` that took the items at
-  face value passed in 8.7 percent of draws, and with the design effect it
-  passes in 2.4 percent. Unclustered items give `deff = 1` and the exact Clopper-Pearson
-  bound. `$gate` reports `deff` and `n_eff`, and `$gate$path` the `deff` of
-  every threshold.
-  It starts where enough items are acted on for the bound to reach `alpha`,
-  and reports `"none passed"` or `"too few items"` when nothing qualifies. A
-  record becomes `"gating"` only with a passing threshold, at least 100
-  wrong items in the graded set, a map that increases with the signal and
-  an ECE over at least 5 bins.
+  thresholds are tested from strict to loose with a one-sided Clopper-Pearson
+  bound on the error among accepted items, or on the miss rate for exclusions,
+  and the loosest one before the first failure is kept. The bound is taken on
+  an effective sample, `n / deff` items with `k / deff` errors, where the
+  design effect `deff` is the cluster variance of the error rate over the
+  variance with each item its own cluster, never below 1. Items from one
+  document are not independent: with 30 documents of 20 items, a true error
+  rate of 0.12 and an intraclass correlation of 0.3, a gate at `alpha = 0.10`
+  and `delta = 0.05` that took the items at face value passed in 8.7 percent
+  of draws, and with the design effect it passes in 2.4 percent. Unclustered
+  items give `deff = 1` and the exact Clopper-Pearson bound. `$gate` reports
+  `deff` and `n_eff`, and `$gate$path` the `deff` of every threshold. It
+  starts where enough items are acted on for the bound to reach `alpha`, and
+  reports `"none passed"` or `"too few items"` when nothing qualifies. A
+  record becomes `"gating"` only with a passing threshold, at least 100 wrong
+  items in the graded set, a map that increases with the signal and an ECE
+  over at least 5 bins.
 
 * **New `hr_signal_policy()` and `hr_apply_signal()`.** A signal gates its
   action only with a gating record for the same signal and action whose key
@@ -1893,17 +1892,17 @@ shows them at work.
   function is built from the settings when the step is, so a bad setting
   fails there. `input` and `output` declare what the step takes and returns.
 * `hr_chain(..., name)` runs steps in order as one `hr_arm()`, which
-  `hr_benchmark()` takes as it takes any arm, and `hr_sweep()` sweeps by
-  path (see `hr_set()` below). Inside a chain each step gets `ctx$step` and
-  `ctx$step_params`, and `ctx$params` is the arm's. `hr_chain(old, judge = NULL, name = "nojudge")` derives a chain
-  without one step; `x = step` replaces a step and a new name adds one. The
-  arm records each step's settings as `"step.setting"`, and its
-  configuration is a hash of the steps' code, the values it reads and their
-  resolved settings. A step that takes chunks no earlier step returns warns
-  (`hr_chain_gap`), and a step that cannot follow an answer is an error
-  (`hr_bad_chain`). A step that takes a document no earlier step returns
-  does not warn, since most chains start at the segment step, which
-  ingests at the default settings.
+  `hr_benchmark()` takes as it takes any arm, and `hr_sweep()` sweeps by path
+  (see `hr_set()` below). Inside a chain each step gets `ctx$step` and
+  `ctx$step_params`, and `ctx$params` is the arm's. `hr_chain(old, judge =
+  NULL, name = "nojudge")` derives a chain without one step; `x = step`
+  replaces a step and a new name adds one. The arm records each step's
+  settings as `"step.setting"`, and its configuration is a hash of the steps'
+  code, the values it reads and their resolved settings. A step that takes
+  chunks no earlier step returns warns (`hr_chain_gap`), and a step that
+  cannot follow an answer is an error (`hr_bad_chain`). A step that takes a
+  document no earlier step returns does not warn, since most chains start at
+  the segment step, which ingests at the default settings.
 * `hr_settings(x)` lists every setting of a step or a chain: one row per
   setting of each step's schema, with the step, the setting, its resolved
   value, whether it was given, and the schema's default, range, type, tier
@@ -2065,24 +2064,24 @@ changes. "Checking a module against the contract" in `vignette("extending")`
 shows a mode in use.
 
 * `hr_mock_client()` gains `mode`, which breaks each chat reply the way a
-  provider can: `"bad_json"` sends a JSON object cut off part way,
-  `"refuse"` sends an empty reply that `hr_call()` reports as failed,
-  `"at_cap"` marks the handler's reply as cut off at the output cap and
-  bills the cap (a failed result from the handler comes back as it is),
-  and a vector of HTTP status codes such as `c(429, 500, 200)` gives call
-  `i` the `i`-th status, marked retryable for the statuses the HTTP
-  transport retries. Embeddings are left as they are. Pass such a client to `gr_check_reader()` or
+  provider can: `"bad_json"` sends a JSON object cut off part way, `"refuse"`
+  sends an empty reply that `hr_call()` reports as failed, `"at_cap"` marks
+  the handler's reply as cut off at the output cap and bills the cap (a failed
+  result from the handler comes back as it is), and a vector of HTTP status
+  codes such as `c(429, 500, 200)` gives call `i` the `i`-th status, marked
+  retryable for the statuses the HTTP transport retries. Embeddings are left
+  as they are. Pass such a client to `gr_check_reader()` or
   `gr_check_segmenter()` to check a module against replies that fail.
-* The package's own tests check every registered module that
-  `hr_modules()` lists, and every protocol, against the rules for its kind.
-  An extractor is checked where its packages are installed and the tests
-  have a sample file in its format. Extractors are checked for blocks with text and typed columns, cleaners
-  for one string per block, some text left and the same result twice,
-  embedders for finite unit-length rows under their own name, and
-  protocols for a question, criteria, an outline and a save and read that
-  gives the same protocol back. Every built-in reader and segmenter passes
-  its rules under each mock mode, and every reader keeps to a call cap of
-  0, 1 and 3. These checks are internal.
+* The package's own tests check every registered module that `hr_modules()`
+  lists, and every protocol, against the rules for its kind. An extractor is
+  checked where its packages are installed and the tests have a sample file in
+  its format. Extractors are checked for blocks with text and typed columns,
+  cleaners for one string per block, some text left and the same result twice,
+  embedders for finite unit-length rows under their own name, and protocols
+  for a question, criteria, an outline and a save and read that gives the same
+  protocol back. Every built-in reader and segmenter passes its rules under
+  each mock mode, and every reader keeps to a call cap of 0, 1 and 3. These
+  checks are internal.
 
 * **New `gr_check_reader()` and `gr_check_segmenter()`** run one registered
   reader or segmenter on `gr_example()` through an offline mock client and
@@ -2251,15 +2250,15 @@ shows a mode in use.
 * `?hr_cache` no longer says that every structured reply that does not parse
   is kept out of the cache. That holds for the package's own structured
   calls; `hr_call()` does not parse a reply, so it caches one like any other.
-* New guide, `vignette("compare")` ("Comparing methods and settings"),
-  works through five comparisons offline, each ending in an `hr_report()`: three readers on 32 test questions in 8
-  reports, a grid of three segmenters at two chunk sizes, `top_k` swept over
-  1, 2 and 4, two values of `screen_tokens`, and a pairwise judge validated
-  against 180 labelled pairs. Settings are tuned on the dev split and one
-  chosen contrast is run on test, with 10 runs where the report's notes ask
-  for them and simultaneous intervals where three arms are compared. A last
-  section shows the same steps on your own documents, writing results to a
-  directory you name.
+* New guide, `vignette("compare")` ("Comparing methods and settings"), works
+  through five comparisons offline, each ending in an `hr_report()`: three
+  readers on 32 test questions in 8 reports, a grid of three segmenters at two
+  chunk sizes, `top_k` swept over 1, 2 and 4, two values of `screen_tokens`,
+  and a pairwise judge validated against 180 labelled pairs. Settings are
+  tuned on the dev split and one chosen contrast is run on test, with 10 runs
+  where the report's notes ask for them and simultaneous intervals where three
+  arms are compared. A last section shows the same steps on your own
+  documents, writing results to a directory you name.
 * **A settings reference.** `vignette("settings")` prints every setting of
   every stage from `gr_settings_table()` when it is built, each important one
   linked to its walkthrough, and the extractors, cleaners and presets,
