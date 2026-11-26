@@ -123,6 +123,20 @@ before `premise`, which stays last).
   `hr_effort_event()`, `hr_effort_log()`), and `hr_effort_check()` on a
   benchmark of fixed and raised efforts. Its settings walkthrough covers
   `reasoning_floor`, and `gr_settings_table()` links that option to it.
+* The site and the README group the guides in two parts after Get started.
+  Core holds `core`, `models`, `context`, `effort`, `runs`, `compose`,
+  `evaluate`, `compare` and `settings`; Documents holds `ingest`, `segment`,
+  `readers`, `review` and `extending`. The reference index lists the core
+  functions first, by topic in the order of the core guides, then the
+  document layer.
+* The README and `vignette("harnessr")` introduce harnessr as a harness for
+  model calls with a document layer built on it. The get started guide shows
+  a call, its trace, prices and limits, context and effort before the first
+  question about a document.
+* The walkthrough of parameter schemas (`hr_param()`, `hr_schema()`,
+  `hr_validate()`) moved from `vignette("extending")` to "Checking settings"
+  in `vignette("core")`. The extending guide's section on models now points
+  to `vignette("models")`, which covers the same ground.
 * `?gr_result` lists every field a result carries, including `cached`,
   `served_model`, `response_id`, `fingerprint`, `attempts` and, for a
   request the limits did not send, `refused` and `refusal`.
