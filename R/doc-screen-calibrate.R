@@ -621,7 +621,9 @@ as_screening_table <- function(screening) {
 #'                   human_decision = c("include", "exclude", "include", "exclude",
 #'                                      "exclude", "include", "include", "exclude"),
 #'                   stringsAsFactors = FALSE)
-#' gr_calibrate(structure(list(table = tab), class = "gr_screening"), ref)
+#' # The sheet covers every screened document, so `of = "all"`.
+#' gr_calibrate(structure(list(table = tab), class = "gr_screening"), ref,
+#'              of = "all")
 gr_calibrate <- function(screening, reference, positive = "include", min_positives = 10L,
                          of = NULL, recall_target = 0.95, conf = 0.95, max_lost = NULL,
                          max_width = 0.10) {
