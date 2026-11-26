@@ -149,16 +149,16 @@ hr_call(cl, "Check the summary against the notes.", model = "gpt-5.6-luna",
         effort = "high")
 ```
 
-An `extra_body` effort is invisible to everything that reads the call's
-`effort`: the trace's `effort` column and the escalation policy below. It is
-part of the client, so it does change the response cache key. Prefer the
-call's `effort` when you want the record to show it.
+The trace's `effort` column and the escalation policy below read the call's
+`effort`, so they do not see an `extra_body` effort; only the step's
+`params_sent`, the request as it went out, shows it. It is part of the client,
+so it does change the response cache key. Prefer the call's `effort` when you
+want the record to show it.
 
 An `hr_ellmer_client()` cannot take an effort per call, because ellmer sets
 it on the chat object. The first call through the client that asks for one
 warns with class `gr_effort_unsupported`, and every call goes out at the
-chat's own setting. Build the chat
-with the effort you want:
+chat's own setting. Build the chat with the effort you want:
 
 ```{r eval = FALSE}
 chat <- ellmer::chat_openai(model = "gpt-5.6-luna")
@@ -563,7 +563,8 @@ Here the policy answered every item, as `"high"` did, at about a tenth of
 its cost: only the hard items' answer stage went out raised. Against `"low"`
 it is "not shown" for the other part of the test. By default (`cost_test =
 TRUE`) a verdict also needs the policy to cost less than the arm it replaces,
-and it costs more than a fixed `"low"`:
+with the upper bound of the cost difference below zero, and it costs more
+than a fixed `"low"`:
 
 ```{r}
 chk$contrasts[, c("reference", "estimate", "lower", "accuracy_holds",
