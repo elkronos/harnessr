@@ -525,12 +525,13 @@ print.hr_judgement <- function(x, ...) {
   usd <- jc$usd
   models <- jc[["models", exact = TRUE]] %||% character(0)
   dated <- if (isTRUE(jc$priced)) price_as_of_text(jc$as_of) else ""
-  cat(sprintf("  judge cost: %d call(s), %s\n", jc$calls,
-              if (is.na(usd)) {
-                missing <- models[!price_status(models)$priced]
-                if (length(missing)) sprintf("unknown: %s", price_missing_text(missing))
-                else "unknown"
-              } else paste0(sprintf("$%.6f", usd), if (nzchar(dated)) paste0(", ", dated))))
+  missing <- models[!price_status(models)$priced]
+  shown <- if (!is.na(usd)) {
+    paste0(sprintf("$%.6f", usd), if (nzchar(dated)) paste0(", ", dated))
+  } else if (length(missing)) {
+    paste("unknown:", price_missing_text(missing))
+  } else "unknown"
+  cat(sprintf("  judge cost: %d call(s), %s\n", jc$calls, shown))
   invisible(x)
 }
 
