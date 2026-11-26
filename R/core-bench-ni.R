@@ -11,6 +11,7 @@
 
 #' The minimum detectable difference of a paired, clustered design
 #'
+#' @description
 #' `hr_mdd()` gives the smallest paired accuracy difference a benchmark of
 #' `n_items` items can detect, and `hr_n_needed()` the number of items needed
 #' to detect a given one. Both use the closed form for a paired comparison of
@@ -20,7 +21,10 @@
 #'
 #' with t quantiles on C - 1 degrees of freedom for C clusters: the degrees
 #' of freedom of the cluster-robust t bound that [hr_report()] tests
-#' non-inferiority with. p_disc is the share of items on which the two arms
+#' non-inferiority with.
+#'
+#' @details
+#' p_disc is the share of items on which the two arms
 #' disagree, so p_disc / n_eff is the variance of the mean paired
 #' difference. Items in one
 #' cluster are not independent, so the effective number of items is
