@@ -28,11 +28,20 @@ do it:
    and `gr_gaps()`.
 5. Count and report the whole run with `gr_flow()` and `gr_audit_report()`.
 
-`vignette("harnessr")` introduces the package and its ideas, and
-`vignette("readers")` shows how one document is read. If you have not set
-spending limits or a cache, read `vignette("runs")` first: this guide points to
-it for both, and for replay. To compare whole configurations on a labelled set
-of questions, with intervals, see `vignette("evaluate")`.
+A review builds on four pieces of the core:
+
+- the spending limits every request is checked against ("Limits" in
+  `vignette("runs")`);
+- the cache that makes a repeated request free ("Paying once" in
+  `vignette("runs")`);
+- the replay that reruns a recorded review with no key and no spend
+  ("Replaying a run" in `vignette("runs")`);
+- the trace that records every request ("The trace" in `vignette("core")`).
+
+If you have not set spending limits or a cache, read those sections first.
+`vignette("harnessr")` introduces the package, and `vignette("readers")` shows
+how one document is read. To compare whole configurations on a labelled set of
+questions, with intervals, see `vignette("evaluate")`.
 
 ## Setting up
 
@@ -97,7 +106,8 @@ out <- gr_read_many(reports, "What was revenue?", "fast", client = cl,
 overshoot it by at most one document's own ceiling. It checks `max_total_usd`
 after each document, because a document's cost is known only once it has been
 read. The cost ceiling also needs a model with a registered price. Without one,
-cost is unknown, not zero, and you get a `gr_corpus_cost_unknown` warning.
+cost is unknown, not zero ("A model with no price" in `vignette("models")`),
+and you get a `gr_corpus_cost_unknown` warning.
 Documents past either ceiling keep their rows, marked `"skipped"`. Set neither,
 and a message states the run's worst case once, before any call.
 `gr_screen()` and `gr_extract()` take the same two arguments.
@@ -134,9 +144,9 @@ the same string for the same document in every run and on every machine.
 
 **You can see what it cost.** `out$trace` holds the run's calls, and
 `hr_trace_cost()` prices them at each step's own model, counting only the calls
-that were issued. The mock client has no price, so this bill is zero;
-`vignette("runs")` explains the columns, and `vignette("models")` how to
-register a price.
+that were issued. The mock client has no price, so this bill is zero. "What a
+run records" in `vignette("runs")` explains the columns, and "Prices" in
+`vignette("models")` shows how to set a price.
 
 ```{r}
 hr_trace_cost(out$trace)[, c("model", "calls", "paid_calls", "usd")]
@@ -1600,6 +1610,8 @@ hr_options(old)
 
 - `vignette("runs")`: spending limits, caching a run so it is paid for once, and
   replaying it offline.
+- `vignette("core")`: the calls each stage makes, and the trace that records
+  them.
 - `vignette("readers")`: how each document is read, which `recipe =` chooses for
   `gr_read_many()` and `gr_extract()`.
 - `vignette("evaluate")`: label sheets, comparing recipes and models on a
