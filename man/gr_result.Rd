@@ -5,7 +5,8 @@
 \title{The result of one model call}
 \description{
 Returned by \code{\link[=hr_call]{hr_call()}}. Designed so a caller can never be handed \code{NULL} or
-\code{character(0)} where a string is expected.
+\code{character(0)} where a string is expected. \code{vignette("core")} shows each
+field on a worked call.
 }
 \section{Fields}{
 
@@ -16,12 +17,29 @@ Returned by \code{\link[=hr_call]{hr_call()}}. Designed so a caller can never be
 never \code{character(0)}, and newlines are preserved.}
 \item{\code{error}}{Character or \code{NULL}. What went wrong, including the HTTP body
 for API-side errors.}
-\item{\code{usage}}{List with \code{input} and \code{output} token counts as reported by
-the API.}
+\item{\code{usage}}{List with \code{input} and \code{output} token counts and their
+\code{provenance}: \code{"reported"} by the provider, \code{"counted"} here with the
+\code{"tiktoken"} tokenizer or as a zero for a request that failed or was
+not sent, or \code{"estimated"} with another tokenizer. \code{reasoning} and
+\code{cached_input} are added when the provider reports them, as parts of
+\code{output} and \code{input}.}
 \item{\code{status}, \code{finish_reason}, \code{retryable}, \code{model}, \code{raw}}{HTTP status,
-the API's stop reason, whether a retry could help, the model id, and the
+the API's stop reason (\code{"length"} for a reply cut off at the output cap,
+whatever the provider called it, and \code{NA} when the client reports none),
+whether a retry could help, the model id the call asked for, and the
 parsed response body.}
+\item{\code{cached}}{\code{TRUE} when the reply came from an \code{\link[=hr_cache]{hr_cache()}} or an
+\code{\link[=hr_replay_client]{hr_replay_client()}} rather than the network.}
+\item{\code{served_model}, \code{response_id}, \code{fingerprint}}{What the provider said
+about its reply: the model that answered, its response id and its
+system fingerprint. \code{NA} where it said nothing.}
+\item{\code{attempts}}{Requests sent for this reply, retries included: 0 for a
+reply from a cache or a recording, \code{NA} when the transport does not
+say.}
 }
+
+A request the run's limits did not send (see \code{\link[=hr_governor]{hr_governor()}}) also carries
+\code{refused = TRUE} and the condition in \code{refusal}.
 }
 
 \section{Methods}{

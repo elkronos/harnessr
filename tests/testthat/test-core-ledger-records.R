@@ -369,6 +369,23 @@ test_that("a 503 that never clears records a counted zero", {
   expect_identical(tr$steps[[1]]$tokens$provenance, "counted")
 })
 
+test_that("the gr_result help states the counted zero and the NA fields", {
+  # The help once said "counted" meant only a tiktoken count, though a failed
+  # or unsent request carries a counted zero, and it left out that
+  # finish_reason can be NA.
+  # The help source when the tests run beside it, else the installed help.
+  src <- test_path("..", "..", "man", "gr_result.Rd")
+  rd <- if (file.exists(src)) tools::parse_Rd(src) else tools::Rd_db("harnessr")[["gr_result.Rd"]]
+  expect_false(is.null(rd))
+  txt <- paste(capture.output(tools::Rd2txt(rd, options = list(underline_titles = FALSE))),
+               collapse = " ")
+  txt <- gsub("\\s+", " ", gsub("[\u2018\u2019\"']", "", txt))
+  expect_true(grepl("or as a zero for a request that failed or was not sent", txt,
+                    fixed = TRUE))
+  expect_true(grepl("and NA when the client reports none", txt, fixed = TRUE))
+  expect_true(grepl("NA when the transport does not say", txt, fixed = TRUE))
+})
+
 test_that("a handler's gr_result with no usage is counted locally, not reported as 0/0", {
   local_registries()
   hr_options(verbose = FALSE)

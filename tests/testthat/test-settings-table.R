@@ -47,6 +47,12 @@ test_that("gr_settings_table() carries the schemas' defaults, tiers and evidence
   expect_identical(o$status[o$name == "near_verbatim_sim"], "measured")
   expect_identical(o$tier[o$name == "model"], "basic")
   expect_match(o$description[o$name == "max_calls"], "^Hard cap on model calls")
+  # The budget options link to the context guide's walkthroughs.
+  expect_identical(o$guide[o$name == "safety_margin"], "context#set-safety-margin")
+  expect_identical(o$guide[o$name == "output_reserve_share"], "context#set-reply-reserve")
+  expect_identical(o$guide[o$name == "min_output_tokens"], "context#set-reply-reserve")
+  # The output cap floor links to the effort guide's walkthrough.
+  expect_identical(o$guide[o$name == "reasoning_floor"], "effort#set-reasoning-floor")
   syn <- gr_settings_table("synthesise")
   expect_identical(syn$default[syn$name == "coherence_rounds"], "1")
   expect_identical(syn$status[syn$name == "prominence"], "untested")

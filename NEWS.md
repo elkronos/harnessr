@@ -78,6 +78,58 @@ before `premise`, which stays last).
   such a total. The progress line says "spent on priced models" in the
   same case. The audit report's cost table has a `prices` column.
 
+## Guides on the core
+
+* New guide, `vignette("core")` ("The core: calls, clients and results"), in
+  a new Core group on the site and in the README. It covers calls made with
+  no document: `hr_call()` with each kind of client, every field of a
+  result, the trace and how to read it, structured replies, a check that
+  runs a program on a reply, signals, and the classes of the core's errors
+  and warnings. Its settings walkthroughs cover `model`, `api`, `api_base`,
+  `api_headers`, `embedding_model`, `max_retries`, `retry_pause_base`,
+  `request_timeout`, `temperature` and `actor`, and `gr_settings_table()`
+  links those options to them.
+* New guide, `vignette("models")` ("Models, prices and tokens"), in the Core
+  group. It covers what the registry knows about a model and how sure it is
+  (`hr_models()`, `hr_model_info()`, `hr_model_limits()`), adding a model and
+  setting prices (`hr_register_model()`, `hr_load_models()`), cost estimates
+  (`hr_estimate_cost()`), models with no price and old prices, and token
+  counting (`hr_count_tokens()`, `hr_tokenizer()`, `hr_set_tokenizer()`). Its
+  settings walkthroughs cover `unknown_model_action`, `allow_unpriced`,
+  `price_max_age_days` and `tokenizer`, and `gr_settings_table()` links those
+  options to them.
+* New guide, `vignette("context")` ("Context: budgets, fitting and
+  cutting"), in the Core group. It covers how much room a prompt has
+  (`hr_budget()` and its guarantees), fitting named pieces into it
+  (`hr_context_fit()`, `hr_context_policy()`), cutting one piece with each
+  keep rule (`hr_truncate()`, `hr_truncate_tokens()`), and the cuts the trace
+  records, with one overflowing report under five policies. It says that
+  harnessr does not summarise a conversation, and shows a summary built as a
+  step. Its settings walkthroughs cover `safety_margin`,
+  `output_reserve_share` and `min_output_tokens`, and `gr_settings_table()`
+  links those options to them.
+* `?hr_budget` gives the default reply reserve as `output_reserve_share` of
+  the usable window rather than a fixed quarter, and says that a reserve
+  leaving no input room, an explicit one included, drops to
+  `min_output_tokens` before the error. `?hr_options` says that
+  `output_reserve_share` does not change how much of a document a reader
+  fits, since the readers give `max_answer_tokens` as the reserve.
+* New guide, `vignette("effort")` ("Effort: how hard the model reasons"), in
+  the Core group. It covers which models take a reasoning effort and what a
+  model that does not reason is sent, the levels, the request field and a
+  client's `extra_body` default, an effort per call label, what reasoning
+  costs, what effort does to the response cache, a replay and the trace,
+  effort raised for the next stage (`hr_effort_escalate()`,
+  `hr_effort_event()`, `hr_effort_log()`), and `hr_effort_check()` on a
+  benchmark of fixed and raised efforts. Its settings walkthrough covers
+  `reasoning_floor`, and `gr_settings_table()` links that option to it.
+* `?gr_result` lists every field a result carries, including `cached`,
+  `served_model`, `response_id`, `fingerprint`, `attempts` and, for a
+  request the limits did not send, `refused` and `refusal`.
+* `?hr_cache` no longer says that every structured reply that does not parse
+  is kept out of the cache. That holds for the package's own structured
+  calls; `hr_call()` does not parse a reply, so it caches one like any other.
+
 ## Renamed core functions
 
 The 27 core functions that still began with `gr_` now begin with `hr_`, like

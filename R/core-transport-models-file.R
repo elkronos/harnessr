@@ -310,8 +310,8 @@ model_entry <- function(id, given, as_of = NULL) {
   if ((has("context_window") || has("max_output")) && max_output >= context_window &&
       kind == "chat") {
     gr_abort(sprintf(paste0("`max_output` (%d) must be smaller than `context_window` (%d): a model ",
-                            "cannot emit its entire context. This exact inversion is what made the ",
-                            "previous implementation compute negative input budgets."),
+                            "cannot emit its entire context. Set a smaller `max_output` to leave room ",
+                            "for a prompt."),
                      max_output, context_window), column = "max_output")
   }
   # The month comes from price_today(), the date the age of a price is

@@ -346,7 +346,8 @@ NULL
 #' The result of one model call
 #'
 #' Returned by [hr_call()]. Designed so a caller can never be handed `NULL` or
-#' `character(0)` where a string is expected.
+#' `character(0)` where a string is expected. `vignette("core")` shows each
+#' field on a worked call.
 #'
 #' @section Fields:
 #' \describe{
@@ -356,12 +357,29 @@ NULL
 #'     never `character(0)`, and newlines are preserved.}
 #'   \item{`error`}{Character or `NULL`. What went wrong, including the HTTP body
 #'     for API-side errors.}
-#'   \item{`usage`}{List with `input` and `output` token counts as reported by
-#'     the API.}
+#'   \item{`usage`}{List with `input` and `output` token counts and their
+#'     `provenance`: `"reported"` by the provider, `"counted"` here with the
+#'     `"tiktoken"` tokenizer or as a zero for a request that failed or was
+#'     not sent, or `"estimated"` with another tokenizer. `reasoning` and
+#'     `cached_input` are added when the provider reports them, as parts of
+#'     `output` and `input`.}
 #'   \item{`status`, `finish_reason`, `retryable`, `model`, `raw`}{HTTP status,
-#'     the API's stop reason, whether a retry could help, the model id, and the
+#'     the API's stop reason (`"length"` for a reply cut off at the output cap,
+#'     whatever the provider called it, and `NA` when the client reports none),
+#'     whether a retry could help, the model id the call asked for, and the
 #'     parsed response body.}
+#'   \item{`cached`}{`TRUE` when the reply came from an [hr_cache()] or an
+#'     [hr_replay_client()] rather than the network.}
+#'   \item{`served_model`, `response_id`, `fingerprint`}{What the provider said
+#'     about its reply: the model that answered, its response id and its
+#'     system fingerprint. `NA` where it said nothing.}
+#'   \item{`attempts`}{Requests sent for this reply, retries included: 0 for a
+#'     reply from a cache or a recording, `NA` when the transport does not
+#'     say.}
 #' }
+#'
+#' A request the run's limits did not send (see [hr_governor()]) also carries
+#' `refused = TRUE` and the condition in `refusal`.
 #'
 #' @section Methods:
 #' `print()` shows `ok`, the model, the token usage and either the text or the

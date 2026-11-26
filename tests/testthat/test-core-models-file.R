@@ -184,6 +184,17 @@ test_that("hr_register_model() needs limits for a model the registry does not ha
   expect_identical(as.character(e$call[[1]]), "hr_register_model")
 })
 
+test_that("a chat model with no room for a prompt is refused with a message on the fix", {
+  local_registries()
+  e <- tryCatch(hr_register_model("too-small", context_window = 4096, max_output = 4096),
+                error = function(e) e)
+  expect_s3_class(e, "gr_error")
+  expect_match(conditionMessage(e), "smaller `max_output` to leave room for a prompt",
+               fixed = TRUE)
+  expect_no_match(conditionMessage(e), "implementation", fixed = TRUE)
+  expect_null(harnessr:::hr_state$models[["too-small"]])
+})
+
 test_that("hr_load_models() adds prices to built-in models and keeps their limits", {
   local_builtin_only()
   path <- write_models(c("id,input_usd,output_usd,as_of",

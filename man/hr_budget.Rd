@@ -16,9 +16,12 @@ hr_budget(
 
 \item{reserve_output}{Tokens to reserve for the completion. An explicit value
 is clamped to the model's \code{max_output}. \code{NULL} reserves
-\code{min(max_output, max(min_output_tokens, usable / 4))}, where \code{usable} is the
-context window after \code{safety_margin} and \code{min_output_tokens} is a
-\code{\link[=hr_options]{hr_options()}} setting (default 256).}
+\code{min(max_output, max(min_output_tokens, usable * output_reserve_share))},
+where \code{usable} is the context window after \code{safety_margin}, and
+\code{min_output_tokens} (default 256) and \code{output_reserve_share} (default 0.25)
+are \code{\link[=hr_options]{hr_options()}} settings. When the reserve leaves no positive input
+budget, explicit or not, it is lowered to \code{min_output_tokens} (or kept,
+if already smaller) before an error is raised.}
 
 \item{overhead}{Tokens consumed by system prompts, question text and message
 framing that are not part of the document payload.}
@@ -37,7 +40,7 @@ This is the single arithmetic chokepoint that every prompt-building path in
 the package must go through. It has three guarantees:
 \itemize{
 \item the returned \code{input} budget is always \strong{strictly positive};
-\item \code{input + output <= context_window * (1 - safety_margin)};
+\item \code{input + output + overhead <= context_window * (1 - safety_margin)};
 \item if no positive budget exists, it raises a \code{gr_budget_error} naming the
 parameter to change, rather than returning a negative number that silently
 corrupts every downstream \code{split()} and \code{while} loop.

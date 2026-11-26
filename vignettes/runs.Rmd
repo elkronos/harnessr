@@ -378,8 +378,9 @@ stopped part way. The limits apply to them like this:
 ### How much the model reasons
 
 `effort` sets how much a reasoning model reasons on each call, stage by stage.
-`vignette("readers")` explains how effort is billed, which models it is sent
-to, and the label each stage's calls carry.
+`vignette("effort")` covers effort in the core: which models take it, how it
+is billed, the cache and the trace, and effort that rises when needed.
+`vignette("readers")` lists the label each reader's calls carry.
 
 In a review, the same vector goes to each stage. `gr_screen()` and
 `gr_extract()` take it as a recipe override; `gr_claims()`, `gr_outline()` and
@@ -429,7 +430,10 @@ These replies are never cached, so running again asks again:
 - failures: a rate limit or a refusal belongs to the moment, and storing one
   would make a blip permanent;
 - a reply cut off at its output cap;
-- a structured reply that does not fit its schema.
+- a structured reply that does not fit its schema, when the readers or
+  `ctx$call_json()` in a benchmark arm make the request. `hr_call()` does not
+  parse a reply, so it caches a reply to a schema call like any other (see
+  `vignette("core")`).
 
 The default directory is under `tempdir()`, so a cache costs nothing and
 vanishes with the session. For a long run, point it at a lasting directory to
@@ -619,7 +623,8 @@ prices you pay, and harnessr uses them for every cost it reports and for
 `max_cost_usd`.
 
 The prices below are illustrative. Use your provider's current prices, in US
-dollars per million tokens.
+dollars per million tokens. `vignette("models")` covers the registry, prices
+and token counts in full.
 
 ### What harnessr knows about a model
 
@@ -639,7 +644,8 @@ prices, it is the month of the prices.
 `hr_model_info()` looks up one model. Its `source` says where the entry came
 from, and `certain` is `FALSE` when harnessr guessed the model from its name
 or fell back to its default. An id the registry does not know warns with
-`gr_unknown_model` and gets a 128k context window and no price. Its cost then
+`gr_unknown_model` and gets the limits of a family pattern its name matches,
+or else a 128k context window, and no price. Its cost then
 shows as `NA` rather than a wrong figure.
 
 ```{r}
@@ -858,7 +864,8 @@ fallback would change every budget calculation.
 
 `hr_budget()` does the context arithmetic for every request. It cannot return a
 non-positive input budget: in that case it raises an error that says what to
-change. `?hr_options` documents every setting.
+change. `vignette("context")` covers budgets and cuts in full, and
+`?hr_options` documents every setting.
 
 ## Choosing the settings
 

@@ -22,9 +22,9 @@ NOTE and skipped the CRAN incoming check. That check gives the second NOTE.
 * checking installed package size ... NOTE
 
   ```
-  installed size is  6.5Mb
+  installed size is  7.0Mb
   sub-directories of 1Mb or more:
-    doc    1.9Mb
+    doc    2.5Mb
     help   1.1Mb
     R      3.1Mb
   ```

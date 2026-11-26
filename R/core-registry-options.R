@@ -324,8 +324,10 @@ check_option <- function(name, value) {
 #'     measured against it.}
 #'   \item{`min_output_tokens` (256)}{Floor on the completion room [hr_budget()]
 #'     reserves *when `reserve_output` is not given explicitly*. An explicit
-#'     `reserve_output` is honoured down to 1. Untested: set as a floor for a
-#'     short reply.}
+#'     `reserve_output` is used between 1 token and the model's `max_output`,
+#'     unless it leaves no input room;
+#'     then it drops to this floor, as the default reserve does. Untested: set
+#'     as a floor for a short reply.}
 #'   \item{`cache_documents` (TRUE)}{Cache ingestion per file + settings. The key
 #'     covers file size, mtime and every option that changes the output.}
 #'   \item{`cache_embeddings` (TRUE)}{Cache embeddings per text + model.}
@@ -422,7 +424,9 @@ check_option <- function(name, value) {
 #'   \item{`output_reserve_share` (0.25)}{The share of the usable window
 #'     [hr_budget()] reserves for the reply when no `reserve_output` is given,
 #'     between `min_output_tokens` and the model's output limit. It sets the
-#'     input room, so how much of a document fits one request. Untested.}
+#'     input room of such a budget. The readers give `max_answer_tokens` as
+#'     the reserve, so it does not change how much of a document they fit
+#'     in one request. Untested.}
 #'   \item{`near_verbatim_sim` (0.90), `near_verbatim_sim_short` (0.95),
 #'     `near_verbatim_short_chars` (40)}{The least similarity a quotation of at
 #'     least `near_verbatim_short_chars` characters (after normalising), and

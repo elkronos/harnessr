@@ -27,10 +27,13 @@ Wrap a client with \code{\link[=hr_cache_client]{hr_cache_client()}} and every s
 written to disk, keyed on the exact request. Re-issuing the same request
 returns the stored response without touching the network: free, instant, and
 byte-identical even at a temperature above zero. A failed call is never
-written, and neither is a reply cut off at the output cap or a structured
-(JSON-schema) reply that does not parse, so re-running asks again. An
-unparseable structured reply that an earlier version did store is asked
-again rather than replayed.
+written, and neither is a reply cut off at the output cap, so re-running
+asks again. A structured (JSON-schema) reply that does not parse is not
+written either when the package's own structured calls make the request
+(the readers, \code{ctx$call_json()} in an \code{\link[=hr_arm]{hr_arm()}}), and one an earlier
+version did store is asked again rather than replayed. \code{\link[=hr_call]{hr_call()}} does not
+parse a reply, so a reply to a schema call made with it is written like any
+other.
 }
 \details{
 The default location is under \code{\link[=tempdir]{tempdir()}}, so a cache costs nothing and
