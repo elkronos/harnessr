@@ -922,6 +922,7 @@
 "boundaries_ok","doc","function"
 "byte_order_mark","doc","function"
 "byte_starts","doc","function"
+"calibration_frame_size","doc","function"
 "calibration_reports_recall","doc","function"
 "call_failure","doc","function"
 "cap_gap_lines","doc","function"
