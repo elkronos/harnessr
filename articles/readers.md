@@ -1064,7 +1064,7 @@ chunks that follow on from each other point to `"document"`.
 used before the setting existed. The alternatives were added to be
 compared, and no comparison is recorded. `restate = "auto"` was added so
 a comparison could measure it, and none has. `restate_tokens = 1200` is
-an arbitrary number, kept from when it was a constant. Both are
+an arbitrary number, kept from when it was a constant. All three are
 `untested`.
 
 **How to test them.**

@@ -6,6 +6,10 @@ returns the prediction-powered estimate of the human-scored mean
 (Angelopoulos et al. 2023), through
 [`hr_ppi()`](https://elkronos.github.io/harnessr/reference/hr_ppi.md):
 
+    estimate = mean(judge on unlabelled) + mean(human - judge on labelled)
+
+with PPI++ tuning by default.
+
 ## Usage
 
 ``` r
@@ -52,12 +56,9 @@ with `judge_mean`, the uncorrected mean of `judge_scores`, added.
 
 ## Details
 
-    estimate = mean(judge on unlabelled) + mean(human - judge on labelled)
-
-with PPI++ tuning by default. When `inclusion_prob` varies, the labelled
-items were drawn with unequal probabilities and the correction is
-inverse-probability weighted, the design-based supervised learning form
-(Egami et al. 2023):
+When `inclusion_prob` varies, the labelled items were drawn with unequal
+probabilities and the correction is inverse-probability weighted, the
+design-based supervised learning form (Egami et al. 2023):
 
     estimate = mean over all items of
                lambda * judge_i + R_i * (human_i - lambda * judge_i) / pi_i

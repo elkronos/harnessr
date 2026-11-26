@@ -5,6 +5,14 @@
 needed to detect a given one. Both use the closed form for a paired
 comparison of two proportions with a true difference of 0:
 
+n_eff = (t\_(C - 1, 1 - alpha') + t\_(C - 1, power))^2 x p_disc /
+Delta^2,
+
+with t quantiles on C - 1 degrees of freedom for C clusters: the degrees
+of freedom of the cluster-robust t bound that
+[`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)
+tests non-inferiority with.
+
 ## Usage
 
 ``` r
@@ -124,21 +132,15 @@ clusters.
 
 ## Details
 
-n_eff = (t\_(C - 1, 1 - alpha') + t\_(C - 1, power))^2 x p_disc /
-Delta^2,
-
-with t quantiles on C - 1 degrees of freedom for C clusters: the degrees
-of freedom of the cluster-robust t bound that
-[`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)
-tests non-inferiority with. p_disc is the share of items on which the
-two arms disagree, so p_disc / n_eff is the variance of the mean paired
-difference. Items in one cluster are not independent, so the effective
-number of items is n_eff = n_items / DE with the design effect DE = 1 +
-(m - 1) x ICC_D (Kish 1965), where m is the mean cluster size and ICC_D
-the intra-cluster correlation of the paired item difference, not of raw
-accuracy. With unequal cluster sizes of coefficient of variation `cv`, m
-is replaced by (cv^2 + 1) x m (Eldridge, Ashby and Kerry 2006).
-`hr_mdd()` solves for Delta:
+p_disc is the share of items on which the two arms disagree, so p_disc /
+n_eff is the variance of the mean paired difference. Items in one
+cluster are not independent, so the effective number of items is n_eff =
+n_items / DE with the design effect DE = 1 + (m - 1) x ICC_D (Kish
+1965), where m is the mean cluster size and ICC_D the intra-cluster
+correlation of the paired item difference, not of raw accuracy. With
+unequal cluster sizes of coefficient of variation `cv`, m is replaced by
+(cv^2 + 1) x m (Eldridge, Ashby and Kerry 2006). `hr_mdd()` solves for
+Delta:
 
 Delta = (t\_(C - 1, 1 - alpha') + t\_(C - 1, power)) x sqrt(p_disc /
 n_eff).

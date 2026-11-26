@@ -3,6 +3,15 @@
 This is the single arithmetic chokepoint that every prompt-building path
 in the package must go through. It has three guarantees:
 
+- the returned `input` budget is always **strictly positive**;
+
+- `input + output <= context_window * (1 - safety_margin)`;
+
+- if no positive budget exists, it raises a `gr_budget_error` naming the
+  parameter to change, rather than returning a negative number that
+  silently corrupts every downstream
+  [`split()`](https://rdrr.io/r/base/split.html) and `while` loop.
+
 ## Usage
 
 ``` r
@@ -46,17 +55,6 @@ A list with `input`, `output`, `context_window`, `overhead`, `margin`
 and `certain` (`FALSE` when the model's limits were guessed rather than
 known; see
 [`hr_model_info()`](https://elkronos.github.io/harnessr/reference/hr_model_info.md)).
-
-## Details
-
-- the returned `input` budget is always **strictly positive**;
-
-- `input + output <= context_window * (1 - safety_margin)`;
-
-- if no positive budget exists, it raises a `gr_budget_error` naming the
-  parameter to change, rather than returning a negative number that
-  silently corrupts every downstream
-  [`split()`](https://rdrr.io/r/base/split.html) and `while` loop.
 
 ## See also
 

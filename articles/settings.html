@@ -153,13 +153,17 @@ reports which values sent the same requests.</p>
 <code class="sourceCode R"><span><span class="va">show_settings</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">stage</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">s</span> <span class="op">&lt;-</span> <span class="va">settings</span><span class="op">[</span><span class="va">settings</span><span class="op">$</span><span class="va">stage</span> <span class="op">==</span> <span class="va">stage</span>, <span class="op">]</span></span>
 <span>  <span class="va">esc</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">gsub</a></span><span class="op">(</span><span class="st">"|"</span>, <span class="st">"\\|"</span>, <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span>, <span class="st">""</span>, <span class="va">x</span><span class="op">)</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>  <span class="co"># Descriptions are Markdown: a bare "&lt;field&gt;" would reach the page as an</span></span>
+<span>  <span class="co"># HTML tag and vanish. A &lt; inside backticks would show as "&amp;lt;", so keep</span></span>
+<span>  <span class="co"># it out of code spans.</span></span>
+<span>  <span class="va">lt</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">gsub</a></span><span class="op">(</span><span class="st">"&lt;"</span>, <span class="st">"&amp;lt;"</span>, <span class="va">x</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span>  <span class="va">name</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">guide</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"`"</span>, <span class="va">s</span><span class="op">$</span><span class="va">name</span>, <span class="st">"`"</span><span class="op">)</span>,</span>
 <span>                 <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"[`%s`](%s.html#%s)"</span>, <span class="va">s</span><span class="op">$</span><span class="va">name</span>, <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"#.*"</span>, <span class="st">""</span>, <span class="va">s</span><span class="op">$</span><span class="va">guide</span><span class="op">)</span>,</span>
 <span>                         <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">".*#"</span>, <span class="st">""</span>, <span class="va">s</span><span class="op">$</span><span class="va">guide</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>setting <span class="op">=</span> <span class="va">name</span>, where <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"`"</span>, <span class="va">s</span><span class="op">$</span><span class="va">where</span>, <span class="st">"`"</span><span class="op">)</span>,</span>
 <span>                          default <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"`"</span>, <span class="fu">esc</span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">default</span><span class="op">)</span>, <span class="st">"`"</span><span class="op">)</span>,</span>
 <span>                          tier <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="va">tier</span>, status <span class="op">=</span> <span class="fu">esc</span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">status</span><span class="op">)</span>,</span>
-<span>                          description <span class="op">=</span> <span class="fu">esc</span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">description</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                          description <span class="op">=</span> <span class="fu">lt</span><span class="op">(</span><span class="fu">esc</span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">description</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>               row.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 </div>
@@ -1378,7 +1382,7 @@ above.</p>
 <col width="3%">
 <col width="2%">
 <col width="2%">
-<col width="79%">
+<col width="80%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">setting</th>
@@ -1477,10 +1481,10 @@ directory.</td>
 <td align="left">advanced</td>
 <td align="left">untested</td>
 <td align="left">Add two columns per field to table, after the field
-columns: <field>_agreement, how many of the chunks that reported the
-field give its most common value, of all that reported it (“2/3”), and
-<field>_conflict, TRUE when they gave more than one value.</field></field>
-</td>
+columns: &lt;field&gt;_agreement, how many of the chunks that reported
+the field give its most common value, of all that reported it (“2/3”),
+and &lt;field&gt;_conflict, TRUE when they gave more than one
+value.</td>
 </tr>
 </tbody>
 </table>

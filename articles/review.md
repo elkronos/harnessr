@@ -1843,7 +1843,7 @@ every disagreement visible; it has not been compared with `"model"` or
 `"vote"`. `agreement_columns = FALSE` keeps the table’s columns as they
 were. `require_quote = FALSE`, so no extracted value is thrown away
 unasked; `n_unverified` counts the same values without dropping them.
-Both are `untested`.
+All three are `untested`.
 
 **How to test them.** `require_quote` changes no request, only which
 values are kept, so one run shows its effect:
@@ -2140,8 +2140,8 @@ is checked: a stage run on a version other than the report’s is flagged:
 page <- gr_audit_report(tempfile(fileext = ".html"), screening = screened,
                         extraction = table, open = FALSE)
 grep("UTC</td>", readLines(page), value = TRUE)
-#> [1] "<tr><td>screening</td><td>2026-11-26 06:52:28 UTC</td><td>0.6.0.9000</td></tr>" 
-#> [2] "<tr><td>extraction</td><td>2026-11-26 06:52:30 UTC</td><td>0.6.0.9000</td></tr>"
+#> [1] "<tr><td>screening</td><td>2026-11-26 10:38:24 UTC</td><td>0.6.0.9000</td></tr>" 
+#> [2] "<tr><td>extraction</td><td>2026-11-26 10:38:25 UTC</td><td>0.6.0.9000</td></tr>"
 ```
 
 The report puts the failures near the top and counts them there:

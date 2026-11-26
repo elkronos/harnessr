@@ -314,14 +314,14 @@ f <- tempfile(fileext = ".txt")
 writeLines("We ran a randomised controlled trial. We enrolled 120 participants.", f)
 
 x <- gr_extract(f, fields, client = cl)
-#> [1/1] file1bef649175de.txt
-#> Extracting 'file1bef649175de.txt' with the 'txt' extractor.
+#> [1/1] file1c973ec65942.txt
+#> Extracting 'file1c973ec65942.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~22 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).
 x$table[, c("document", "design", "n", "n_unverified", "status")]
 #>               document                      design   n n_unverified status
-#> 1 file1bef649175de.txt randomised controlled trial 120            0     ok
+#> 1 file1c973ec65942.txt randomised controlled trial 120            0     ok
 x$evidence[, c("field", "quote", "verified")]
 #>    field                                 quote verified
 #> 1 design We ran a randomised controlled trial.     TRUE

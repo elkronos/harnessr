@@ -382,11 +382,7 @@
 <div class="section level2">
 <h2 id="other-parts-of-the-core-under-review">Other parts of the core under review<a class="anchor" aria-label="anchor" href="#other-parts-of-the-core-under-review"></a></h2>
 <ul><li>
-<code>tests/testthat/fixtures/boundary/allowed.csv</code> lists three calls from the core into the document layer, each with the change that removes it:
-<ul><li>The embedding request path, <code><a href="reference/hr_embed.html">hr_embed()</a></code>, calls <code>resolve_embedder()</code> and <code>lexical_embed()</code>. These go when embedders become a registered module kind and the core looks them up in the registry.</li>
-<li>
-<code>segment_effort()</code> (<code>R/core-effort-static.R</code>) hands a segmenter the effort its own requests resolve to, and calls <code>segment_effort_label()</code> (<code>R/doc-segment-run.R</code>) to learn the label a built-in segmenter’s requests carry. This goes when each segmenter declares its own call stems and the label function is deleted.</li>
-</ul></li>
+<code>tests/testthat/fixtures/boundary/allowed.csv</code> holds only its header: the core makes no call into the document layer. The last three calls went with the module registry. <code><a href="reference/hr_embed.html">hr_embed()</a></code> reads embedders through the embedder kind’s accessor instead of calling <code>resolve_embedder()</code> and <code>lexical_embed()</code>, and <code>segment_effort()</code> (<code>R/core-effort-static.R</code>) reads a segmenter’s <code>effort_label</code> through the segmenter kind’s accessor instead of calling <code>segment_effort_label()</code>, which is deleted.</li>
 <li>
 <code>tests/testthat/fixtures/boundary/doc-uses-internal.csv</code> lists the core functions that are not exported and that the document layer still uses. The list may only shrink.</li>
 <li>The refactor plan also named an effective-window probe. No function in <code>R/</code> probes a model’s context window: the core reads it from the model table (<code><a href="reference/hr_model_info.html">hr_model_info()</a></code>, filled by <code><a href="reference/hr_register_model.html">hr_register_model()</a></code>), so there is nothing to review.</li>

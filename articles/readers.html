@@ -1370,7 +1370,7 @@ setting existed. The alternatives were added to be compared, and no
 comparison is recorded. <code>restate = "auto"</code> was added so a
 comparison could measure it, and none has.
 <code>restate_tokens = 1200</code> is an arbitrary number, kept from
-when it was a constant. Both are <code>untested</code>.</p>
+when it was a constant. All three are <code>untested</code>.</p>
 <p><strong>How to test them.</strong></p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="va">needle</span>, <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>top_k <span class="op">=</span> <span class="fl">3</span>,</span>

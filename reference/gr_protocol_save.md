@@ -46,8 +46,8 @@ In a C locale, or a Windows session in a single-byte code page, a
 criterion with an accent or a symbol in it (the greater-than-or-equal
 sign of "aged 18 or over") was written as the text "\<U+2265\>", or as a
 byte no other machine reads as that letter, and a correct file read in a
-C locale came back as "\<89\>": the criteria then sent to the screening
-model and printed in the audit report.
+C locale came back as `"<e2><89><a5>"`: the criteria then sent to the
+screening model and printed in the audit report.
 
 ## See also
 

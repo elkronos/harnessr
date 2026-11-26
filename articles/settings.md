@@ -81,13 +81,17 @@ reports which values sent the same requests.
 show_settings <- function(stage) {
   s <- settings[settings$stage == stage, ]
   esc <- function(x) gsub("|", "\\|", ifelse(is.na(x), "", x), fixed = TRUE)
+  # Descriptions are Markdown: a bare "<field>" would reach the page as an
+  # HTML tag and vanish. A < inside backticks would show as "&lt;", so keep
+  # it out of code spans.
+  lt <- function(x) gsub("<", "&lt;", x, fixed = TRUE)
   name <- ifelse(is.na(s$guide), paste0("`", s$name, "`"),
                  sprintf("[`%s`](%s.html#%s)", s$name, sub("#.*", "", s$guide),
                          sub(".*#", "", s$guide)))
   knitr::kable(data.frame(setting = name, where = paste0("`", s$where, "`"),
                           default = paste0("`", esc(s$default), "`"),
                           tier = s$tier, status = esc(s$status),
-                          description = esc(s$description)),
+                          description = lt(esc(s$description))),
                row.names = FALSE)
 }
 ```
@@ -287,7 +291,7 @@ settings above.
 | `max_total_calls` | [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md) | `NULL` | advanced |  | Stop before a document once the run has made this many requests, marking the rest “skipped”, except any restored from store, which makes no request. |
 | `keep_answers` | [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md) | `FALSE` | advanced |  | Keep the underlying gr_answer objects in \$answers. |
 | `recursive` | [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md) | `FALSE` | advanced |  | Descend into subdirectories when sources is a directory. |
-| [`agreement_columns`](https://elkronos.github.io/harnessr/articles/review.html#set-extract) | [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md) | `FALSE` | advanced | untested | Add two columns per field to table, after the field columns: \_agreement, how many of the chunks that reported the field give its most common value, of all that reported it (“2/3”), and \_conflict, TRUE when they gave more than one value. |
+| [`agreement_columns`](https://elkronos.github.io/harnessr/articles/review.html#set-extract) | [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md) | `FALSE` | advanced | untested | Add two columns per field to table, after the field columns: \<field\>\_agreement, how many of the chunks that reported the field give its most common value, of all that reported it (“2/3”), and \<field\>\_conflict, TRUE when they gave more than one value. |
 
 ## Synthesis
 

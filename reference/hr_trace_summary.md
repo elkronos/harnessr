@@ -73,7 +73,7 @@ ans <- answer_document(gr_example(), "What was revenue?", "thorough", client = c
 #> Reading with 'map_reduce' (all|N+logN|tree) over 1 chunk(s).
 hr_trace_summary(ans$trace)
 #>                          run_id calls cached steps tokens_in tokens_out errors
-#> 1 run_20261126064753.036_c44f79     1      0     4       607         10      0
+#> 1 run_20261126103352.432_811716     1      0     4       607         10      0
 #>   elapsed_s embed_calls embed_tokens tokens_reasoning tokens_cached_in
 #> 1      0.03           0            0                0                0
 #>   usage_estimated

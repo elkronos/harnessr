@@ -545,7 +545,7 @@ without calling a model and without an API key:</p>
 <span></span>
 <span><span class="va">inv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_inventory.html">gr_inventory</a></span><span class="op">(</span><span class="va">inbox</span><span class="op">)</span></span>
 <span><span class="va">inv</span></span>
-<span><span class="co">#&gt; &lt;gr_inventory&gt; /tmp/RtmpQ3eumk/inbox</span></span>
+<span><span class="co">#&gt; &lt;gr_inventory&gt; /tmp/RtmpL7tZld/inbox</span></span>
 <span><span class="co">#&gt;   4 file(s), 1.9 KB; 2 readable</span></span>
 <span><span class="co">#&gt;   2 ready, 1 no_extractor, 1 empty</span></span>
 <span><span class="co">#&gt;   tokens: 549   cost floor: $0.01 (gpt-5.6-terra, one call per document)</span></span>
@@ -805,8 +805,8 @@ your own client:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="va">correct</span> <span class="op">~</span> <span class="va">param.ocr_min_chars</span>, <span class="va">bench</span>, <span class="va">mean</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/hr_sweep_check.html">hr_sweep_check</a></span><span class="op">(</span><span class="va">bench</span><span class="op">)</span></span></code></pre></div>
 <p>A row from <code><a href="../reference/hr_sweep_check.html">hr_sweep_check()</a></code> means no page crossed the
-threshold between the two values, so they read the documents the same
-way.</p>
+threshold between that arm’s value and an earlier one, so the two arms
+read the documents the same way.</p>
 <p>Sweep <code>ocr_trigger</code> the same way. It decides which pages
 OCR reads before any request goes out, so
 <code>doc$stats$unread_pages</code> and the <code>"ocr"</code> blocks of

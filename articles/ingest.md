@@ -443,7 +443,7 @@ invisible(file.create(file.path(inbox, "empty.txt")))
 
 inv <- gr_inventory(inbox)
 inv
-#> <gr_inventory> /tmp/RtmpQ3eumk/inbox
+#> <gr_inventory> /tmp/RtmpL7tZld/inbox
 #>   4 file(s), 1.9 KB; 2 readable
 #>   2 ready, 1 no_extractor, 1 empty
 #>   tokens: 549   cost floor: $0.01 (gpt-5.6-terra, one call per document)
@@ -680,8 +680,8 @@ hr_sweep_check(bench)
 
 A row from
 [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
-means no page crossed the threshold between the two values, so they read
-the documents the same way.
+means no page crossed the threshold between that arm’s value and an
+earlier one, so the two arms read the documents the same way.
 
 Sweep `ocr_trigger` the same way. It decides which pages OCR reads
 before any request goes out, so `doc$stats$unread_pages` and the `"ocr"`
