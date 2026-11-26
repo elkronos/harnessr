@@ -14,61 +14,35 @@ articles:
 - title: Core
   navbar: Core
   desc: >
-    Calls and clients without a document: what a call returns, the trace
-    that records it, structured replies, checks on a reply, signals and
-    errors by class. The model registry, the prices you set and how tokens
-    are counted. How a prompt is kept inside a context window, and what is
-    cut when it does not fit. How hard a reasoning model reasons, by stage or
-    raised when a stage goes wrong.
+    Model calls with or without a document. What a call returns and the trace
+    that records it; the model registry, the prices you set and token counts;
+    keeping a prompt inside the context window; how hard a reasoning model
+    reasons; spending limits, the cache and replay; composing steps into
+    chains; measuring and comparing configurations; and every setting with
+    its default.
   contents:
   - core
   - models
   - context
   - effort
+  - runs
+  - compose
+  - evaluate
+  - compare
+  - settings
 
-- title: Read a document
-  navbar: Read a document
+- title: Documents
+  navbar: Documents
   desc: >
-    Get text out of a file, cut it into chunks, and choose how the model
-    reads them.
+    The document layer, built on the core. Get text out of a file, cut it
+    into chunks, choose how the model reads them, review many documents from
+    a search export to an audit report, and register document modules of
+    your own.
   contents:
   - ingest
   - segment
   - readers
-
-- title: Review many documents
-  navbar: Review many documents
-  desc: >
-    Ask one question of many documents, or run a literature review from a
-    search export to an audit report.
-  contents:
   - review
-
-- title: Measure and compare
-  navbar: Measure and compare
-  desc: >
-    Score configurations against labelled answers and compare readers,
-    segmenters and settings with intervals.
-  contents:
-  - evaluate
-  - compare
-
-- title: Control cost and settings
-  navbar: Control cost and settings
-  desc: >
-    Set model prices and spending limits, pay for a request once, replay a
-    run, and look up every setting with its default.
-  contents:
-  - runs
-  - settings
-
-- title: Build your own
-  navbar: Build your own
-  desc: >
-    Chain steps of your own into a run, and register extractors, segmenters,
-    readers and other modules.
-  contents:
-  - compose
   - extending
 
 - title: Upgrade

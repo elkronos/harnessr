@@ -118,7 +118,8 @@ to set many prices from a file and keep them current.
 ## Guides
 
 Each guide is on the website, under the same groups as here, and once
-installed in R as `vignette("name")`.
+installed in R as `vignette("name")`. The core guides come first because the
+document guides build on them.
 
 ### Get started
 
@@ -130,31 +131,19 @@ installed in R as `vignette("name")`.
 - [Models, prices and tokens](https://elkronos.github.io/harnessr/articles/models.html) (`models`): what harnessr knows about a model, adding one, setting the prices you pay, cost estimates, models with no price or old prices, and counting tokens.
 - [Context: budgets, fitting and cutting](https://elkronos.github.io/harnessr/articles/context.html) (`context`): how much room a prompt has, fitting its pieces into that room, which part of a cut piece is kept, and the cuts the trace records.
 - [Effort: how hard the model reasons](https://elkronos.github.io/harnessr/articles/effort.html) (`effort`): which models take a reasoning effort, setting it per call or per stage, what it costs and does to the cache, raising it only when a stage goes wrong, and measuring whether that pays.
+- [Cost, limits and reproducible runs](https://elkronos.github.io/harnessr/articles/runs.html) (`runs`): the governor, setting model prices, effort, traces, caching, replay.
+- [Composing steps into chains](https://elkronos.github.io/harnessr/articles/compose.html) (`compose`): steps of your own and the built-in ones, chains run as one arm, deriving a chain by dropping or replacing a step, settings and sweeps by path, skills, and a coding sub-agent.
+- [Measuring and comparing configurations](https://elkronos.github.io/harnessr/articles/evaluate.html) (`evaluate`): reference sets and label sheets, benchmarks and their intervals, non-inferiority, judges, checks that run a program, baselines, drift, signals.
+- [Comparing methods and settings](https://elkronos.github.io/harnessr/articles/compare.html) (`compare`): worked comparisons of readers, segmenters and chunk sizes, one setting over its values, screening settings and a judge against labels, and how to read each report.
+- [Settings reference](https://elkronos.github.io/harnessr/articles/settings.html) (`settings`): every setting of every stage with its default and where it came from, and the extractors, cleaners, segmenters, readers, embedders and recipes.
 
-### Read a document
+### Documents
 
 - [Getting text out of files](https://elkronos.github.io/harnessr/articles/ingest.html) (`ingest`): PDFs, Word files, web pages and scans, every cleaner, and surveying a folder.
 - [Cutting documents into chunks](https://elkronos.github.io/harnessr/articles/segment.html) (`segment`): the segmenters, overlap, minimum size, context, and comparing chunkings.
 - [Choosing how the model reads](https://elkronos.github.io/harnessr/articles/readers.html) (`readers`): the reading strategies, recipes, what each costs, and how to choose.
-
-### Review many documents
-
 - [Many documents and literature reviews](https://elkronos.github.io/harnessr/articles/review.html) (`review`): search, screening, calibration and recall, several reviewers, extraction, claims, synthesis, the audit report.
-
-### Measure and compare
-
-- [Measuring and comparing configurations](https://elkronos.github.io/harnessr/articles/evaluate.html) (`evaluate`): reference sets and label sheets, benchmarks and their intervals, non-inferiority, judges, baselines, drift, signals.
-- [Comparing methods and settings](https://elkronos.github.io/harnessr/articles/compare.html) (`compare`): worked comparisons of readers, segmenters and chunk sizes, one setting over its values, screening settings and a judge against labels, and how to read each report.
-
-### Control cost and settings
-
-- [Cost, limits and reproducible runs](https://elkronos.github.io/harnessr/articles/runs.html) (`runs`): the governor, setting model prices, effort, traces, caching, replay.
-- [Settings reference](https://elkronos.github.io/harnessr/articles/settings.html) (`settings`): every setting of every stage with its default and where it came from, and the extractors, cleaners, segmenters, readers, embedders and recipes.
-
-### Build your own
-
-- [Composing steps into chains](https://elkronos.github.io/harnessr/articles/compose.html) (`compose`): steps of your own and the built-in ones, chains run as one arm, deriving a chain by dropping or replacing a step, and what a chain checks.
-- [Extending harnessr](https://elkronos.github.io/harnessr/articles/extending.html) (`extending`): registering your own extractors, cleaners, segmenters, readers and embedders, and checking them.
+- [Extending harnessr](https://elkronos.github.io/harnessr/articles/extending.html) (`extending`): registering your own extractors, cleaners, segmenters, readers and embedders, declaring their calls and cost, and checking them against the contract.
 
 ### Upgrade
 
