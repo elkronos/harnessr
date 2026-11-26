@@ -61,8 +61,9 @@ which values sent the same requests.
 show_settings <- function(stage) {
   s <- settings[settings$stage == stage, ]
   esc <- function(x) gsub("|", "\\|", ifelse(is.na(x), "", x), fixed = TRUE)
-  # A description is plain text: "<field>" in one would otherwise reach the
-  # page as an HTML tag and vanish.
+  # Descriptions are Markdown: a bare "<field>" would reach the page as an
+  # HTML tag and vanish. A < inside backticks would show as "&lt;", so keep
+  # it out of code spans.
   lt <- function(x) gsub("<", "&lt;", x, fixed = TRUE)
   name <- ifelse(is.na(s$guide), paste0("`", s$name, "`"),
                  sprintf("[`%s`](%s.html#%s)", s$name, sub("#.*", "", s$guide),
