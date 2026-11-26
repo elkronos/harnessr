@@ -303,3 +303,19 @@ test_that("prices set under a moved date are stamped with that date and are not 
   hr_load_models(write_models(c("id,input_usd,output_usd", "fresh-m,1,2")))
   expect_identical(hr_model_info("fresh-m")$as_of, "2027-06")
 })
+
+test_that("hr_load_models() refuses a month after the current one", {
+  local_builtin_only()
+  local_today("2026-11-26")
+  for (month in c("2026-12", "2099-01")) {
+    e <- models_file_error(hr_load_models(write_models(
+      c("id,input_usd,output_usd,as_of", paste0("gpt-4o,2.5,10,", month)))))
+    expect_s3_class(e, "hr_bad_models_file")
+    expect_identical(e$row, 1L)
+    expect_identical(e$column, "as_of")
+    expect_match(conditionMessage(e), "after the current month", fixed = TRUE)
+  }
+  expect_identical(hr_model_info("gpt-4o")$input_usd, NA_real_)
+  hr_load_models(write_models(c("id,input_usd,output_usd,as_of", "gpt-4o,2.5,10,2026-11")))
+  expect_identical(hr_model_info("gpt-4o")$as_of, "2026-11")
+})

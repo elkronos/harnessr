@@ -107,9 +107,15 @@ models_file_cells <- function(x, column, type, fail) {
       ifelse(blank, NA_character_, x)
     },
     month = {
+      # A month after this one cannot be when prices were checked, and its
+      # age is negative, so the stale price warning would never fire for it.
+      this_month <- format(price_today(), "%Y-%m")
       for (i in which(!blank)) {
         if (!grepl("^[0-9]{4}-(0[1-9]|1[0-2])$", x[i])) {
           bad(i, "a month; write it as YYYY-MM, such as 2026-11")
+        }
+        if (x[i] > this_month) {
+          fail(i, column, sprintf("'%s' is after the current month, %s.", x[i], this_month))
         }
       }
       ifelse(blank, NA_character_, x)
@@ -351,7 +357,8 @@ model_entry <- function(id, given, as_of = NULL) {
 #'   \item{`cached_input_usd`}{Price per 1M input tokens served from the
 #'     provider's prompt cache. Blank prices them as other input tokens.}
 #'   \item{`as_of`}{The month the prices were checked, as `YYYY-MM`. Blank
-#'     stamps the current month. A row that gives only some of a priced model's prices keeps the
+#'     stamps the current month, and a month after the current one is an
+#'     error. A row that gives only some of a priced model's prices keeps the
 #'     older month, since the prices it leaves out are as old as before. A cost computed from prices older than
 #'     `hr_options("price_max_age_days")` warns with class
 #'     `hr_stale_price`, once per model per session.}
