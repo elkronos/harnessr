@@ -32,28 +32,19 @@ gr_ellmer_client(chat, embed = NULL, model = NULL)
 
   Model id reported to this package. Defaults to the chat's own model.
   Register it with
-  [`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
+  [`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md)
   if it is not already known. The context window is what sizes your
   chunks, so a wrong one is not cosmetic.
 
 ## Value
 
 A
-[`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md).
+[`gr_backend_client()`](https://elkronos.github.io/readgpt/reference/gr_backend_client.md).
 
 ## Details
 
 ellmer is a suggested dependency: this function is the only thing in the
-package that needs it. It needs ellmer 0.4.0 or later.
-
-The adapter is maintained on a best-effort basis. ellmer's API still
-changes between releases, and the adapter reads parts of it that are not
-promised to stay (the slots of its model and turn objects,
-`Chat$new()`). A weekly check runs the adapter's tests against ellmer's
-development version, but a new ellmer release can still break it before
-a harnessr release catches up. The built-in
-[`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md)
-does not depend on ellmer.
+package that needs it.
 
 ## Requirements on the chat
 
@@ -74,23 +65,23 @@ A few things, all worth knowing before you rely on them.
 `temperature` belongs to the chat object, not to the call. ellmer fixes
 sampling parameters when the chat is constructed, so a `temperature` in
 a
-[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
+[`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md)
 cannot be honoured per-call; it is ignored and warned about once
 (`gr_ellmer_temperature`). Build a second chat if you need a second
 temperature.
 
 Reasoning effort is the same. An `effort` in a
-[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
+[`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md),
 or given to
-[`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
-[`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
+[`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md),
+[`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
 or
-[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md),
+[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md),
 is not sent through an ellmer chat; it is warned about once
 (`gr_effort_unsupported`) and the chat's own setting applies. Each trace
 step keeps the effort its call asked for as `params$unsent_effort`, not
 `params$effort`, so the `effort` column of `as.data.frame(trace)` and
-[`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md)
+[`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md)
 do not count it as sent. (Like every client, the adapter is handed an
 effort only for a model the registry lists as a reasoning model, so for
 any other there is nothing to warn about.)
@@ -118,9 +109,9 @@ mutated, and no conversation history leaks from one chunk's call into
 the next.
 
 For
-[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
+[`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md)
 and
-[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)'s
+[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)'s
 `store`, the client's identity covers the provider, endpoint, model, the
 chat's [`params()`](https://ellmer.tidyverse.org/reference/params.html)
 and `api_args`, and its system prompt, so two chats that differ in any
@@ -129,9 +120,9 @@ an identity that lasts only for the session.
 
 ## See also
 
-[`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md),
-[`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md),
-[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
+[`gr_backend_client()`](https://elkronos.github.io/readgpt/reference/gr_backend_client.md),
+[`gr_client()`](https://elkronos.github.io/readgpt/reference/gr_client.md),
+[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md)
 
 ## Examples
 
@@ -139,16 +130,11 @@ an identity that lasts only for the session.
 if (FALSE) { # \dontrun{
 library(ellmer)
 
-# Any provider ellmer speaks to, with any reading strategy here. The chat
-# is billed as its own model, which needs a registered price for a
-# spending limit to hold; use your provider's current prices.
-gr_register_model("claude-sonnet-4-5", context_window = 200000, max_output = 64000,
-                  input_usd = 3, output_usd = 15)
+# Any provider ellmer speaks to, with any reading strategy here.
 cl <- gr_ellmer_client(chat_anthropic(model = "claude-sonnet-4-5"))
 ans <- answer_document("report.pdf", "What was revenue?", "thorough", client = cl)
 
-# Locally, for nothing. A local model has no price, so let it run unpriced:
-gr_options(allow_unpriced = TRUE)
+# Locally, for nothing:
 local <- gr_ellmer_client(chat_ollama(model = "llama3.1"))
 gr_compare("report.pdf", "What was revenue?",
            c("fast", "thorough"), client = local)$summary

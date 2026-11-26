@@ -1,7 +1,7 @@
 # Truncate text to at most `n` tokens
 
-The result is the start of `text` as written (line breaks, indentation
-and paragraph breaks kept), followed by `marker`. The cut falls at the
+The result is the start of `text` as written – line breaks, indentation
+and paragraph breaks kept – followed by `marker`. The cut falls at the
 end of a word where the text has whitespace. When the next unit is too
 long to be a word (a CJK run, base64, a data URI, minified JSON, a long
 URL: anything that alone would cost more than 16 tokens) the cut goes
@@ -38,21 +38,18 @@ treated as an error.
 
 ## See also
 
-[`gr_count_tokens()`](https://elkronos.github.io/harnessr/reference/gr_count_tokens.md)
+[`gr_count_tokens()`](https://elkronos.github.io/readgpt/reference/gr_count_tokens.md)
 
 Other cost and token functions:
-[`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md),
-[`gr_count_tokens()`](https://elkronos.github.io/harnessr/reference/gr_count_tokens.md),
-[`gr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/gr_estimate_cost.md),
-[`gr_model_info()`](https://elkronos.github.io/harnessr/reference/gr_model_info.md),
-[`gr_model_limits()`](https://elkronos.github.io/harnessr/reference/gr_model_limits.md),
-[`gr_models()`](https://elkronos.github.io/harnessr/reference/gr_models.md),
-[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md),
-[`gr_set_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_set_tokenizer.md),
-[`gr_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_tokenizer.md),
-[`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md),
-[`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md),
-[`hr_truncate()`](https://elkronos.github.io/harnessr/reference/hr_truncate.md)
+[`gr_budget()`](https://elkronos.github.io/readgpt/reference/gr_budget.md),
+[`gr_count_tokens()`](https://elkronos.github.io/readgpt/reference/gr_count_tokens.md),
+[`gr_estimate_cost()`](https://elkronos.github.io/readgpt/reference/gr_estimate_cost.md),
+[`gr_model_info()`](https://elkronos.github.io/readgpt/reference/gr_model_info.md),
+[`gr_model_limits()`](https://elkronos.github.io/readgpt/reference/gr_model_limits.md),
+[`gr_models()`](https://elkronos.github.io/readgpt/reference/gr_models.md),
+[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md),
+[`gr_set_tokenizer()`](https://elkronos.github.io/readgpt/reference/gr_set_tokenizer.md),
+[`gr_tokenizer()`](https://elkronos.github.io/readgpt/reference/gr_tokenizer.md)
 
 ## Examples
 

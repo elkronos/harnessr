@@ -56,7 +56,7 @@ answer_question(
 - ...:
 
   Passed to
-  [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md).
+  [`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md).
 
 ## Value
 
@@ -64,16 +64,16 @@ A string, or a named list of strings when several modes are given.
 
 ## See also
 
-[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
-[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md),
-[`gr_recipes()`](https://elkronos.github.io/harnessr/reference/gr_recipes.md)
+[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md),
+[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md),
+[`gr_recipes()`](https://elkronos.github.io/readgpt/reference/gr_recipes.md)
 
 Other v1 compatibility:
-[`gpt_read_chunked()`](https://elkronos.github.io/harnessr/reference/gpt_read_chunked.md),
-[`gpt_read_hierarchical()`](https://elkronos.github.io/harnessr/reference/gpt_read_hierarchical.md),
-[`gpt_read_multipass()`](https://elkronos.github.io/harnessr/reference/gpt_read_multipass.md),
-[`gpt_read_retrieval()`](https://elkronos.github.io/harnessr/reference/gpt_read_retrieval.md),
-[`parse_text()`](https://elkronos.github.io/harnessr/reference/parse_text.md)
+[`gpt_read_chunked()`](https://elkronos.github.io/readgpt/reference/gpt_read_chunked.md),
+[`gpt_read_hierarchical()`](https://elkronos.github.io/readgpt/reference/gpt_read_hierarchical.md),
+[`gpt_read_multipass()`](https://elkronos.github.io/readgpt/reference/gpt_read_multipass.md),
+[`gpt_read_retrieval()`](https://elkronos.github.io/readgpt/reference/gpt_read_retrieval.md),
+[`parse_text()`](https://elkronos.github.io/readgpt/reference/parse_text.md)
 
 ## Examples
 
@@ -82,7 +82,7 @@ cl <- gr_mock_client(function(m, p) "45.2 million dollars")
 
 # v1 style, still works, warns once.
 suppressWarnings(
-  answer_question(gr_example(), "What was revenue?", mode = "Chunked", client = cl))
+  answer_question(readgpt_example(), "What was revenue?", mode = "Chunked", client = cl))
 #> Extracting 'annual_report.md' with the 'md' extractor.
 #> Ingested 17 block(s), ~574 tokens (12 chars removed by cleaning).
 #> Segmenting with 'paragraph' (cap 1200 tokens, overlap 0).
@@ -90,7 +90,7 @@ suppressWarnings(
 #> [1] "45.2 million dollars"
 
 # The modern equivalent.
-answer_document(gr_example(), "What was revenue?", "thorough",
+answer_document(readgpt_example(), "What was revenue?", "thorough",
                 client = cl, return = "text")
 #> Extracting 'annual_report.md' with the 'md' extractor.
 #> Ingested 17 block(s), ~574 tokens (12 chars removed by cleaning).

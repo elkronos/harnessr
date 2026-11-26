@@ -13,26 +13,21 @@ gr_extractors()
 A data frame with `name`, `extensions`, `description`, `needs` (the
 packages the extractor cannot run without, comma-separated, `""` for
 none) and `available` (whether they are all installed now). OCR packages
-are not in `needs`: a PDF with a text layer reads without them. The last
-two columns are `version` and `contract`, `NA` for an extractor
-registered with
-[`gr_register_extractor()`](https://elkronos.github.io/harnessr/reference/gr_register_extractor.md)
-and filled for one registered with
-[`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md).
+are not in `needs`: a PDF with a text layer reads without them.
 
 ## See also
 
-[`gr_register_extractor()`](https://elkronos.github.io/harnessr/reference/gr_register_extractor.md),
-[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
+[`gr_register_extractor()`](https://elkronos.github.io/readgpt/reference/gr_register_extractor.md),
+[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md)
 
 Other ingest functions:
-[`gr_clean()`](https://elkronos.github.io/harnessr/reference/gr_clean.md),
-[`gr_cleaners()`](https://elkronos.github.io/harnessr/reference/gr_cleaners.md),
-[`gr_document`](https://elkronos.github.io/harnessr/reference/gr_document.md),
-[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md),
-[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md),
-[`gr_register_cleaner()`](https://elkronos.github.io/harnessr/reference/gr_register_cleaner.md),
-[`gr_register_extractor()`](https://elkronos.github.io/harnessr/reference/gr_register_extractor.md)
+[`gr_clean()`](https://elkronos.github.io/readgpt/reference/gr_clean.md),
+[`gr_cleaners()`](https://elkronos.github.io/readgpt/reference/gr_cleaners.md),
+[`gr_document`](https://elkronos.github.io/readgpt/reference/gr_document.md),
+[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md),
+[`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md),
+[`gr_register_cleaner()`](https://elkronos.github.io/readgpt/reference/gr_register_cleaner.md),
+[`gr_register_extractor()`](https://elkronos.github.io/readgpt/reference/gr_register_extractor.md)
 
 ## Examples
 
@@ -52,13 +47,13 @@ gr_extractors()
 #> pdf                            PDF with per-page OCR fallback and page provenance
 #> docx  Word: headings, tables by row, footnotes and endnotes; OCRs embedded images
 #> image                                                                   Image OCR
-#>           needs available version contract
-#> txt                  TRUE    <NA>     <NA>
-#> md                   TRUE    <NA>     <NA>
-#> html       xml2      TRUE    <NA>     <NA>
-#> pdf    pdftools      TRUE    <NA>     <NA>
-#> docx       xml2      TRUE    <NA>     <NA>
-#> image tesseract      TRUE    <NA>     <NA>
+#>           needs available
+#> txt                  TRUE
+#> md                   TRUE
+#> html       xml2      TRUE
+#> pdf    pdftools      TRUE
+#> docx       xml2      TRUE
+#> image tesseract      TRUE
 
 # What this installation can read right now.
 gr_extractors()[, c("name", "needs", "available")]

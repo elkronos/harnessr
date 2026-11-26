@@ -1,23 +1,16 @@
 # An ingested document
 
 Returned by
-[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md).
+[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md).
 
 ## Fields
 
 - `blocks`:
 
   Data frame of cleaned text blocks with provenance: `text`, `page`,
-  `section`, `kind`, `block_id`, `table_id`, `table_rows`, and
-  `ocr_confidence` when a PDF page was OCR-ed. `page` is set only by the
-  PDF extractor; `kind` is one of `"body"`, `"heading"`, `"code"`,
-  `"table"`, `"footnote"`, `"ocr"` (text that came from OCR: a PDF
-  page's blocks other than its headings, a Word file's images, an image
-  file). `table_id` and `table_rows` say which table a `"table"` block
-  is a row of and which rows it holds (see
-  [`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)).
-  `ocr_confidence` is tesseract's mean word confidence, 0 to 100, for
-  the page an `"ocr"` block of a PDF came from, `NA` for other blocks.
+  `section`, `kind`, `block_id`. `page` is set only by the PDF
+  extractor; `kind` is one of `"body"`, `"heading"`, `"code"`,
+  `"table"`, `"footnote"`, `"ocr"`.
 
 - `text`:
 
@@ -31,7 +24,7 @@ Returned by
 - `spec`:
 
   The
-  [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md)
+  [`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md)
   used.
 
 - `stats`:
@@ -44,7 +37,7 @@ Returned by
 
 - `warnings`:
 
-  Character. What harnessr warned about while extracting and cleaning,
+  Character. What readgpt warned about while extracting and cleaning,
   named by the warning's class. Kept with the document, so a copy served
   from the ingestion cache still carries them.
 
@@ -52,37 +45,37 @@ Returned by
 
 [`print()`](https://rdrr.io/r/base/print.html) shows the source, block
 count and token total;
-[`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md)
+[`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md)
 serialises the stats and every block with its provenance.
 
 ## See also
 
-[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
+[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md)
 which returns one,
-[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md),
-[`gr_extractors()`](https://elkronos.github.io/harnessr/reference/gr_extractors.md),
-[`gr_cleaners()`](https://elkronos.github.io/harnessr/reference/gr_cleaners.md),
-[`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md),
-[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
+[`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md),
+[`gr_extractors()`](https://elkronos.github.io/readgpt/reference/gr_extractors.md),
+[`gr_cleaners()`](https://elkronos.github.io/readgpt/reference/gr_cleaners.md),
+[`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md),
+[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
 for the next axis
 
-[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md),
-[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md),
-[`gr_cleaners()`](https://elkronos.github.io/harnessr/reference/gr_cleaners.md)
+[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md),
+[`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md),
+[`gr_cleaners()`](https://elkronos.github.io/readgpt/reference/gr_cleaners.md)
 
 Other ingest functions:
-[`gr_clean()`](https://elkronos.github.io/harnessr/reference/gr_clean.md),
-[`gr_cleaners()`](https://elkronos.github.io/harnessr/reference/gr_cleaners.md),
-[`gr_extractors()`](https://elkronos.github.io/harnessr/reference/gr_extractors.md),
-[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md),
-[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md),
-[`gr_register_cleaner()`](https://elkronos.github.io/harnessr/reference/gr_register_cleaner.md),
-[`gr_register_extractor()`](https://elkronos.github.io/harnessr/reference/gr_register_extractor.md)
+[`gr_clean()`](https://elkronos.github.io/readgpt/reference/gr_clean.md),
+[`gr_cleaners()`](https://elkronos.github.io/readgpt/reference/gr_cleaners.md),
+[`gr_extractors()`](https://elkronos.github.io/readgpt/reference/gr_extractors.md),
+[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md),
+[`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md),
+[`gr_register_cleaner()`](https://elkronos.github.io/readgpt/reference/gr_register_cleaner.md),
+[`gr_register_extractor()`](https://elkronos.github.io/readgpt/reference/gr_register_extractor.md)
 
 ## Examples
 
 ``` r
-doc <- gr_ingest(gr_example())
+doc <- gr_ingest(readgpt_example())
 #> Using cached ingestion for this document + settings.
 doc$stats$tokens
 #> [1] 574

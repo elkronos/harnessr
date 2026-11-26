@@ -1,9 +1,9 @@
 # The result of one reading run
 
 Returned by
-[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
+[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
 and, with three extra fields, by
-[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md).
+[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md).
 
 ## Fields
 
@@ -12,50 +12,21 @@ and, with three extra fields, by
   Character(1). Always a single string. The sentinel `"NOT_IN_DOCUMENT"`
   means the model reported the document does not contain the answer.
   Test it with
-  [`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md)-style
+  [`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md)-style
   matching rather than substring search.
 
 - `premise`:
 
   Present only when the read spec checked the question's premise
   (`premise = TRUE` in
-  [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)).
+  [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md)).
   `NA` when the model reported nothing in the document contradicting the
   question; otherwise the sentence in which it said what the document
   states instead, which is then `answer` as well, so
-  [`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md)
-  is `FALSE`. It is the model's verdict, not a check harnessr made.
+  [`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md)
+  is `FALSE`. It is the model's verdict, not a check readgpt made.
   Absent (`NULL`) for a spec that did not ask, and for `screen` and
   `extract`, which answer no question.
-
-- `outcome`:
-
-  Character(1), set by
-  [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md):
-  `"answered"`, an answer not marked partial; `"partial"`, an answer
-  marked partial; `"not_found"`, `NOT_IN_DOCUMENT` from a run that read
-  what it meant to; `"refused"`, `NOT_IN_DOCUMENT` from a run a limit
-  stopped; or `"failed"`, `NOT_IN_DOCUMENT` from a run that got no reply
-  to read (every model request it made failed, or the notes give an
-  `error`), whichever reader made it.
-  [`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md)
-  reads it when given the answer. Under `answer_format = "schema"` in
-  [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
-  the model reports the answered or not-found part in a schema field,
-  and `notes$structured` keeps what it said.
-
-- `premise_verdict`:
-
-  Present only under `premise = TRUE` with
-  `premise_verdict = "structured"` in
-  [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
-  for readers whose answering request is structured: a list with
-  `premise_status` (`"holds"` or `"contradicted"`), `quote` (the passage
-  the model gave for a contradiction, or `NA`) and `quote_verified`
-  (whether the quote was found in the excerpts sent, by the check
-  [`gr_verify_evidence()`](https://elkronos.github.io/harnessr/reference/gr_verify_evidence.md)
-  uses, and, where those were passages or summaries a model wrote, in
-  the document too; `NA` without a quote).
 
 - `partial`:
 
@@ -77,7 +48,7 @@ and, with three extra fields, by
 
 - `warnings`:
 
-  Character. What harnessr warned about while the document was ingested,
+  Character. What readgpt warned about while the document was ingested,
   cut and read, named by the warning's class. The warnings still print
   as they happen; this copy stays with the answer, including when the
   document came from the ingestion cache and nothing was raised again.
@@ -94,7 +65,7 @@ and, with three extra fields, by
   *model-written* (`skim`), three more columns appear: `source_text`,
   the chunk the span claims to quote, plus `verified` and `match` from
   checking one against the other; see
-  [`gr_verify_evidence()`](https://elkronos.github.io/harnessr/reference/gr_verify_evidence.md).
+  [`gr_verify_evidence()`](https://elkronos.github.io/readgpt/reference/gr_verify_evidence.md).
   Readers whose evidence is verbatim chunk text do not carry them,
   because the span and its source are the same string. `kind` says what
   that row holds (`"verbatim"`, `"extracted"` or `"answer"`) per row,
@@ -111,7 +82,7 @@ and, with three extra fields, by
 - `reader`, `signature`:
 
   Which strategy ran, and its traversal signature (see
-  [`gr_reader_signature()`](https://elkronos.github.io/harnessr/reference/gr_reader_signature.md)).
+  [`gr_reader_signature()`](https://elkronos.github.io/readgpt/reference/gr_reader_signature.md)).
 
 - `question`:
 
@@ -119,13 +90,13 @@ and, with three extra fields, by
 
 - `trace`:
 
-  The `gr_trace` (see
-  [`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md))
+  The
+  [gr_trace](https://elkronos.github.io/readgpt/reference/gr_trace.md)
   for this run. From
-  [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
+  [`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
   it holds the whole run: ingestion, segmentation and the read. **An
   answer taken from a
-  [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
+  [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
   holds only its own recipe's segmentation and read** (its segmentation
   requests, which `semantic`, `proposition` and `contextual` with
   `context_source = "llm"` bill, the pre-flight check and the reader's
@@ -141,18 +112,18 @@ and, with three extra fields, by
 
   Integer `c(first, last)`: the steps of `trace` this run made, or
   `NULL` when no trace was kept.
-  [`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md),
+  [`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md),
   [`print()`](https://rdrr.io/r/base/print.html) and the audit report
-  ([`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md))
+  ([`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md))
   use only these, so an answer read with a trace shared across runs does
   not carry other runs' prompts, calls or cost.
 
 - `recipe`, `document`, `segmentation`:
 
   Added by
-  [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
+  [`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
   and
-  [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md):
+  [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md):
   the recipe name, the source and ingestion stats, and the chunk
   statistics the reader saw.
 
@@ -163,48 +134,45 @@ run's calls, tokens and cost, where the evidence came from, and, when
 the answer is partial, why. When the model reported that the document
 contradicts the question's premise, it says so above the answer, as the
 model's report.
-[`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md)
+[`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md)
 serialises the answer (and `premise`, when it was checked) together with
 every prompt and response this run made (the steps of its `trace` that
 `trace_steps` names; for an answer from
-[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md),
+[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md),
 its recipe's read alone; see `trace` above).
 
 ## See also
 
-[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
+[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
 and
-[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
+[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
 which return one,
-[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
 to compare several,
-[`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md)
+[`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md)
 to test the sentinel,
-[`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md),
-[`new_answer()`](https://elkronos.github.io/harnessr/reference/new_answer.md)
+[`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md),
+[`new_answer()`](https://elkronos.github.io/readgpt/reference/new_answer.md)
 to build one in a custom reader
 
-[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md),
-[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
-[`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md)
+[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md),
+[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md),
+[`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md)
 
 Other reading functions:
-[`gr_check_reader()`](https://elkronos.github.io/harnessr/reference/gr_check_reader.md),
-[`gr_methods_text()`](https://elkronos.github.io/harnessr/reference/gr_methods_text.md),
-[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md),
-[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
-[`gr_reader_signature()`](https://elkronos.github.io/harnessr/reference/gr_reader_signature.md),
-[`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md),
-[`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md),
-[`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md),
-[`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md),
-[`new_answer()`](https://elkronos.github.io/harnessr/reference/new_answer.md)
+[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md),
+[`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md),
+[`gr_reader_signature()`](https://elkronos.github.io/readgpt/reference/gr_reader_signature.md),
+[`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md),
+[`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md),
+[`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md),
+[`new_answer()`](https://elkronos.github.io/readgpt/reference/new_answer.md)
 
 ## Examples
 
 ``` r
-cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
+cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+ans <- answer_document(readgpt_example(), "What was revenue?", "fast", client = cl)
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).

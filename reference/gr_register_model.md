@@ -16,8 +16,7 @@ gr_register_model(
   reasoning = FALSE,
   supports_temperature = TRUE,
   kind = c("chat", "embedding"),
-  dimensions = NA_integer_,
-  cached_input_usd = NA_real_
+  dimensions = NA_integer_
 )
 ```
 
@@ -58,38 +57,29 @@ gr_register_model(
 
   Embedding dimensionality, for `kind = "embedding"`.
 
-- cached_input_usd:
-
-  Price per 1M input tokens the provider served from its prompt cache,
-  where that is billed at its own rate. `NA` (the default) prices them
-  as other input tokens, which never undercounts.
-
 ## Value
 
 Invisibly, `id`.
 
 ## See also
 
-[`gr_models()`](https://elkronos.github.io/harnessr/reference/gr_models.md)
+[`gr_models()`](https://elkronos.github.io/readgpt/reference/gr_models.md)
 to see the registry,
-[`gr_model_info()`](https://elkronos.github.io/harnessr/reference/gr_model_info.md)
+[`gr_model_info()`](https://elkronos.github.io/readgpt/reference/gr_model_info.md)
 for lookup and its `certain` flag,
-[`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md),
-[`gr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/gr_estimate_cost.md)
+[`gr_budget()`](https://elkronos.github.io/readgpt/reference/gr_budget.md),
+[`gr_estimate_cost()`](https://elkronos.github.io/readgpt/reference/gr_estimate_cost.md)
 
 Other cost and token functions:
-[`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md),
-[`gr_count_tokens()`](https://elkronos.github.io/harnessr/reference/gr_count_tokens.md),
-[`gr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/gr_estimate_cost.md),
-[`gr_model_info()`](https://elkronos.github.io/harnessr/reference/gr_model_info.md),
-[`gr_model_limits()`](https://elkronos.github.io/harnessr/reference/gr_model_limits.md),
-[`gr_models()`](https://elkronos.github.io/harnessr/reference/gr_models.md),
-[`gr_set_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_set_tokenizer.md),
-[`gr_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_tokenizer.md),
-[`gr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/gr_truncate_tokens.md),
-[`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md),
-[`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md),
-[`hr_truncate()`](https://elkronos.github.io/harnessr/reference/hr_truncate.md)
+[`gr_budget()`](https://elkronos.github.io/readgpt/reference/gr_budget.md),
+[`gr_count_tokens()`](https://elkronos.github.io/readgpt/reference/gr_count_tokens.md),
+[`gr_estimate_cost()`](https://elkronos.github.io/readgpt/reference/gr_estimate_cost.md),
+[`gr_model_info()`](https://elkronos.github.io/readgpt/reference/gr_model_info.md),
+[`gr_model_limits()`](https://elkronos.github.io/readgpt/reference/gr_model_limits.md),
+[`gr_models()`](https://elkronos.github.io/readgpt/reference/gr_models.md),
+[`gr_set_tokenizer()`](https://elkronos.github.io/readgpt/reference/gr_set_tokenizer.md),
+[`gr_tokenizer()`](https://elkronos.github.io/readgpt/reference/gr_tokenizer.md),
+[`gr_truncate_tokens()`](https://elkronos.github.io/readgpt/reference/gr_truncate_tokens.md)
 
 ## Examples
 
@@ -106,7 +96,7 @@ gr_model_info("my-local-llama")[c("context_window", "source", "certain")]
 #> [1] TRUE
 #> 
 
-# Without prices, the cost cap cannot be checked; harnessr says so rather
+# Without prices, the cost cap cannot be checked; readgpt says so rather
 # than assuming the run is free.
 is.na(gr_estimate_cost("my-local-llama", 1000, 500))
 #> [1] TRUE

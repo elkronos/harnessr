@@ -17,11 +17,11 @@ as_json(x, pretty = TRUE, ...)
 - x:
 
   Object to serialise. Methods exist for
-  [gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md),
+  [gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md),
   `gr_trace`,
-  [gr_chunks](https://elkronos.github.io/harnessr/reference/gr_chunks.md)
+  [gr_chunks](https://elkronos.github.io/readgpt/reference/gr_chunks.md)
   and
-  [gr_document](https://elkronos.github.io/harnessr/reference/gr_document.md);
+  [gr_document](https://elkronos.github.io/readgpt/reference/gr_document.md);
   anything else (a review stage such as a screening or an extraction, a
   corpus, a comparison, a list of answers) falls back to a plain
   `jsonlite` conversion, in which a trace, answer, chunk set or document
@@ -53,22 +53,21 @@ cleaning steps an ingest ran), which are arrays at every length.
 
 ## See also
 
-[`hr_trace_summary()`](https://elkronos.github.io/harnessr/reference/hr_trace_summary.md),
-[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md)
+[`gr_trace_summary()`](https://elkronos.github.io/readgpt/reference/gr_trace_summary.md),
+[gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md)
 
 ## Examples
 
 ``` r
-cl <- hr_mock_client(function(m, p) "45.2 million dollars")
-ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
-#> Extracting 'annual_report.md' with the 'md' extractor.
-#> Ingested 17 block(s), ~574 tokens (12 chars removed by cleaning).
+cl <- gr_mock_client(function(m, p) "45.2 million dollars")
+ans <- answer_document(readgpt_example(), "What was revenue?", "fast", client = cl)
+#> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).
 
 # The answer plus every prompt and response from the same single run.
 txt <- as_json(ans)
 names(jsonlite::fromJSON(txt))
-#>  [1] "answer"      "outcome"     "reader"      "question"    "partial"    
-#>  [6] "chunks_used" "notes"       "evidence"    "warnings"    "trace"      
+#> [1] "answer"      "reader"      "question"    "partial"     "chunks_used"
+#> [6] "notes"       "evidence"    "warnings"    "trace"      
 ```

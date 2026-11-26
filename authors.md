@@ -7,16 +7,16 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/elkronos/harnessr/blob/main/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/elkronos/readgpt/blob/v0.6.0/DESCRIPTION)
 
-Chase J (2026). *harnessr: Compose, Budget, Cache, Record and Check
-Model Calls*. R package version 0.6.0.9000,
-<https://github.com/elkronos/harnessr>.
+Chase J (2026). *readgpt: Fine-Grained Control Over How LLMs Ingest,
+Segment, and Read Documents*. R package version 0.6.0,
+<https://github.com/elkronos/readgpt>.
 
     @Manual{,
-      title = {harnessr: Compose, Budget, Cache, Record and Check Model Calls},
+      title = {readgpt: Fine-Grained Control Over How LLMs Ingest, Segment, and Read Documents},
       author = {Justin Chase},
       year = {2026},
-      note = {R package version 0.6.0.9000},
-      url = {https://github.com/elkronos/harnessr},
+      note = {R package version 0.6.0},
+      url = {https://github.com/elkronos/readgpt},
     }

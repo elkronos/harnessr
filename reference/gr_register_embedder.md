@@ -15,7 +15,7 @@ gr_register_embedder(name, fn, description = "", deterministic = FALSE)
 
 - name:
 
-  Short id, used as the value of `hr_options(embedder =)` and as the
+  Short id, used as the value of `gr_options(embedder =)` and as the
   `"embedding_source"` recorded on the result.
 
 - fn:
@@ -30,13 +30,13 @@ gr_register_embedder(name, fn, description = "", deterministic = FALSE)
 - description:
 
   One line, shown by
-  [`gr_embedders()`](https://elkronos.github.io/harnessr/reference/gr_embedders.md).
+  [`gr_embedders()`](https://elkronos.github.io/readgpt/reference/gr_embedders.md).
 
 - deterministic:
 
   `TRUE` if the same text always gives the same vector in any session on
   any machine. **Say so only if it is true.** It is what lets a
-  [`hr_replay_client()`](https://elkronos.github.io/harnessr/reference/hr_replay_client.md)
+  [`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md)
   reproduce a run's chunk ranking instead of degrading to lexical
   vectors, and claiming it wrongly turns a replay from a recording into
   a plausible-looking fiction.
@@ -47,11 +47,11 @@ The name, invisibly.
 
 ## See also
 
-[`gr_embedders()`](https://elkronos.github.io/harnessr/reference/gr_embedders.md),
-[`hr_embed()`](https://elkronos.github.io/harnessr/reference/hr_embed.md),
-[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
+[`gr_embedders()`](https://elkronos.github.io/readgpt/reference/gr_embedders.md),
+[`gr_embed()`](https://elkronos.github.io/readgpt/reference/gr_embed.md),
+[`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)
 for `embedder`,
-[`hr_backend_client()`](https://elkronos.github.io/harnessr/reference/hr_backend_client.md)
+[`gr_backend_client()`](https://elkronos.github.io/readgpt/reference/gr_backend_client.md)
 to supply an embedder alongside a transport
 
 ## Examples
@@ -75,13 +75,13 @@ gr_embedders()
 #> 1           api         FALSE
 #> 2 first-letters          TRUE
 #> 3       lexical          TRUE
-#>                                                    description version contract
-#> 1                 Embeddings endpoint on the client's base URL    <NA>     <NA>
-#> 2                                           Toy: letter counts    <NA>     <NA>
-#> 3 Hashed bag-of-words; free, offline, word overlap not meaning    <NA>     <NA>
+#>                                                    description
+#> 1                 Embeddings endpoint on the client's base URL
+#> 2                                           Toy: letter counts
+#> 3 Hashed bag-of-words; free, offline, word overlap not meaning
 
-old <- hr_options(embedder = "first-letters")
-attr(hr_embed(hr_client(), c("alpha", "beta")), "embedding_source")
+old <- gr_options(embedder = "first-letters")
+attr(gr_embed(gr_client(), c("alpha", "beta")), "embedding_source")
 #> [1] "first-letters"
-hr_options(old)
+gr_options(old)
 ```

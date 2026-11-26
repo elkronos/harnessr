@@ -1,7 +1,7 @@
 # Write a review from an extraction table
 
 The last stage. Takes what
-[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
+[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
 found and writes it up section by section, against an outline fixed in
 advance, with every section citing the rows it rests on.
 
@@ -26,12 +26,7 @@ gr_synthesise(
   claims = NULL,
   gaps = NULL,
   trace = NULL,
-  effort = NULL,
-  coherence_rounds = 1L,
-  figure_bands = c(about = 0.1, over = 0.25, under = 0.25),
-  prominence = c(top = 1/3, middle = 1/3),
-  study_weights = NULL,
-  revision_check = c("lexicon", "judge")
+  effort = NULL
 )
 ```
 
@@ -40,20 +35,20 @@ gr_synthesise(
 - extraction:
 
   A `gr_extraction` from
-  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md),
+  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md),
   or a data frame shaped like its `$table`.
 
 - protocol:
 
   A
-  [`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md);
+  [`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md);
   its `outline` and `question` are used unless you give them directly.
 
 - outline:
 
   The sections, as a named character vector: names are headings, values
   say what that section has to cover. As
-  [`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md).
+  [`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md).
   A heading with a blank brief is dropped, unless the claim assignment
   (see `claims`) places claims in it: then its heading is its brief.
 
@@ -92,9 +87,7 @@ gr_synthesise(
   matching forgives. A rendered citation is therefore a fact about the
   extraction rather than something the model asserted.
   `$sections$text_marked` and `$text_marked` keep the marker form so the
-  check can be re-run on the published prose:
-  [`gr_recheck()`](https://elkronos.github.io/harnessr/reference/gr_recheck.md)
-  runs it, and renders the citations again, on an edited copy.
+  check can be re-run on the published prose.
 
 - bib:
 
@@ -104,20 +97,20 @@ gr_synthesise(
   `gr_protocols("bibliography")` works without configuration: `citation`
   (or `cite`, `citation_key`, `cite_key`), `authors` (or `author`),
   `year`, `title`, `venue` (or `journal`) and `doi`, in any case. Names
-  that are as often findings (`date`, `source`, `url`, `published`,
-  `publication`) are not taken for bibliographic ones unless named here.
-  A column found this way is withheld from the writing prompts and used
-  for the citations and references; give a role as `NA` to keep a column
-  of that name as a finding (`bib = list(venue = NA)`). The most
+  that are as often findings – `date`, `source`, `url`, `published`,
+  `publication` – are not taken for bibliographic ones unless named
+  here. A column found this way is withheld from the writing prompts and
+  used for the citations and references; give a role as `NA` to keep a
+  column of that name as a finding (`bib = list(venue = NA)`). The most
   reliable route is a `citation` field asked for during extraction:
   parsing an arbitrary author list is a heuristic, and where it cannot
   be done confidently the run falls back to markers rather than printing
   a name that may be wrong.
 
   Pass the same `bib` to
-  [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md)
+  [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
   and
-  [`gr_gaps()`](https://elkronos.github.io/harnessr/reference/gr_gaps.md).
+  [`gr_gaps()`](https://elkronos.github.io/readgpt/reference/gr_gaps.md).
   The claims model is shown every column its own `bib` did not withhold,
   so a claim, and the moderator it names, can carry a column this
   write-up withholds, and the claims reach the writing prompts as they
@@ -185,30 +178,30 @@ gr_synthesise(
 - claims:
 
   A
-  [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md)
+  [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
   result. With it each section argues that section's claims and sees
   only the studies those claims rest on, rather than being handed every
   study and writing a paragraph per row. Needs an `outline` from
-  [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md),
+  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md),
   which carries the assignment, and it must be an outline derived from
   these same claims: the run stops (`gr_claims_mismatch`) when the
   outline says it came from other claims, and (`gr_claims_unplaced`)
   when the assignment places a claim in a heading the outline does not
-  have, such as a heading renamed after
-  [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md).
-  Rename it in `attr(outline, "claims")$section` too. A section given no
-  claims is written from the rows, as without `claims`, except the
-  closing section, which is written from `gaps` alone and is left out
-  when there are none. A section too large for one prompt is written a
-  few claims at a time, each batch sent only its claims' studies, and
+  have – a heading renamed after
+  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md),
+  say; rename it in `attr(outline, "claims")$section` too. A section
+  given no claims is written from the rows, as without `claims`, except
+  the closing section, which is written from `gaps` alone and is left
+  out when there are none. A section too large for one prompt is written
+  a few claims at a time, each batch sent only its claims' studies, and
   merged.
 
 - gaps:
 
   A
-  [`gr_gaps()`](https://elkronos.github.io/harnessr/reference/gr_gaps.md)
+  [`gr_gaps()`](https://elkronos.github.io/readgpt/reference/gr_gaps.md)
   result, or lines of text. Given to the closing section
-  [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
+  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
   named, `attr(outline, "closing")`, with an instruction to state those
   gaps and no others. When the outline has no such section they reach
   none, and a warning (`gr_gaps_unused`) says so. They are cut, at a
@@ -217,19 +210,19 @@ gr_synthesise(
 
 - trace:
 
-  An
-  [`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md)
+  A
+  [`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md)
   to fold this write-up's accounting into, as in
-  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md).
+  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md).
   It is a parent, not this stage's counter: `$trace` is still the
-  write-up's own, so `hr_options(max_calls =)` bounds the write-up
+  write-up's own, so `gr_options(max_calls =)` bounds the write-up
   rather than being spent by the screening that came before it.
 
 - effort:
 
   Reasoning effort, or `NULL` (the default) to send none: one string, or
   a character vector named by stage, as `effort` in
-  [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md).
+  [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md).
   The calls here are labelled `synthesise.section`, `synthesise.batch`,
   `synthesise.merge` and, with `coherence`,
   `synthesise.revise.structure`, `.cut` and `.register`;
@@ -237,75 +230,6 @@ gr_synthesise(
   sections at high and does the rest at medium. The reasoning counts
   against each call's reply limit (`max_section_tokens` for a section),
   and a section cut off at it is reported as one.
-
-- coherence_rounds:
-
-  How many rounds each `coherence` pass may run: each round revises the
-  text the round before it kept, and the pass stops at the first round
-  that is discarded or changes nothing. Every round is checked as a
-  single pass is, and is a request. A whole number in \[1, 10\]; default
-  1, one round per pass, as before the setting existed. Untested:
-  paper-orchestra runs up to 3 refinement rounds, with no recorded
-  evidence for that number, and nothing has measured more than one round
-  here.
-
-- figure_bands:
-
-  How near a value a qualified figure must be to count as found in the
-  check of figures (see "Figures"): a named numeric vector of `about`
-  (the share either way that "about 1,200" covers), `over` (the share
-  above that "more than 1,000" covers) and `under` (the share below that
-  "fewer than 1,000" covers). Names left out keep their defaults,
-  `c(about = 0.10, over = 0.25, under = 0.25)`, set when the check was
-  written and untested. Each is in \[0, 1\]. The check sends nothing, so
-  this changes what `$figures` reports, never a request.
-
-- prominence:
-
-  How much of the writing prompt's sentence budget the claims of a
-  section get, by rank: `c(top = , middle = )`, the shares of a
-  section's claims (ranked by the sign test of their direction tally,
-  lowest p first, with a claim more of whose studies contradict it than
-  support it last, then by the weight of the studies behind them; see
-  [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
-  "Direction of effect") asked for "two or three sentences" and "one or
-  two sentences"; the rest get "one sentence", and a section of three
-  claims or fewer gives each "two or three". Default
-  `c(top = 1/3, middle = 1/3)`, thirds, set when claims were added and
-  untested. Each share is in \[0, 1\] and the two add up to at most 1.
-  At least one claim is always in the top tier. Used only with `claims`.
-
-- study_weights:
-
-  How much each study counts when claims are ranked, among claims whose
-  sign tests tie (and so which tier each claim gets, see `prominence`):
-  `NULL` (the default) for the package's weight,
-  `0.5 + 0.5 * size + 0.5 * filled`, where `size` is `log1p(n)` over its
-  largest value (the mean of the known ones when `n` is missing) and
-  `filled` the share of a row's filled cells whose quotations verified
-  (0.5 when unknown). That formula is untested, and is not a quality
-  score. Or a function of the studies table (the extraction's included
-  rows, with a `study` column of ids) returning one non-negative number
-  per row. Used only with `claims`.
-
-- revision_check:
-
-  What checks a kept revision pass beyond the citation, figure and
-  length checks. `"lexicon"` (the default) is the word-counting guard
-  against a stronger claim, as before. `"judge"` adds, behind it, a
-  model judge
-  ([`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md),
-  on `model`, its requests held to the run's limits) that grades each
-  sentence the revision changed against the draft sentences it came from
-  (those citing the same study, else the two sharing most of its words):
-  `"holds"`, `"stronger"` (it claims more, as "is associated with"
-  become "reduces") or `"not_entailed"`. It costs one request per
-  changed sentence. The judge is advisory: a flagged sentence is warned
-  about (`gr_revision_flagged`), counted in the `flagged` column of
-  `$coherence` and listed in `$revision_flags`, and the revision is kept
-  as it was. The judge is not validated against people's labels (see
-  [`hr_judge_validate()`](https://elkronos.github.io/harnessr/reference/hr_judge_validate.md)),
-  so its flags are for a person to read. Untested.
 
 ## Value
 
@@ -335,21 +259,14 @@ An object of class `gr_synthesis`:
 
 - `coherence`:
 
-  One row per round of each revision pass, or `NULL` if none ran: `pass`
-  (which of `"structure"`, `"cut"`, `"register"`), `round` (1 unless
-  `coherence_rounds` is more), `ran`, `kept`, `lost` and `added`
-  (citations, if the revision changed them), `reason` for anything
-  discarded, and `words_before` and `words_after` (integer: words of
-  prose, headings and citation markers left out, in the text the pass
-  was given and in its revision; `NA` for a pass that was not sent, or
-  was refused by a check made before the length check, which comes
-  last).
-
-- `revision_flags`:
-
-  Under `revision_check = "judge"` only: one row per sentence a kept
-  revision changed, with `pass`, `round`, `sentence`, `verdict` and the
-  judge's `reason`.
+  One row per revision pass, or `NULL` if none ran: `pass` (which of
+  `"structure"`, `"cut"`, `"register"`), `ran`, `kept`, `lost` and
+  `added` (citations, if the revision changed them), `reason` for
+  anything discarded, and `words_before` and `words_after` (integer:
+  words of prose, headings and citation markers left out, in the text
+  the pass was given and in its revision; `NA` for a pass that was not
+  sent, or was refused by a check made before the length check, which
+  comes last).
 
 - `unrendered`:
 
@@ -404,64 +321,8 @@ An object of class `gr_synthesis`:
   for the revised text when a kept revision pass changed it), `section`
   (the heading it stands under), `sentence`, `number` (as written),
   `studies` (the studies the sentence cites, comma-joined, or NA),
-  `backed`, `basis`, what it was found in (NA when it was not), `field`,
-  the extracted field it reports, as `"n (study 2)"`, when a row's own
-  value of that field is the figure, `pool`, how many distinct values
-  the rows it was checked against hold, and `chance`, the chance of a
-  match among that many by coincidence. See "Figures" below.
-
-- `sentences`:
-
-  Every sentence of the text as published, linked to the records it
-  rests on: `section`, `sentence`, `studies` (the studies it cites,
-  comma-joined, or NA), `verified` (those of them that are verified
-  records: studies with at least one value whose quote verified),
-  `linked` (`TRUE` when it cites at least one verified record; `NA` when
-  the table cannot say) and `flag`: `"cites no study"`,
-  `"cites no verified record"`, or NA. A flag marks nothing partial; it
-  says where to look. With a bare table, a study is a verified record
-  when `n_filled` is above `n_unverified`.
-
-- `uncited`:
-
-  The studies the text as published cites nowhere, from the final cited
-  set (the one the reference list follows): `study`, `document`,
-  `document_id` and `shown`, whether any section's prompt held the
-  study. A study shown and left uncited is one the writer passed over;
-  one not shown was never in front of it. A count, not a quota: nothing
-  asks that every study be cited.
-
-- `contradictions`:
-
-  With `claims`, sentences that state a claim and cite a study on its
-  contradicting side with no hedge ("may", "suggest") and no word of
-  contrast ("however", "mixed"): `section`, `sentence`, `claim_id`,
-  `study`. A sentence states a claim when it stands in a section the
-  claim was given (any claim, under a heading the write-up did not
-  have), points in the claim's direction in one of its clauses and
-  shares at least two content words with it. Found by counting words,
-  with no model; a flag says where to look, and marks nothing partial.
-
-- `section_studies`:
-
-  The studies each section was shown: `section`, `study`.
-  [`gr_recheck()`](https://elkronos.github.io/harnessr/reference/gr_recheck.md)
-  reads it.
-
-- `closing`,`style`,`figure_bands`,`bib_columns`:
-
-  The closing section, the `style` and `figure_bands` given, and the
-  bibliographic columns the run used, which
-  [`gr_recheck()`](https://elkronos.github.io/harnessr/reference/gr_recheck.md)
-  reads.
-
-- `values`:
-
-  Each extracted value of the studies with its check and quote, as
-  `$values` of
-  [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md).
-  The writing prompts show each value with these, the unverified ones
-  marked as such.
+  `backed`, and `basis`, what it was found in (NA when it was not). See
+  "Figures" below.
 
 - `studies`:
 
@@ -471,7 +332,7 @@ An object of class `gr_synthesis`:
 - `claims`:
 
   The
-  [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md)
+  [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
   result written from, or `NULL`. When its `$lost` names studies whose
   claims batch contributed nothing, the run warns (`gr_claims_partial`),
   and print() and the audit report say the review was written without
@@ -486,30 +347,23 @@ An object of class `gr_synthesis`:
 - `outline_alternative`:
 
   Present only when the outline is one of several
-  [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
+  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
   compared (`alternatives` above 1): which one it was, as `alternative`,
   `of` (how many were asked for), `distinct` (how many came back
   distinct) and `distance` from the first proposal. The trace's meta
   records `outline_alternative` and `outline_of` too.
 
-- `outline_trace`:
-
-  Present only when `outline` came from
-  [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md):
-  the trace of the calls that derived it, which this stage's `trace`
-  does not include.
-
 - `trace`:
 
   As
-  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md).
+  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md).
 
 ## Which rows are used
 
 Rows that were never read (`status` `"failed"` or `"skipped"`) are left
 out, and so are duplicates: a study counted twice is the error this
 whole pipeline exists to avoid, and
-[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
+[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
 has already marked them. The number left out is reported by
 [`print()`](https://rdrr.io/r/base/print.html) and is in `$skipped`.
 
@@ -524,9 +378,9 @@ section costs batches + merges instead. Either way the cost is per
 The merge folds every batch draft into one reply of at most
 `max_section_tokens`, the same limit each draft had, so a section
 drafted from a very large table covers only what that one reply can
-hold. Nothing checks that it cites every study (a section need not), but
-without `claims` a batch none of whose studies the merged section cites
-is reported (`gr_synth_batch_dropped`) and marks it partial. Raise
+hold. Nothing checks that it cites every study – a section need not –
+but without `claims` a batch none of whose studies the merged section
+cites is reported (`gr_synth_batch_dropped`) and marks it partial. Raise
 `max_section_tokens`, or divide the table between narrower sections.
 
 ## Figures
@@ -537,31 +391,10 @@ every number in every sentence is looked for in what the writer was
 shown for that sentence: the rows it cites, as the writing prompt showed
 them; the question, the section's heading and brief, `style`, and the
 gaps a closing section was given; and with `claims`, the claims given to
-the section that rest on a cited study. This runs on the draft, and
-again on the revised text when a kept revision pass changed it; it sends
-nothing, so it is always on, and it changes no request.
-
-Each figure found in a row is linked to the field it reports where it
-can: `field` names the field, and the study, whose own value is the
-figure. Each figure also carries `pool`, how many distinct values the
-rows it was checked against hold, and `chance`, the chance that one of
-them matches it by coincidence: `1 - (1 - m / N)^pool`, with `N` the
-count of numbers with as many significant digits as the figure (90 for
-"63") and `m` the forms it is compared in (2 for "63%"). That takes the
-values to be spread evenly, so it is a yardstick, not a measured
-probability. A sentence that cites nothing is checked against every row
-its section was shown, where matches by chance are common, so a figure
-found there counts only when its `chance` is below 0.05 or the sentence
-names, for that figure, the field it matched ("n = 236" for a field `n`
-of 236; a one-letter field just before the figure, a longer name in the
-same clause, so "(n = 410), 57 dropped out" names `n` for 410 and not
-for 57). An uncited "63%" among 40 numbers, with a chance of about 0.59,
-is unbacked; and a figure qualified by "about" or "more than" counts as
-near a row's value only in a sentence that cites the row.
-
-The check is diagnostic only. `backed` marks no section partial, stops
-nothing, and is not a measure of accuracy: no benchmark has validated it
-against a person checking the figures.
+the section that rest on a cited study. A sentence that cites nothing is
+checked against every row its section was shown. This runs on the draft,
+and again on the revised text when a kept revision pass changed it; it
+sends nothing, so it is always on, and it changes no request.
 
 A figure counts as found in any form a faithful copy may give it: `.61`
 for 0.61, `45.20` for 45.2, `1204` for 1,204, `12 450` for 12,450
@@ -582,15 +415,14 @@ column; the number of studies the sentence cites, its section was shown
 or the review was written from, or how many of those rows share a
 field's value ("10 were randomised trials"); or, after "about", "more
 than", "fewer than" and their like, within a tenth (about) or a quarter
-(a bound) of a value it could have come from (`figure_bands` changes
-these shares). Not read as figures: a citation's ids, written bare as
-well ("studies 12 to 15"), a whole number below ten that is not a
-percentage or scaled (a review writes "2 of the trials" as it likes), a
-number joined to a name ("COVID-19", "IL-6"), an ordinal, a decade
-("1990s", "in their 60s"), an interval's level (`95% CI`), a
-significance threshold (`p < .001`, "p value below 0.05") and a
-significance level ("at the 5% level"). Numbers written in words are not
-checked.
+(a bound) of a value it could have come from. Not read as figures: a
+citation's ids, written bare as well ("studies 12 to 15"), a whole
+number below ten that is not a percentage or scaled (a review writes "2
+of the trials" as it likes), a number joined to a name ("COVID-19",
+"IL-6"), an ordinal, a decade ("1990s", "in their 60s"), an interval's
+level (`95% CI`), a significance threshold (`p < .001`, "p value below
+0.05") and a significance level ("at the 5% level"). Numbers written in
+words are not checked.
 
 A figure found nowhere is reported in `$figures` and counted in
 `$sections$n_unbacked`, and the run warns (`gr_synth_unbacked_figures`)
@@ -603,18 +435,16 @@ whether its citations can be trusted, and those are checked apart.
 
 ## See also
 
-[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md),
-[`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md),
-[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md),
-[`gr_recheck()`](https://elkronos.github.io/harnessr/reference/gr_recheck.md)
-to check and render an edited `text_marked` again
+[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md),
+[`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md),
+[`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)
 
 ## Examples
 
 ``` r
 fields <- gr_fields(design = "The study design",
                     n = gr_field("Participants", type = "integer"))
-cl <- hr_mock_client(function(messages, params) {
+cl <- gr_mock_client(function(messages, params) {
   seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
                 collapse = " ")
   if (grepl("<studies>", seen, fixed = TRUE)) "One randomised trial of 120 people [study 1]."
@@ -626,8 +456,8 @@ cl <- hr_mock_client(function(messages, params) {
 f <- tempfile(fileext = ".txt")
 writeLines("We ran a randomised trial. We enrolled 120 people.", f)
 x <- gr_extract(f, fields, client = cl)
-#> [1/1] file1bd0d878a41.txt
-#> Extracting 'file1bd0d878a41.txt' with the 'txt' extractor.
+#> [1/1] file1adb653e8d23.txt
+#> Extracting 'file1adb653e8d23.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~18 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).

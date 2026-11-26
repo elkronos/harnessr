@@ -15,9 +15,9 @@ gr_segment(doc, spec = NULL, client = NULL, trace = NULL)
 - doc:
 
   A `gr_document` from
-  [`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md),
+  [`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md),
   or anything
-  [`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
+  [`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md)
   accepts.
 
 - spec:
@@ -33,13 +33,12 @@ gr_segment(doc, spec = NULL, client = NULL, trace = NULL)
 
   Optional `gr_trace`. When none is given one is made, so the model
   calls a segmenter makes are held to
-  `hr_options(max_calls =, max_cost_usd =)` and recorded, and it is
+  `gr_options(max_calls =, max_cost_usd =)` and recorded, and it is
   returned as `$trace`.
 
 ## Value
 
-A
-[gr_chunks](https://elkronos.github.io/harnessr/reference/gr_chunks.md)
+A [gr_chunks](https://elkronos.github.io/readgpt/reference/gr_chunks.md)
 object. If the requested segmenter could not run it falls back and
 records the fallback in `$method`, e.g. `"semantic->paragraph"` when no
 `client` was supplied. `proposition` and `contextual` chunks carry a
@@ -52,27 +51,23 @@ own with page `NA`, and warns.
 
 ## See also
 
-[`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md),
-[`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md),
-[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md),
-[gr_chunks](https://elkronos.github.io/harnessr/reference/gr_chunks.md)
+[`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md),
+[`gr_segment_spec()`](https://elkronos.github.io/readgpt/reference/gr_segment_spec.md),
+[`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md),
+[gr_chunks](https://elkronos.github.io/readgpt/reference/gr_chunks.md)
 
 Other segmentation functions:
-[`gr_check_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_check_segmenter.md),
-[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md),
-[`gr_chunks`](https://elkronos.github.io/harnessr/reference/gr_chunks.md),
-[`gr_register_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_register_segmenter.md),
-[`gr_seg_boundaries()`](https://elkronos.github.io/harnessr/reference/gr_seg_boundaries.md),
-[`gr_seg_pk()`](https://elkronos.github.io/harnessr/reference/gr_seg_pk.md),
-[`gr_seg_recall()`](https://elkronos.github.io/harnessr/reference/gr_seg_recall.md),
-[`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md),
-[`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md),
-[`new_chunks()`](https://elkronos.github.io/harnessr/reference/new_chunks.md)
+[`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md),
+[`gr_chunks`](https://elkronos.github.io/readgpt/reference/gr_chunks.md),
+[`gr_register_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_register_segmenter.md),
+[`gr_segment_spec()`](https://elkronos.github.io/readgpt/reference/gr_segment_spec.md),
+[`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md),
+[`new_chunks()`](https://elkronos.github.io/readgpt/reference/new_chunks.md)
 
 ## Examples
 
 ``` r
-doc <- gr_ingest(gr_example())
+doc <- gr_ingest(readgpt_example())
 #> Using cached ingestion for this document + settings.
 
 # The same document, three boundary hypotheses. No API calls.

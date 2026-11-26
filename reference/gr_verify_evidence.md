@@ -17,12 +17,12 @@ gr_verify_evidence(answer, chunks = NULL)
 - answer:
 
   A
-  [gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md).
+  [gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md).
 
 - chunks:
 
   The
-  [gr_chunks](https://elkronos.github.io/harnessr/reference/gr_chunks.md)
+  [gr_chunks](https://elkronos.github.io/readgpt/reference/gr_chunks.md)
   the answer was read from. Needed for readers whose evidence is
   verbatim, where the comparison is against the chunk the span claims to
   come from: its `source_text` where the segmenter recorded one (the
@@ -55,10 +55,6 @@ it knows the value. A row the reader marked `verified = FALSE` for that
 reason stays `FALSE` here, with a `match` of 1 when the sentence itself
 is in the document. It is there, and it does not say this.
 
-The `quote_*` columns come from a second matcher, recorded beside
-`verified` and `match` and deciding nothing yet; see "The edit-distance
-score" below.
-
 ## Details
 
 A fabricated citation is more convincing than a fabricated answer,
@@ -74,7 +70,7 @@ introduces. Guillemets and the corner brackets of Chinese and Japanese
 count as quote marks, a full-width letter, digit or number sign as its
 ASCII form, the ideographic space as a space, and a letter written with
 combining accents (as macOS tools write text) as the accented letter,
-for Latin, Greek, Cyrillic and Korean letters. harnessr does no other
+for Latin, Greek, Cyrillic and Korean letters. readgpt does no other
 Unicode normalisation, so a quotation that differs from its document
 only in how some other letter is encoded is reported unverified, never
 verified by mistake. It has to match whole words and whole numbers: "5%"
@@ -127,37 +123,6 @@ quotation left at all, only shared vocabulary. A run measure is still
 the right one: word overlap cannot tell a quotation from a paraphrase
 assembled out of the same words.
 
-## The edit-distance score
-
-The run measure above cannot be given a threshold, because the same edit
-scores differently by where it falls. A second matcher is recorded next
-to it for every span, so the two can be compared on real runs before the
-default changes. It normalises both sides further than the check above:
-ligatures and the long s expanded, JSON escapes undone, soft hyphens and
-zero-width characters dropped, every full-width ASCII form folded, and a
-word broken across a line with a hyphen joined, as is any hyphen between
-two letters. It then finds the window of the source that the fewest
-character edits turn the quotation into.
-
-`quote_sim` is 1 minus those edits over the longer of the quotation and
-the window, so it falls by the same step for each edit wherever it
-falls. `quote_coverage` is the share of the quotation's words found in
-order in the window, `quote_edits` the count, and `quote_critical_ok`
-whether its numbers (with sign, a comparison sign before them and unit,
-such as "-12%", "\< 0.05" or "45.2 million"), numbers written in words
-("twelve") and negations are the window's, exactly. `quote_status` is
-`"verbatim"` for no edit; `"near_verbatim"` for a similarity of at least
-0.90 (0.95 under 40 characters; see `near_verbatim_sim` in
-[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md))
-with the critical tokens identical and five words or more;
-`"unverified"` otherwise; and `"not_checked"` where there was nothing to
-compare, or where a passage was too long to score: the edit table has a
-cell for each pair of characters, and a passage whose length times the
-source's is over 5e7 is skipped. A quotation split by an elision or a
-blank line takes the worst of its passages. `near_verbatim` is not
-verified: a changed word that is not a number or a negation ("Sheffield"
-for "Leipzig") can stay above the threshold.
-
 ## Citations
 
 With `cite = TRUE` a reader asks the model to mark its sources as
@@ -171,15 +136,15 @@ answer `partial` too.
 
 ## See also
 
-[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md),
-[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md),
-[`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md)
+[gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md),
+[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md),
+[`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md)
 
 ## Examples
 
 ``` r
 # A model that quotes faithfully.
-honest <- hr_mock_client(function(messages, params) {
+honest <- gr_mock_client(function(messages, params) {
   txt <- messages[[length(messages)]]$content
   if (grepl("You extract evidence", messages[[1]]$content, fixed = TRUE)) {
     return("Revenue rose to 45.2 million dollars.")
@@ -194,14 +159,12 @@ ch <- gr_segment(gr_ingest(doc), list(method = "paragraph", max_tokens = 40))
 ans <- gr_read(ch, "What was revenue?", honest, "skim")
 #> Reading with 'skim' (all|N+1|none) over 1 chunk(s).
 gr_verify_evidence(ans)
-#>   chunk_id      kind verified match quote_status quote_sim quote_coverage
-#> 1        1 extracted     TRUE     1     verbatim         1              1
-#>   quote_edits quote_critical_ok                                  span
-#> 1           0              TRUE Revenue rose to 45.2 million dollars.
+#>   chunk_id      kind verified match                                  span
+#> 1        1 extracted     TRUE     1 Revenue rose to 45.2 million dollars.
 
 # A model that invents one. The span is fluent, plausible, and not in the
 # document. That is exactly the case a reader cannot catch by eye.
-liar <- hr_mock_client(function(messages, params) {
+liar <- gr_mock_client(function(messages, params) {
   if (grepl("You extract evidence", messages[[1]]$content, fixed = TRUE)) {
     return("Revenue rose to 88.9 billion dollars on record demand.")
   }
@@ -210,10 +173,8 @@ liar <- hr_mock_client(function(messages, params) {
 bad <- gr_read(ch, "What was revenue?", liar, "skim")
 #> Reading with 'skim' (all|N+1|none) over 1 chunk(s).
 gr_verify_evidence(bad)
-#>   chunk_id      kind verified match quote_status quote_sim quote_coverage
-#> 1        1 extracted    FALSE 0.333   unverified    0.6792         0.4444
-#>   quote_edits quote_critical_ok
-#> 1          17             FALSE
+#>   chunk_id      kind verified match
+#> 1        1 extracted    FALSE 0.333
 #>                                                     span
 #> 1 Revenue rose to 88.9 billion dollars on record demand.
 bad$partial

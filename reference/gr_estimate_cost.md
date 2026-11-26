@@ -5,12 +5,7 @@ Estimate the USD cost of a set of calls
 ## Usage
 
 ``` r
-gr_estimate_cost(
-  model,
-  input_tokens,
-  output_tokens = 0,
-  cached_input_tokens = 0
-)
+gr_estimate_cost(model, input_tokens, output_tokens = 0)
 ```
 
 ## Arguments
@@ -23,12 +18,6 @@ gr_estimate_cost(
 
   Token counts (scalars or vectors; vectors are summed).
 
-- cached_input_tokens:
-
-  How many of `input_tokens` the provider served from its prompt cache.
-  They are priced at the model's `cached_input_usd` when it has one, and
-  as other input tokens when it does not.
-
 ## Value
 
 A single numeric USD figure, or `NA_real_` when the model has no pricing
@@ -36,28 +25,25 @@ in the registry, or no output price and `output_tokens` above zero (an
 embedding model's missing output price counts as zero, since it produces
 no output tokens). Pricing is seeded from the registry's `as_of`
 snapshot. Treat it as an estimate, and use
-[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
+[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md)
 to correct it.
 
 ## See also
 
-[`gr_model_info()`](https://elkronos.github.io/harnessr/reference/gr_model_info.md),
-[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md),
-[`gr_trace_summary()`](https://elkronos.github.io/harnessr/reference/gr_trace_summary.md)
+[`gr_model_info()`](https://elkronos.github.io/readgpt/reference/gr_model_info.md),
+[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md),
+[`gr_trace_summary()`](https://elkronos.github.io/readgpt/reference/gr_trace_summary.md)
 
 Other cost and token functions:
-[`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md),
-[`gr_count_tokens()`](https://elkronos.github.io/harnessr/reference/gr_count_tokens.md),
-[`gr_model_info()`](https://elkronos.github.io/harnessr/reference/gr_model_info.md),
-[`gr_model_limits()`](https://elkronos.github.io/harnessr/reference/gr_model_limits.md),
-[`gr_models()`](https://elkronos.github.io/harnessr/reference/gr_models.md),
-[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md),
-[`gr_set_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_set_tokenizer.md),
-[`gr_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_tokenizer.md),
-[`gr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/gr_truncate_tokens.md),
-[`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md),
-[`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md),
-[`hr_truncate()`](https://elkronos.github.io/harnessr/reference/hr_truncate.md)
+[`gr_budget()`](https://elkronos.github.io/readgpt/reference/gr_budget.md),
+[`gr_count_tokens()`](https://elkronos.github.io/readgpt/reference/gr_count_tokens.md),
+[`gr_model_info()`](https://elkronos.github.io/readgpt/reference/gr_model_info.md),
+[`gr_model_limits()`](https://elkronos.github.io/readgpt/reference/gr_model_limits.md),
+[`gr_models()`](https://elkronos.github.io/readgpt/reference/gr_models.md),
+[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md),
+[`gr_set_tokenizer()`](https://elkronos.github.io/readgpt/reference/gr_set_tokenizer.md),
+[`gr_tokenizer()`](https://elkronos.github.io/readgpt/reference/gr_tokenizer.md),
+[`gr_truncate_tokens()`](https://elkronos.github.io/readgpt/reference/gr_truncate_tokens.md)
 
 ## Examples
 

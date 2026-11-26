@@ -25,13 +25,13 @@ gr_gaps(
 - claims:
 
   A
-  [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md)
+  [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
   result.
 
 - extraction:
 
   The
-  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
+  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
   result the claims came from. Only its `$fields` is used, and only to
   learn which categories were *declared*; without it a category nobody
   studied is indistinguishable from one nobody thought of.
@@ -49,11 +49,11 @@ gr_gaps(
 - bib:
 
   Which columns carry bibliographic identity, as in
-  [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md)
+  [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
   and
-  [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md).
-  They are not dimensions of the evidence ("every study reports
-  'Lancet'" is not a gap in a literature), and a gap line goes to the
+  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md).
+  They are not dimensions of the evidence – "every study reports
+  'Lancet'" is not a gap in a literature – and a gap line goes to the
   writing model, which is never told who wrote a study. The columns
   `claims` withheld are left out whatever this says; `bib` adds to them.
 
@@ -64,16 +64,16 @@ A data frame of class `gr_gaps`: `kind`, `dimension`, `detail`, `n`.
 ## Details
 
 No model is called.
-[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
+[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
 takes the result as `gaps =` and hands it to the closing section with an
 instruction to state these and no others, which is what keeps the
 written gap list attached to the table.
 
 ## See also
 
-[`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
-[`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md),
-[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
+[`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md),
+[`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md),
+[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
 
 ## Examples
 
@@ -82,7 +82,7 @@ tab <- data.frame(document = c("a.pdf", "b.pdf"), status = "ok",
                   duplicate_of = NA_character_, n_filled = 1L, n_unverified = 0L,
                   conflicts = NA_character_, design = c("cohort", "cohort"),
                   stringsAsFactors = FALSE)
-cl <- hr_mock_client(function(messages, params) paste0(
+cl <- gr_mock_client(function(messages, params) paste0(
   '{"claims":[{"claim":"One cohort found it.","kind":"finding","supported_by":[1],',
   '"contradicted_by":[],"moderator":null,"scope":"one study"}]}'))
 cm <- gr_claims(tab, question = "Does it work?", client = cl)

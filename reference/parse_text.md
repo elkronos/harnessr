@@ -49,29 +49,29 @@ A character vector of chunk texts.
 
 ## See also
 
-[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md),
-[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md),
-[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md)
+[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md),
+[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md),
+[`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md)
 
 Other v1 compatibility:
-[`answer_question()`](https://elkronos.github.io/harnessr/reference/answer_question.md),
-[`gpt_read_chunked()`](https://elkronos.github.io/harnessr/reference/gpt_read_chunked.md),
-[`gpt_read_hierarchical()`](https://elkronos.github.io/harnessr/reference/gpt_read_hierarchical.md),
-[`gpt_read_multipass()`](https://elkronos.github.io/harnessr/reference/gpt_read_multipass.md),
-[`gpt_read_retrieval()`](https://elkronos.github.io/harnessr/reference/gpt_read_retrieval.md)
+[`answer_question()`](https://elkronos.github.io/readgpt/reference/answer_question.md),
+[`gpt_read_chunked()`](https://elkronos.github.io/readgpt/reference/gpt_read_chunked.md),
+[`gpt_read_hierarchical()`](https://elkronos.github.io/readgpt/reference/gpt_read_hierarchical.md),
+[`gpt_read_multipass()`](https://elkronos.github.io/readgpt/reference/gpt_read_multipass.md),
+[`gpt_read_retrieval()`](https://elkronos.github.io/readgpt/reference/gpt_read_retrieval.md)
 
 ## Examples
 
 ``` r
 # v1 style, still works, warns once.
-length(suppressWarnings(parse_text(gr_example(), chunk_token_limit = 200)))
+length(suppressWarnings(parse_text(readgpt_example(), chunk_token_limit = 200)))
 #> Extracting 'annual_report.md' with the 'md' extractor.
 #> Ingested 17 block(s), ~574 tokens (12 chars removed by cleaning).
 #> Segmenting with 'paragraph' (cap 200 tokens, overlap 0).
 #> [1] 4
 
 # The modern equivalent, which also reports what it did.
-gr_chunk_stats(gr_segment(gr_ingest(gr_example()),
+gr_chunk_stats(gr_segment(gr_ingest(readgpt_example()),
                           list(method = "paragraph", max_tokens = 200)))
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 200 tokens, overlap 0).

@@ -1,7 +1,7 @@
 # Decide which documents a review should read
 
 The stage before
-[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md).
+[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md).
 One model call per document, a decision and a reason for every one, and
 nothing dropped on the way.
 
@@ -24,9 +24,6 @@ gr_screen(
   keep_answers = FALSE,
   recursive = FALSE,
   trace = NULL,
-  criteria_schema = c("decision", "per_criterion"),
-  samples = 1L,
-  sample_rule = c("include_if_any", "majority"),
   ...
 )
 ```
@@ -36,13 +33,13 @@ gr_screen(
 - sources:
 
   As
-  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md):
+  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md):
   file paths, a directory, or raw text.
 
 - protocol:
 
   A
-  [`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md)
+  [`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md)
   carrying the criteria and the review question. Give this, or
   `include`/`exclude` directly.
 
@@ -56,7 +53,7 @@ gr_screen(
   keep_answers:
 
   As
-  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md).
+  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md).
 
 - screen_tokens:
 
@@ -75,55 +72,18 @@ gr_screen(
 - max_total_calls, trace:
 
   As
-  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md).
+  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md).
   Pass the same `trace` to
-  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
+  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
   and
-  [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
+  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
   and it accumulates the whole review, while each stage keeps its own
   for its own cost and its own ceiling.
-
-- criteria_schema:
-
-  What each screening reply holds. `"decision"` (the default) asks for a
-  decision, a reason, the deciding criterion and a quote, as before.
-  `"per_criterion"` also asks, for every criterion, whether the excerpt
-  shows it `"met"`, `"not_met"` or `"not_reported"`, and adds a
-  `criteria_status` column to the table (`"criterion: status"` pairs,
-  separated by `"; "`). An exclusion then needs an inclusion criterion
-  `"not_met"` or an exclusion criterion `"met"`: a reply that excludes
-  with none of either, as when a criterion is not reported and none is
-  not met, is recorded as `"unclear"`, for a person to decide, with a
-  reason that says so. It changes the request (the schema and the
-  criteria message). Untested.
-
-- samples:
-
-  How many times each document's screening request is sent, from 1
-  to 20. At 1 (the default) it is sent once, as before. Above 1 it is
-  sent that many times, each a separate draw (a cache keeps each), and
-  the draws are combined by `sample_rule`; the table gains
-  `sample_decisions` (each draw's decision, `"none"` for one not read)
-  and `include_share` (the share of draws read that included). It
-  multiplies the screening requests by `samples`. In run r of
-  [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
-  the draws are numbered (r - 1) \* samples + 1 to r \* samples, so each
-  run sends its own draws. Untested.
-
-- sample_rule:
-
-  How draws are combined when `samples` is above 1. `"include_if_any"`
-  (the default) includes a document any draw included, excludes one only
-  when every draw was read and excluded it, and sends the rest to a
-  person as `"unclear"`, so a study one draw would keep is not lost to
-  the others. `"majority"` takes the decision most draws gave,
-  `"unclear"` on a tie. The reason, criterion and quote are the first
-  draw's that gave the decision kept. Untested.
 
 - ...:
 
   Recipe overrides, as in
-  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md).
+  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md).
 
 ## Value
 
@@ -140,43 +100,22 @@ An object of class `gr_screening`:
   The distinct sources whose decision was `"include"` (the paths, not
   the display labels). Duplicates are left out; they are the same study,
   and `table` still has their rows.
-  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
+  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
   takes this, but prefer handing it the whole screening object: a
   character vector of paths cannot carry the search, so
   `gr_extract(screened)` keeps it and `gr_extract(screened$included)`
   does not.
 
-- `forward`:
-
-  The distinct sources kept for full text: `"include"` and `"unclear"`.
-  An unclear record is a deferral, not an exclusion, so this is the set
-  a review should read next. In this release `gr_extract(screened)`
-  still reads `included`, and warns (class `gr_unclear_dropped`) when
-  that leaves unclear records out; from the next release it reads
-  `forward`.
-
-- `deferred`:
-
-  The distinct sources whose decision was `"unclear"`: the ones a person
-  still has to decide, with
-  [`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md).
-
-- `sources`:
-
-  Every source, one per row of `table`, so that
-  [`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md)
-  can rebuild the sets above.
-
 - `records`:
 
   The
-  [`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md)
+  [`gr_records()`](https://elkronos.github.io/readgpt/reference/gr_records.md)
   the run was made over, or `NULL`.
 
 - `summary`,`answers`,`trace`,`store`:
 
   As
-  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md).
+  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md).
 
 ## Three decisions, not two
 
@@ -222,18 +161,18 @@ breakdown of exclusions by criterion, which is what a flow diagram asks
 for; every one names a criterion of the protocol. Duplicates were
 removed before screening, so `sum(!is.na(x$table$duplicate_of))` is the
 "duplicates removed" count and every one of them still has a row; see
-[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md).
+[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md).
 
 ## See also
 
-[`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md),
-[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md),
-[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
+[`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md),
+[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md),
+[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
 
 ## Examples
 
 ``` r
-cl <- hr_mock_client(function(messages, params) {
+cl <- gr_mock_client(function(messages, params) {
   '{"decision":"include","reason":"Reports a randomised comparison.",
     "criterion":"Reports a randomised comparison",
     "quote":"We randomly assigned participants to two groups."}'
@@ -244,12 +183,12 @@ writeLines("We randomly assigned participants to two groups.", f)
 
 s <- gr_screen(f, question = "Does the treatment work?",
                include = "Reports a randomised comparison", client = cl)
-#> [1/1] file1bd017708191.txt
-#> Extracting 'file1bd017708191.txt' with the 'txt' extractor.
+#> [1/1] file1adb5202d57b.txt
+#> Extracting 'file1adb5202d57b.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~15 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'screen' (head|1|none) over 1 chunk(s).
 s$table[, c("document", "decision", "reason")]
 #>               document decision                           reason
-#> 1 file1bd017708191.txt  include Reports a randomised comparison.
+#> 1 file1adb5202d57b.txt  include Reports a randomised comparison.
 ```

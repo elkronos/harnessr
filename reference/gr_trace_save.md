@@ -1,9 +1,9 @@
 # Save a trace to a file
 
 Writes the trace as JSON, in the form
-[`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md)
+[`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md)
 produces. The file is everything
-[`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
+[`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md)
 needs, so this is how a run leaves the session it happened in.
 
 ## Usage
@@ -28,15 +28,15 @@ gr_trace_save(trace, path)
 
 ## See also
 
-[`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md),
-[`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md),
-[`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)
+[`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md),
+[`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md),
+[`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md)
 
 ## Examples
 
 ``` r
 cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
+ans <- answer_document(readgpt_example(), "What was revenue?", "fast", client = cl)
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).

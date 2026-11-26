@@ -1,6 +1,6 @@
 # Resolve the API key
 
-Looks in `key`, then the `harnessr.api_key` option, then
+Looks in `key`, then the `readgpt.api_key` option, then
 `OPENAI_API_KEY`. Never prints or logs the key.
 
 ## Usage
@@ -34,10 +34,10 @@ fail as a transport error that never mentions the key.
 
 A run that would have to send a request without a key stops with a
 `gr_auth_error` that says how to set one.
-[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
-[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
+[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md),
+[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
 and
-[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
 check before reading the document, so a missing key does not first cost
 an OCR pass; everything else stops at the first request. A client that
 sends its credential in `headers`, a mock, a backend or replay client,
@@ -45,7 +45,7 @@ and a client with a response cache attached are not affected.
 
 ## See also
 
-[`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md)
+[`gr_client()`](https://elkronos.github.io/readgpt/reference/gr_client.md)
 
 ## Examples
 
@@ -62,7 +62,7 @@ gr_api_key("sk-explicit-wins")
 # request; see the section above.
 Sys.unsetenv("OPENAI_API_KEY")
 tryCatch(gr_api_key(), gr_auth_error = function(e) conditionMessage(e))
-#> [1] "No API key. Set OPENAI_API_KEY, or options(harnessr.api_key = '...'), or pass `api_key` to gr_client()."
+#> [1] "No API key. Set OPENAI_API_KEY, or options(readgpt.api_key = '...'), or pass `api_key` to gr_client()."
 
 # Restore. Sys.setenv(x = NA) would leave the variable set to "NA", not unset.
 if (!is.na(previous)) Sys.setenv(OPENAI_API_KEY = previous)
