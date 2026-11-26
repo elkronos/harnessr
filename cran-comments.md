@@ -23,7 +23,7 @@ NOTE and skipped the CRAN incoming check. That check gives the second NOTE.
   sub-directories of 1Mb or more:
     doc    2.5Mb
     help   1.1Mb
-    R      3.1Mb
+    R      3.0Mb
   ```
 
   The R code and the guides in `doc` make up most of it.
