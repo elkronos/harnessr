@@ -29,7 +29,7 @@ gr_register_extractor(name, extensions, fn, description = "")
 - description:
 
   One-line description shown by
-  [`gr_extractors()`](https://elkronos.github.io/readgpt/reference/gr_extractors.md).
+  [`gr_extractors()`](https://elkronos.github.io/harnessr/reference/gr_extractors.md).
 
 ## Value
 
@@ -37,18 +37,18 @@ Invisibly, `name`.
 
 ## See also
 
-[`gr_extractors()`](https://elkronos.github.io/readgpt/reference/gr_extractors.md),
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md),
-[`gr_register_cleaner()`](https://elkronos.github.io/readgpt/reference/gr_register_cleaner.md)
+[`gr_extractors()`](https://elkronos.github.io/harnessr/reference/gr_extractors.md),
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md),
+[`gr_register_cleaner()`](https://elkronos.github.io/harnessr/reference/gr_register_cleaner.md)
 
 Other ingest functions:
-[`gr_clean()`](https://elkronos.github.io/readgpt/reference/gr_clean.md),
-[`gr_cleaners()`](https://elkronos.github.io/readgpt/reference/gr_cleaners.md),
-[`gr_document`](https://elkronos.github.io/readgpt/reference/gr_document.md),
-[`gr_extractors()`](https://elkronos.github.io/readgpt/reference/gr_extractors.md),
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md),
-[`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md),
-[`gr_register_cleaner()`](https://elkronos.github.io/readgpt/reference/gr_register_cleaner.md)
+[`gr_clean()`](https://elkronos.github.io/harnessr/reference/gr_clean.md),
+[`gr_cleaners()`](https://elkronos.github.io/harnessr/reference/gr_cleaners.md),
+[`gr_document`](https://elkronos.github.io/harnessr/reference/gr_document.md),
+[`gr_extractors()`](https://elkronos.github.io/harnessr/reference/gr_extractors.md),
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md),
+[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md),
+[`gr_register_cleaner()`](https://elkronos.github.io/harnessr/reference/gr_register_cleaner.md)
 
 ## Examples
 
@@ -60,6 +60,6 @@ gr_register_extractor("tsv", "tsv", description = "TSV, one block per row",
     data.frame(text = apply(d, 1, paste, collapse = " | "), kind = "table")
   })
 subset(gr_extractors(), name == "tsv")
-#>     name extensions            description needs available
-#> tsv  tsv        tsv TSV, one block per row            TRUE
+#>     name extensions            description needs available version contract
+#> tsv  tsv        tsv TSV, one block per row            TRUE    <NA>     <NA>
 ```

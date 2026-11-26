@@ -4,9 +4,9 @@ Axis 2 is a registry, so "where does meaning break in this document?" is
 a question you can answer for your own material rather than choosing
 from a fixed list. A registered segmenter is a first-class one: it
 appears in
-[`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md),
+[`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md),
 can be named in a
-[`gr_recipe()`](https://elkronos.github.io/readgpt/reference/gr_recipe.md),
+[`gr_recipe()`](https://elkronos.github.io/harnessr/reference/gr_recipe.md),
 and goes through the same token-cap enforcement and reporting as the
 built-ins.
 
@@ -18,7 +18,8 @@ gr_register_segmenter(
   fn,
   description = "",
   cost = c("free", "embedding", "llm"),
-  needs_client = FALSE
+  needs_client = FALSE,
+  calls = NULL
 )
 ```
 
@@ -33,18 +34,18 @@ gr_register_segmenter(
 
   Function of `(doc, spec, client, trace)` returning a `gr_chunks`.
   Build the return value with
-  [`new_chunks()`](https://elkronos.github.io/readgpt/reference/new_chunks.md);
-  [`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
+  [`new_chunks()`](https://elkronos.github.io/harnessr/reference/new_chunks.md);
+  [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
   rejects anything else. `doc` is a
-  [gr_document](https://elkronos.github.io/readgpt/reference/gr_document.md);
+  [gr_document](https://elkronos.github.io/harnessr/reference/gr_document.md);
   `spec` carries `max_tokens`, `overlap_tokens` and `min_tokens`, which
-  [pack_units-style](https://elkronos.github.io/readgpt/reference/new_chunks.md)
+  [pack_units-style](https://elkronos.github.io/harnessr/reference/new_chunks.md)
   helpers respect for you.
 
 - description:
 
   One-line description, shown by
-  [`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md).
+  [`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md).
 
 - cost:
 
@@ -54,10 +55,10 @@ gr_register_segmenter(
 - needs_client:
 
   Whether the segmenter requires a client.
-  [`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md)
+  [`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md)
   reports it, so a UI can check before offering the strategy. When
   `TRUE` and no client is supplied,
-  [`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
+  [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
   calls `fn` and then warns with class `"gr_segment_fallback"`, unless
   `fn` raised a warning of that class itself, so one fallback gives one
   warning. Raising your own is better, because it can name what `fn`
@@ -65,7 +66,15 @@ gr_register_segmenter(
   `warning(warningCondition("No client; using 'paragraph'.", class = "gr_segment_fallback"))`.
   Record the downgrade in the returned `method` (`"mine->paragraph"`) so
   it survives into
-  [`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md).
+  [`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md).
+
+- calls:
+
+  The stems of the trace labels the segmenter's model calls carry, such
+  as `"mine.rewrite"`; `character(0)` for one that makes none. An
+  `effort` map may only name declared stems (see
+  [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)).
+  `NULL` (the default) declares the segmenter's name.
 
 ## Value
 
@@ -73,20 +82,24 @@ Invisibly, `name`.
 
 ## See also
 
-[`new_chunks()`](https://elkronos.github.io/readgpt/reference/new_chunks.md)
+[`new_chunks()`](https://elkronos.github.io/harnessr/reference/new_chunks.md)
 to build the return value,
-[`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md),
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md),
-[`gr_segment_spec()`](https://elkronos.github.io/readgpt/reference/gr_segment_spec.md),
-[`gr_recipe()`](https://elkronos.github.io/readgpt/reference/gr_recipe.md)
+[`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md),
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md),
+[`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md),
+[`gr_recipe()`](https://elkronos.github.io/harnessr/reference/gr_recipe.md)
 
 Other segmentation functions:
-[`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md),
-[`gr_chunks`](https://elkronos.github.io/readgpt/reference/gr_chunks.md),
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md),
-[`gr_segment_spec()`](https://elkronos.github.io/readgpt/reference/gr_segment_spec.md),
-[`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md),
-[`new_chunks()`](https://elkronos.github.io/readgpt/reference/new_chunks.md)
+[`gr_check_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_check_segmenter.md),
+[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md),
+[`gr_chunks`](https://elkronos.github.io/harnessr/reference/gr_chunks.md),
+[`gr_seg_boundaries()`](https://elkronos.github.io/harnessr/reference/gr_seg_boundaries.md),
+[`gr_seg_pk()`](https://elkronos.github.io/harnessr/reference/gr_seg_pk.md),
+[`gr_seg_recall()`](https://elkronos.github.io/harnessr/reference/gr_seg_recall.md),
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md),
+[`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md),
+[`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md),
+[`new_chunks()`](https://elkronos.github.io/harnessr/reference/new_chunks.md)
 
 ## Examples
 
@@ -99,6 +112,6 @@ gr_register_segmenter("by_bullet", description = "one chunk per bullet",
     new_chunks(units, "by_bullet", spec)
   })
 subset(gr_segmenters(), name == "by_bullet")
-#>        name cost needs_client          description
-#> 1 by_bullet free        FALSE one chunk per bullet
+#>        name cost needs_client          description     calls version contract
+#> 1 by_bullet free        FALSE one chunk per bullet by_bullet    <NA>     <NA>
 ```

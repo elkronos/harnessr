@@ -12,7 +12,11 @@ gr_cleaners()
 ## Value
 
 A data frame with `name`, `stage`, `scope`, `default_on` and
-`description`.
+`description`. The last two columns are `version` and `contract`, `NA`
+for a cleaner registered with
+[`gr_register_cleaner()`](https://elkronos.github.io/harnessr/reference/gr_register_cleaner.md)
+and filled for one registered with
+[`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md).
 
 ## Details
 
@@ -22,25 +26,35 @@ hyphen ("placebo-" / "controlled"); it keeps the hyphen when the
 document writes the compound whole somewhere, and otherwise joins the
 two halves. `headers_footers` finds running heads by where they stand on
 their pages (a PDF's, form feeds in text, or `.pages` given to
-[`gr_clean()`](https://elkronos.github.io/readgpt/reference/gr_clean.md));
+[`gr_clean()`](https://elkronos.github.io/harnessr/reference/gr_clean.md));
 without pages it takes a short line with a letter in it repeated at the
 edge of its block, so a label that is a block of its own and recurs can
 go with them.
 
+`references` cuts at a References, Bibliography or Works cited heading
+on its own line, indented or not, since PDF and plain text indent
+headings. In Markdown a line indented four or more spaces is code, not a
+heading, so for a Markdown file (`.source_type` `"md"`, which
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
+gives when the md extractor read the file) the heading may be indented
+three spaces at most. Text passed to
+[`gr_clean()`](https://elkronos.github.io/harnessr/reference/gr_clean.md)
+without `.source_type` is treated as PDF and plain text are.
+
 ## See also
 
-[`gr_clean()`](https://elkronos.github.io/readgpt/reference/gr_clean.md),
-[`gr_register_cleaner()`](https://elkronos.github.io/readgpt/reference/gr_register_cleaner.md),
-[`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md)
+[`gr_clean()`](https://elkronos.github.io/harnessr/reference/gr_clean.md),
+[`gr_register_cleaner()`](https://elkronos.github.io/harnessr/reference/gr_register_cleaner.md),
+[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md)
 
 Other ingest functions:
-[`gr_clean()`](https://elkronos.github.io/readgpt/reference/gr_clean.md),
-[`gr_document`](https://elkronos.github.io/readgpt/reference/gr_document.md),
-[`gr_extractors()`](https://elkronos.github.io/readgpt/reference/gr_extractors.md),
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md),
-[`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md),
-[`gr_register_cleaner()`](https://elkronos.github.io/readgpt/reference/gr_register_cleaner.md),
-[`gr_register_extractor()`](https://elkronos.github.io/readgpt/reference/gr_register_extractor.md)
+[`gr_clean()`](https://elkronos.github.io/harnessr/reference/gr_clean.md),
+[`gr_document`](https://elkronos.github.io/harnessr/reference/gr_document.md),
+[`gr_extractors()`](https://elkronos.github.io/harnessr/reference/gr_extractors.md),
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md),
+[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md),
+[`gr_register_cleaner()`](https://elkronos.github.io/harnessr/reference/gr_register_cleaner.md),
+[`gr_register_extractor()`](https://elkronos.github.io/harnessr/reference/gr_register_extractor.md)
 
 ## Examples
 
@@ -67,7 +81,7 @@ gr_cleaners()
 #> 3                                                                                                                         Drop running heads and feet: short lines repeated at the top or bottom of many pages, or at the edge of blocks where pages are not known
 #> 4  Rejoin words split across line breaks by PDF layout ('mito-\\nchondria', 'LIA-\\nBLE' in capitals); a compound the document writes with its hyphen elsewhere ('follow-up') keeps it; number ranges ('18-\\n65') and compounds ('Anglo-\\nSaxon') are left alone
 #> 5                                                                                                                           Drop decorated page-number lines ('Page 4', '- 12 -', '[12]', and '12.' unless the line before runs on into it); bare numbers are kept
-#> 6                                                                                                                                                                                  Drop a trailing bibliography, from a References/Bibliography heading to the end
+#> 6                                                                                                      Drop a trailing bibliography, from a References/Bibliography heading to the end; in a Markdown file a line indented 4 or more spaces is code, not a heading
 #> 7                                                                                                                                                                                                          Remove URLs (OFF by default: URLs are often the answer)
 #> 8                                                                                                                                                                                                     Transliterate to ASCII (drops accents and non-Latin scripts)
 #> 9                                                                                                                                                    Collapse runs of spaces/tabs and 2+ consecutive blank lines, and trim block edges; preserves paragraph breaks
@@ -76,6 +90,21 @@ gr_cleaners()
 #> 12                                                                                                                                                                                                     Lowercase everything (loses proper-noun and acronym signal)
 #> 13                                                                                                                                                        Replace every digit with a space. OFF by default: this makes figures, dates and percentages unanswerable
 #> 14                                                                                                                                                                                   Replace punctuation with spaces. OFF by default: destroys sentence boundaries
+#>    version contract
+#> 1     <NA>     <NA>
+#> 2     <NA>     <NA>
+#> 3     <NA>     <NA>
+#> 4     <NA>     <NA>
+#> 5     <NA>     <NA>
+#> 6     <NA>     <NA>
+#> 7     <NA>     <NA>
+#> 8     <NA>     <NA>
+#> 9     <NA>     <NA>
+#> 10    <NA>     <NA>
+#> 11    <NA>     <NA>
+#> 12    <NA>     <NA>
+#> 13    <NA>     <NA>
+#> 14    <NA>     <NA>
 # The steps the "standard" preset runs:
 subset(gr_cleaners(), default_on)$name
 #> [1] "hyphenation"         "page_numbers"        "collapse_whitespace"

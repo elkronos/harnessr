@@ -19,8 +19,12 @@ gr_protocols(name = NULL)
 ## Value
 
 With `name`, a
-[`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md).
-Without, a data frame of `name`, `question` and `description`.
+[`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md).
+Without, a data frame of `name`, `question`, `description`, `version`
+and `contract`; the last two are `NA` for a protocol registered with
+[`gr_register_protocol()`](https://elkronos.github.io/harnessr/reference/gr_register_protocol.md)
+and filled for one registered with
+[`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md).
 
 ## Details
 
@@ -51,9 +55,9 @@ Without, a data frame of `name`, `question` and `description`.
 
 ## See also
 
-[`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md),
-[`gr_register_protocol()`](https://elkronos.github.io/readgpt/reference/gr_register_protocol.md),
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+[`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md),
+[`gr_register_protocol()`](https://elkronos.github.io/harnessr/reference/gr_register_protocol.md),
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 
 ## Examples
 
@@ -69,6 +73,11 @@ gr_protocols()
 #> 2 Coded where studies must be compared, verbatim where they must be quoted. The input a claims-level synthesis needs.
 #> 3                                                   One row per study. The table is the output; there is no write-up.
 #> 4                                            A template in the shape a PRISMA-style report expects. Edit every field.
+#>   version contract
+#> 1    <NA>     <NA>
+#> 2    <NA>     <NA>
+#> 3    <NA>     <NA>
+#> 4    <NA>     <NA>
 gr_protocols("bibliography")$fields
 #> <gr_fields> 5 field(s)
 #>   title          string    The document's own title, exactly as it is printed on it

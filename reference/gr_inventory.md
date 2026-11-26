@@ -27,18 +27,18 @@ gr_inventory(
 - recursive:
 
   Descend into subdirectories. `TRUE` here, unlike
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md),
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md),
   because the point of the function is to show you everything.
 
 - model:
 
-  Model id used for the cost floor. Defaults to `gr_options("model")`.
+  Model id used for the cost floor. Defaults to `hr_options("model")`.
 
 - ocr_min_chars:
 
   A PDF page with fewer than this many characters of extractable text is
   counted as needing OCR. Read exactly as
-  [`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md)
+  [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md)
   reads it, default included, so what this predicts is what ingestion
   will do.
 
@@ -67,7 +67,7 @@ An object of class `gr_inventory`:
   (pages with no text layer, estimated from the sampled pages when not
   every page was read, which `note` then says), `tokens`, `note`, and
   `path`, the file as found, to hand on to
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md).
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md).
 
 - `by_status`:
 
@@ -95,15 +95,15 @@ No file can stop the survey. A folder is surveyed because nobody knows
 what is in it yet, so a corrupt PDF, a binary file wearing a `.txt`
 extension, a broken symlink or anything else unforeseen becomes a row
 saying so, not an error. That is the same contract
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 gives a corpus run.
 
 ## Details
 
 Run it before
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 or
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 on anything you have not read before. The three things it exists to
 catch are the three that turn a corpus run into a confident wrong
 answer: files no extractor claims (which would otherwise be dropped
@@ -119,7 +119,7 @@ files to recipes here, and that is deliberate: a router that quietly
 reads one document with `retrieve` and another with `stuff` gives you a
 plausible answer built on part of a file with nothing saying so, and it
 makes
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 meaningless because the corpus no longer had *a* configuration. Group
 the rows yourself (`split(inv$files, inv$files$folder)` is usually all
 it takes) and pass each group to the recipe you chose.
@@ -142,17 +142,21 @@ magnitude (to tell four dollars from four hundred), not to be a quote.
 
 ## See also
 
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md),
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md),
-[`gr_extractors()`](https://elkronos.github.io/readgpt/reference/gr_extractors.md),
-[`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md)
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md),
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md),
+[`gr_extractors()`](https://elkronos.github.io/harnessr/reference/gr_extractors.md),
+[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md)
 for the OCR settings this predicts
 
 Other corpus functions:
-[`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md),
-[`gr_records()`](https://elkronos.github.io/readgpt/reference/gr_records.md),
-[`gr_reference()`](https://elkronos.github.io/readgpt/reference/gr_reference.md),
-[`gr_search()`](https://elkronos.github.io/readgpt/reference/gr_search.md)
+[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md),
+[`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md),
+[`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md),
+[`gr_reference_consensus()`](https://elkronos.github.io/harnessr/reference/gr_reference_consensus.md),
+[`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md),
+[`gr_screen_sample_size()`](https://elkronos.github.io/harnessr/reference/gr_screen_sample_size.md),
+[`gr_search()`](https://elkronos.github.io/harnessr/reference/gr_search.md),
+[`gr_search_recall()`](https://elkronos.github.io/harnessr/reference/gr_search_recall.md)
 
 ## Examples
 
@@ -163,7 +167,7 @@ writeLines("notes", file.path(d, "notes.doc"))   # no extractor claims .doc
 
 inv <- gr_inventory(d)
 inv
-#> <gr_inventory> /tmp/Rtmp2qFCu5/file1adb77dc58ea
+#> <gr_inventory> /tmp/RtmpbXiJnA/file1c1cc1b8c1d
 #>   2 file(s), 44.0 B; 1 readable
 #>   1 ready, 1 no_extractor
 #>   tokens: 16   cost floor: $0.01 (gpt-5.6-terra, one call per document)

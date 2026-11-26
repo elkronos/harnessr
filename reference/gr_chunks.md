@@ -1,9 +1,9 @@
 # A set of document chunks
 
 Returned by
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md).
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md).
 Summarise with
-[`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md).
+[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md).
 
 ## Fields
 
@@ -11,7 +11,15 @@ Summarise with
 
   Data frame, one row per chunk, with columns `chunk_id`, `text`,
   `tokens`, `chars`, `page`, `section`, `block_id`, and sometimes
-  `source_text`.
+  `source_text`, `table_id` and `table_rows`.
+
+- `chunks$table_id`, `chunks$table_rows`:
+
+  Set by `paragraph` for a document with a table: the table a chunk's
+  rows come from (its number in the document, as in the blocks of
+  [`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md))
+  and which rows, as `"2-21"`. `NA` for a chunk with no table row, or
+  with rows of two tables. Provenance only: nothing is added to `text`.
 
 - `chunks$source_text`:
 
@@ -25,7 +33,7 @@ Summarise with
   quote. A chunk split to fit the token cap keeps the `source_text` of
   the chunk it was cut from. A custom segmenter that writes into `text`
   should set it with
-  [`new_chunks()`](https://elkronos.github.io/readgpt/reference/new_chunks.md)'s
+  [`new_chunks()`](https://elkronos.github.io/harnessr/reference/new_chunks.md)'s
   `source_text`, or quotes are checked against what it wrote.
 
 - `method`:
@@ -37,7 +45,7 @@ Summarise with
 - `spec`:
 
   The
-  [`gr_segment_spec()`](https://elkronos.github.io/readgpt/reference/gr_segment_spec.md)
+  [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md)
   used.
 
 - `extra`:
@@ -53,50 +61,54 @@ Summarise with
 - `trace`:
 
   Set only when
-  [`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
-  was called without a `trace` and so made its own: the
-  [gr_trace](https://elkronos.github.io/readgpt/reference/gr_trace.md)
+  [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
+  was called without a `trace` and so made its own: the `gr_trace` (see
+  [`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md))
   it recorded into, holding the requests the segmenter made (embeddings
   for `semantic`, model calls for `proposition` and for `contextual`
   with `context_source = "llm"`), which were held to
-  `gr_options(max_calls =, max_cost_usd =)`. When a `trace` is passed
+  `hr_options(max_calls =, max_cost_usd =)`. When a `trace` is passed
   they are recorded there instead, and this field is absent.
 
 ## Methods
 
 [`print()`](https://rdrr.io/r/base/print.html) shows the method, the
 chunk count and the token distribution;
-[`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md)
+[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md)
 returns the same as a one-row data frame you can `rbind`;
-[`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md)
+[`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md)
 serialises the spec, the stats and every chunk.
 
 ## See also
 
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
 which returns one,
-[`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md),
-[`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md),
-[`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md),
-[`new_chunks()`](https://elkronos.github.io/readgpt/reference/new_chunks.md)
+[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md),
+[`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md),
+[`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md),
+[`new_chunks()`](https://elkronos.github.io/harnessr/reference/new_chunks.md)
 to build one in a custom segmenter
 
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md),
-[`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md),
-[`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md)
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md),
+[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md),
+[`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md)
 
 Other segmentation functions:
-[`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md),
-[`gr_register_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_register_segmenter.md),
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md),
-[`gr_segment_spec()`](https://elkronos.github.io/readgpt/reference/gr_segment_spec.md),
-[`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md),
-[`new_chunks()`](https://elkronos.github.io/readgpt/reference/new_chunks.md)
+[`gr_check_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_check_segmenter.md),
+[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md),
+[`gr_register_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_register_segmenter.md),
+[`gr_seg_boundaries()`](https://elkronos.github.io/harnessr/reference/gr_seg_boundaries.md),
+[`gr_seg_pk()`](https://elkronos.github.io/harnessr/reference/gr_seg_pk.md),
+[`gr_seg_recall()`](https://elkronos.github.io/harnessr/reference/gr_seg_recall.md),
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md),
+[`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md),
+[`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md),
+[`new_chunks()`](https://elkronos.github.io/harnessr/reference/new_chunks.md)
 
 ## Examples
 
 ``` r
-ch <- gr_segment(readgpt_example(), list(method = "sentence", max_tokens = 120))
+ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 120))
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'sentence' (cap 120 tokens, overlap 0).
 ch$method

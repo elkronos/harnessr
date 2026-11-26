@@ -2,7 +2,7 @@
 
 A goal, expressed as the fields you want filled. Each argument is either
 a description (a string field) or a
-[`gr_field()`](https://elkronos.github.io/readgpt/reference/gr_field.md).
+[`gr_field()`](https://elkronos.github.io/harnessr/reference/gr_field.md).
 
 ## Usage
 
@@ -30,9 +30,9 @@ description rather than from the model.
 
 ## See also
 
-[`gr_field()`](https://elkronos.github.io/readgpt/reference/gr_field.md),
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md),
-[`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md)
+[`gr_field()`](https://elkronos.github.io/harnessr/reference/gr_field.md),
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md),
+[`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md)
 
 ## Examples
 

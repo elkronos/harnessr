@@ -14,7 +14,7 @@ gr_chunk_stats(chunks)
 - chunks:
 
   A
-  [gr_chunks](https://elkronos.github.io/readgpt/reference/gr_chunks.md)
+  [gr_chunks](https://elkronos.github.io/harnessr/reference/gr_chunks.md)
   object.
 
 ## Value
@@ -26,21 +26,25 @@ on; that difference is the duplication overlap buys you.
 
 ## See also
 
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md),
-[`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md)
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md),
+[`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md)
 
 Other segmentation functions:
-[`gr_chunks`](https://elkronos.github.io/readgpt/reference/gr_chunks.md),
-[`gr_register_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_register_segmenter.md),
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md),
-[`gr_segment_spec()`](https://elkronos.github.io/readgpt/reference/gr_segment_spec.md),
-[`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md),
-[`new_chunks()`](https://elkronos.github.io/readgpt/reference/new_chunks.md)
+[`gr_check_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_check_segmenter.md),
+[`gr_chunks`](https://elkronos.github.io/harnessr/reference/gr_chunks.md),
+[`gr_register_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_register_segmenter.md),
+[`gr_seg_boundaries()`](https://elkronos.github.io/harnessr/reference/gr_seg_boundaries.md),
+[`gr_seg_pk()`](https://elkronos.github.io/harnessr/reference/gr_seg_pk.md),
+[`gr_seg_recall()`](https://elkronos.github.io/harnessr/reference/gr_seg_recall.md),
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md),
+[`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md),
+[`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md),
+[`new_chunks()`](https://elkronos.github.io/harnessr/reference/new_chunks.md)
 
 ## Examples
 
 ``` r
-doc <- gr_ingest(readgpt_example())
+doc <- gr_ingest(gr_example())
 #> Using cached ingestion for this document + settings.
 
 # What overlap actually costs, before any model call.

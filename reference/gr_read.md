@@ -4,7 +4,7 @@ The third axis. Reading is a separate decision from segmentation because
 the call pattern (which chunks reach the model, in how many requests,
 and whether anything flows between them) is where both cost and answer
 quality are actually decided. The same chunk set can be read many ways;
-[`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md)
+[`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md)
 lists them with what each costs.
 
 ## Usage
@@ -18,7 +18,7 @@ gr_read(chunks, question, client, spec = NULL, trace = NULL)
 - chunks:
 
   A `gr_chunks` object from
-  [`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md).
+  [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md).
 
 - question:
 
@@ -39,37 +39,40 @@ gr_read(chunks, question, client, spec = NULL, trace = NULL)
 ## Value
 
 A
-[gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md).
+[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md).
 Check `$partial` before trusting `$answer`.
 
 ## See also
 
-[`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md),
-[`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md),
-[gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md),
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
+[`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md),
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
+[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md),
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
 
 Other reading functions:
-[`gr_answer`](https://elkronos.github.io/readgpt/reference/gr_answer.md),
-[`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md),
-[`gr_reader_signature()`](https://elkronos.github.io/readgpt/reference/gr_reader_signature.md),
-[`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md),
-[`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md),
-[`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md),
-[`new_answer()`](https://elkronos.github.io/readgpt/reference/new_answer.md)
+[`gr_answer`](https://elkronos.github.io/harnessr/reference/gr_answer.md),
+[`gr_check_reader()`](https://elkronos.github.io/harnessr/reference/gr_check_reader.md),
+[`gr_methods_text()`](https://elkronos.github.io/harnessr/reference/gr_methods_text.md),
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
+[`gr_reader_signature()`](https://elkronos.github.io/harnessr/reference/gr_reader_signature.md),
+[`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md),
+[`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md),
+[`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md),
+[`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md),
+[`new_answer()`](https://elkronos.github.io/harnessr/reference/new_answer.md)
 
 ## Examples
 
 ``` r
-ch <- gr_segment(readgpt_example(), list(method = "sentence", max_tokens = 120))
+ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 120))
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'sentence' (cap 120 tokens, overlap 0).
 
 # The same chunks, two strategies, two very different call patterns. Each gets
 # its own client and trace, so the call counts are comparable.
 run <- function(reader, ...) {
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-  tr <- gr_trace()
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  tr <- hr_trace()
   a <- gr_read(ch, "What was revenue?", cl, c(list(reader = reader), list(...)), trace = tr)
   data.frame(reader = a$reader, signature = a$signature,
              calls = length(cl$calls()), chunks_used = length(a$chunks_used))
