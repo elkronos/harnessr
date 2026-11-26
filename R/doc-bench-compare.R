@@ -394,6 +394,9 @@ recipe_cost <- function(steps) {
 #' registry entry is a fact. `NA` for a cost of no request.
 #' @noRd
 cost_prices <- function(cost) {
+  # A request that failed before it sent a token costs nothing whatever its
+  # model, so a missing price on its model leaves the cost known.
+  if (!is.null(cost) && nrow(cost)) cost <- cost[!(cost$priced %in% FALSE & cost$usd %in% 0), ]
   if (is.null(cost) || !nrow(cost)) return(list(priced = NA, as_of = NA_character_,
                                                 certain = NA))
   months <- cost$as_of[cost$priced %in% TRUE & !is.na(cost$as_of)]

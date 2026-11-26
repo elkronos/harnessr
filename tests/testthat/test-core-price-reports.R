@@ -271,3 +271,50 @@ test_that("hr_effort_check() gives each arm's price columns", {
   expect_identical(costs$priced, c(TRUE, FALSE))
   expect_identical(costs$as_of, c("2026-11", NA))
 })
+
+test_that("a free failed request to an unpriced model leaves a run's cost priced", {
+  local_registries()
+  local_mocked_bindings(price_today = function() as.Date("2026-12-01"))
+  pr_price("pr-priced", "2026-11")
+  ref <- hr_reference(items = list(q1 = "France", q2 = "Peru"), labels = c("Paris", "Lima"),
+                      cluster = c("a", "b"), split = "test")
+  cl <- hr_mock_client(function(messages, params) {
+    if (grepl("France", messages[[1]]$content)) "Paris" else "Lima"
+  })
+  # An embeddings request to a model with no price fails before it sends a
+  # token, which costs nothing, then a priced call.
+  arm <- hr_arm("a", function(item, ctx) {
+    harnessr:::trace_record(ctx$trace, "embed.request", list(list(role = "user", content = "q")),
+                            harnessr:::gr_result(FALSE, error = "HTTP 404", status = 404L,
+                                                 model = "pr-emb-unpriced"),
+                            embedding = TRUE)
+    ctx$call(paste0("Capital of ", item), model = "pr-priced")$text
+  })
+  b <- suppressWarnings(hr_benchmark(list(arm), ref, runs = 2, client = cl,
+                                     governor = hr_governor(max_calls = 100)))
+  cost <- hr_trace_cost(attr(b, "traces")[[1]])
+  expect_identical(cost$usd[cost$model == "pr-emb-unpriced"], 0)
+  expect_false(cost$priced[cost$model == "pr-emb-unpriced"])
+  expect_true(all(b$priced))
+  expect_true(all(b$as_of == "2026-11"))
+  expect_false(anyNA(b$usd))
+  rep <- suppressWarnings(hr_report(b, B = 100))
+  expect_identical(rep$cost$priced, TRUE)
+  expect_false(any(grepl("No price set", rep$notes, fixed = TRUE)))
+  expect_false(any(grepl("no price set", capture.output(print(rep)), fixed = TRUE)))
+
+  # The judge's cost and gr_compare()'s rows read the same rule.
+  jt <- hr_trace()
+  harnessr:::trace_record(jt, "embed.request", list(list(role = "user", content = "q")),
+                          harnessr:::gr_result(FALSE, error = "HTTP 404", status = 404L,
+                                               model = "pr-emb-unpriced"), embedding = TRUE)
+  pr_record(jt, "pr-priced")
+  jc <- harnessr:::judge_steps_cost(jt, 0L)
+  expect_true(jc$priced)
+  expect_identical(jc$as_of, "2026-11")
+  expect_true(harnessr:::cost_prices(hr_trace_cost(jt))$priced)
+  # A cost that is unknown still counts as unpriced.
+  pr_record(jt, "pr-emb-unpriced")
+  expect_false(harnessr:::judge_steps_cost(jt, 0L)$priced)
+  expect_false(harnessr:::cost_prices(hr_trace_cost(jt))$priced)
+})

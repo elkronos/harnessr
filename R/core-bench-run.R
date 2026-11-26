@@ -329,7 +329,11 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
           col$draw_index[k] <- r
           col$ledger_id[k] <- child$run_id
           col$self_judged[k] <- self_judged(child, scorer$judge_model)
-          prices <- price_summary(cost$model)
+          # A request that failed before it sent a token costs nothing whatever
+          # its model (hr_trace_cost()), so a missing price on its model leaves
+          # the cost known and is not counted as unpriced.
+          billed <- !(cost$priced %in% FALSE & cost$usd %in% 0)
+          prices <- price_summary(cost$model[billed])
           pr$priced[k] <- prices$priced
           pr$as_of[k] <- prices$as_of
           pr$certain[k] <- prices$certain

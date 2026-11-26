@@ -502,7 +502,11 @@ judge_steps_cost <- function(jt, from) {
   tmp$steps <- steps
   cost <- hr_trace_cost(tmp)
   tok <- function(f) sum(vapply(steps, function(s) as_int1(s$tokens[[f]], 0L), integer(1)))
-  prices <- price_summary(cost$model)
+  # A request that failed before it sent a token costs nothing whatever
+  # its model (hr_trace_cost()), so a missing price on its model leaves
+  # the cost known and is not counted as unpriced.
+  billed <- !(cost$priced %in% FALSE & cost$usd %in% 0)
+  prices <- price_summary(cost$model[billed])
   list(usd = if (nrow(cost)) sum(cost$usd) else 0, tokens_in = tok("input"),
        tokens_out = tok("output"), calls = length(steps),
        # Where the prices came from, and the model(s) priced.
