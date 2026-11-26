@@ -12,11 +12,11 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
 Read this page if you have code written for readgpt, the package's name up to
-version 0.6.0, or for its first version (v1). Each table lists an old name,
-the name that replaced it and what to change in your code. None of the old
-names has an alias: calling an old function stops with "could not find
-function". One section has no table: built-in models now carry no prices, so
-you set the prices you pay.
+version 0.6.0, or for its first version (v1), and want it to run on harnessr
+0.7.0. Each table lists an old name, the name that replaced it and what to
+change in your code. None of the old names has an alias: calling an old
+function stops with "could not find function". One section has no table: from
+0.7.0 built-in models carry no prices, so you set the prices you pay.
 `NEWS.md` lists every change release by release.
 
 The files listed under "What still loads", at the end of this page, still
@@ -97,7 +97,7 @@ hr_options(old)
 ## From readgpt 0.6.0: the package, options and other removed names
 
 harnessr was called readgpt up to version 0.6.0, and so was its GitHub
-repository. The rename itself changes no request or key. This release does
+repository. The rename itself changes no request or key. harnessr 0.7.0 does
 move the response cache to the key `harnessr-cache-v3` and replay to
 `harnessr-replay-v2`; "What still loads" says how old entries are found.
 
@@ -112,9 +112,9 @@ move the response cache to the key `harnessr-cache-v3` and replay to
 
 ## From readgpt 0.6.0: models carry no prices
 
-readgpt 0.6.0 shipped a price for each built-in model. harnessr ships their
-limits and no prices, because providers change prices more often than the
-package is released. Three things change for code written for 0.6.0:
+readgpt 0.6.0 shipped a price for each built-in model. harnessr 0.7.0 ships
+their limits and no prices, because providers change prices more often than
+the package is released. Three things change for code written for 0.6.0:
 
 - A cost for a built-in model is `NA` until you set its prices. That holds for
   `hr_estimate_cost()`, `hr_trace_cost()` and every other report of a cost in
