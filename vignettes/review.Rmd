@@ -112,8 +112,8 @@ gr_read_many(reports, "What was revenue?", "thorough",
              client = durable, store = file.path(tempdir(), "run-store"))
 ```
 
-The store is keyed on the document's path, size and mtime, the question, the
-whole pipeline and the model. An edited document is therefore read again, and
+The store is keyed on the document's path, size and a hash of its bytes, the
+question, the whole pipeline and the model. An edited document is therefore read again, and
 never served from the store. A later session reuses the store or cache of an
 `hr_backend_client()` only if you give that client a stable `id`;
 `hr_client()` and `hr_ellmer_client()` identify themselves.
