@@ -447,6 +447,7 @@
 "preflight_limit","core","function"
 "price_age_days","core","function"
 "price_today","core","function"
+"price_warn","core","function"
 "price_warning_first","core","function"
 "print.gr_backend_client","core","function"
 "print.gr_cache","core","function"

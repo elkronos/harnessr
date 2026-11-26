@@ -22,6 +22,15 @@ price_warning_first <- function(kind, model) {
   TRUE
 }
 
+#' Raise a price warning. Like gr_warn(), with no call: the function that
+#' raised it is internal, and the request or cost it is about is the user's.
+#' @noRd
+price_warn <- function(msg, class, ...) {
+  warning(structure(class = c(class, "gr_warning", "warning", "condition"),
+                    list(message = msg, call = NULL, ...)))
+  invisible(NULL)
+}
+
 #' Today's date, for the age of a price. A function of its own so that tests
 #' can move the date with testthat::local_mocked_bindings().
 #' @noRd
@@ -41,7 +50,7 @@ price_age_days <- function(as_of, today = price_today()) {
 #' @noRd
 warn_unpriced_model <- function(model, limit) {
   if (!price_warning_first("unpriced", model)) return(invisible(NULL))
-  gr_warn(sprintf(paste0(
+  price_warn(sprintf(paste0(
     "Model '%s' has no price set, so the $%s spending limit (max_cost_usd) does not cover ",
     "its requests: they are sent, and the trace records their cost as NA. Set its prices ",
     "with hr_register_model(input_usd =, output_usd =) or hr_load_models(). Token and call ",
@@ -62,7 +71,7 @@ warn_stale_price <- function(model, info) {
   age <- price_age_days(info$as_of)
   if (is.na(age) || age <= max_age) return(invisible(NULL))
   if (!price_warning_first("stale", model)) return(invisible(NULL))
-  gr_warn(sprintf(paste0(
+  price_warn(sprintf(paste0(
     "The prices of model '%s' are as of %s, %s days ago, more than the %s days of ",
     "hr_options(price_max_age_days =). Check your provider's current prices and set them with ",
     "hr_register_model(input_usd =, output_usd =) or hr_load_models(). ",
