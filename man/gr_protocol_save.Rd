@@ -39,7 +39,7 @@ In a C locale, or a Windows session in a single-byte code page, a criterion
 with an accent or a symbol in it (the greater-than-or-equal sign of "aged
 18 or over") was written as the text "<U+2265>", or as a byte no other
 machine reads as that letter, and a correct file read in a C locale came
-back as "\if{html}{\out{<e2>}}<89>\if{html}{\out{<a5>}}": the criteria then sent to the screening model and
+back as \code{"<e2><89><a5>"}: the criteria then sent to the screening model and
 printed in the audit report.
 }
 \examples{
