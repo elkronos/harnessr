@@ -11,10 +11,10 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-This page lists every setting in harnessr, stage by stage, and the building
-blocks those settings choose between. harnessr builds the tables from
-`gr_settings_table()` and the registries when the page is built, so they match
-the installed code.
+This page lists every setting in harnessr: the core's first, then the
+document layer's, stage by stage, and last the building blocks the document
+settings choose between. harnessr builds the tables from `gr_settings_table()`
+and the registries when the page is built, so they match the installed code.
 
 A setting with a walkthrough links to it. The walkthrough is a section of a
 guide that covers what the setting trades off, the signs that you should
@@ -24,7 +24,10 @@ change it, where its default came from and how to test a change.
 library(harnessr)
 old <- hr_options(verbose = FALSE, embedder = "lexical")
 settings <- gr_settings_table()
-table(settings$stage, settings$tier)[unique(settings$stage), ]
+core <- c("options", "evaluate")
+stages <- unique(settings$stage)
+stages <- c(intersect(core, stages), setdiff(stages, core))
+table(settings$stage, settings$tier)[stages, ]
 ```
 
 ## Reading the tables
@@ -46,11 +49,12 @@ Each row is one setting, and these columns describe it:
 full help, see `?gr_read_spec`, `?gr_segment_spec`, `?gr_ingest_spec` and
 `?hr_options`.
 
-You give a setting where its stage takes it. Ingest, segment and read
-settings go in a spec (`gr_read_spec(top_k = 4)`), in a recipe, or by name to
-`answer_document()`, `gr_read_many()` and `gr_arm()`, which put each on the
-step it belongs to. Review and evaluation settings are arguments of their
-functions. You set options for the session with `hr_options()`.
+You give a setting where its stage takes it. You set options for the session
+with `hr_options()`, and evaluation settings are arguments of their functions.
+Ingest, segment and read settings go in a spec (`gr_read_spec(top_k = 4)`), in
+a recipe, or by name to `answer_document()`, `gr_read_many()` and `gr_arm()`,
+which put each on the step it belongs to. Review settings are arguments of
+their functions.
 
 To find out whether a value works better on your documents, build one arm per
 value with `hr_sweep()` and compare the arms with `hr_benchmark()` and
@@ -76,7 +80,45 @@ show_settings <- function(stage) {
 }
 ```
 
-## Ingest
+## Core settings
+
+These settings belong to the core: the session options every call reads, and
+the arguments of the functions that measure configurations.
+
+### Options
+
+Session settings. You set them with `hr_options()`, and a run reads them when
+it starts. Most apply to every call, with or without a document; a few, such
+as `cache_documents` and `embedder`, serve the document layer. Each core guide
+covers its own: the model, endpoint, retries and actor in `vignette("core")`,
+prices and the token counter in `vignette("models")`, the safety margin and
+the reply's reserve in `vignette("context")`, the reasoning floor in
+`vignette("effort")`, and the limits in `vignette("runs")`.
+
+```{r echo = FALSE}
+show_settings("options")
+```
+
+### Evaluation
+
+The arguments of `hr_benchmark()`, `hr_report()`, `hr_judge()`,
+`gr_compare()`, `hr_error_correlation()` and `hr_step_command()`.
+`vignette("evaluate")` and `vignette("compare")` cover them, and "A governor
+for one run" in `vignette("runs")` covers the `governor` a benchmark is held
+to. `gr_compare()` belongs to the document layer and is listed here with the
+other comparisons.
+
+```{r echo = FALSE}
+show_settings("evaluate")
+```
+
+## Document settings
+
+The document layer's settings, in the order a run meets its stages. A
+document run also reads the core options above: its requests are calls like
+any other, under the same model, limits and token counter.
+
+### Ingest
 
 These settings control what comes out of a file: cleaning, OCR, the PDF
 layout pass, and the floor on how much text must survive. The entries of
@@ -87,7 +129,7 @@ layout pass, and the floor on how much text must survive. The entries of
 show_settings("ingest")
 ```
 
-## Segment
+### Segment
 
 harnessr cuts the text into chunks with these settings. `vignette("segment")`
 covers them.
@@ -96,17 +138,19 @@ covers them.
 show_settings("segment")
 ```
 
-## Read
+### Read
 
 With these settings you choose how the model reads the chunks. The stage
 also holds the ones `gr_read_many()` adds for a folder. `vignette("readers")`
-covers them.
+covers them. `effort`, `effort_mode` and `context_policy` hand a read the
+core's effort and context rules, which `vignette("effort")` and
+`vignette("context")` explain.
 
 ```{r echo = FALSE}
 show_settings("read")
 ```
 
-## Screening
+### Screening
 
 The arguments of these functions, which `vignette("review")` covers:
 
@@ -120,7 +164,7 @@ The arguments of these functions, which `vignette("review")` covers:
 show_settings("screen")
 ```
 
-## Extraction
+### Extraction
 
 The arguments of `gr_extract()`. The recipe settings you pass to it in `...`
 are the ingest and segment settings above.
@@ -129,7 +173,7 @@ are the ingest and segment settings above.
 show_settings("extract")
 ```
 
-## Synthesis
+### Synthesis
 
 The arguments of `gr_claims()`, `gr_outline()`, `gr_gaps()` and
 `gr_synthesise()`.
@@ -138,29 +182,10 @@ The arguments of `gr_claims()`, `gr_outline()`, `gr_gaps()` and
 show_settings("synthesise")
 ```
 
-## Evaluation
-
-The arguments of `hr_benchmark()`, `hr_report()`, `hr_judge()`,
-`gr_compare()`, `hr_error_correlation()` and `hr_step_command()`.
-`vignette("evaluate")` and `vignette("compare")` cover them.
-
-```{r echo = FALSE}
-show_settings("evaluate")
-```
-
-## Options
-
-Session settings. You set them with `hr_options()`, and a run reads them when
-it starts. `vignette("runs")` covers the limits.
-
-```{r echo = FALSE}
-show_settings("options")
-```
-
 ## Building blocks
 
-Some settings choose a module from a registry: `extractor`, `clean`, `method`,
-`reader`, `hr_options(embedder = )`, and the recipe you give
+Some document settings choose a module from a registry: `extractor`, `clean`,
+`method`, `reader`, `hr_options(embedder = )`, and the recipe you give
 `answer_document()`. The tables below show the registries as installed, so a
 module you register with `gr_register_reader()` or another `gr_register_*()`
 function (`vignette("extending")`) appears in them too.
@@ -248,6 +273,8 @@ hr_options(old)
 
 - `vignette("harnessr")`: the basic settings of each stage, and when to
   change each.
+- `vignette("core")`: the core guides, and what a call does with the options
+  above.
 - `vignette("compare")`: how to test a setting on a reference with dev and
   test splits, and read the result with intervals.
 - `?gr_settings_table`: how the table is built, and its columns.
