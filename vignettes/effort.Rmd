@@ -726,8 +726,8 @@ harnessr did before the setting existed; the settings table marks it
 `untested`. No one has compared escalation with a fixed effort here, and
 `hr_effort_check()` makes that comparison.
 
-**How to test it.** Here `refine` reads the example report, a reference of
-one question about it, with a stand-in reasoning model that, at low effort,
+**How to test it.** `qa` below holds one question about the example report.
+`refine` reads the report with a stand-in reasoning model that, at low effort,
 finds nothing in the first chunk, where `refine` drafts its answer:
 
 ```{r}
