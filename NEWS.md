@@ -98,6 +98,20 @@ before `premise`, which stays last).
   settings walkthroughs cover `unknown_model_action`, `allow_unpriced`,
   `price_max_age_days` and `tokenizer`, and `gr_settings_table()` links those
   options to them.
+* New guide, `vignette("context")` ("Context: budgets, fitting and
+  cutting"), in the Core group. It covers how much room a prompt has
+  (`hr_budget()` and its guarantees), fitting named pieces into it
+  (`hr_context_fit()`, `hr_context_policy()`), cutting one piece with each
+  keep rule (`hr_truncate()`, `hr_truncate_tokens()`), and the cuts the trace
+  records, with one overflowing report under five policies. It says that
+  harnessr does not summarise a conversation, and shows a summary built as a
+  step. Its settings walkthroughs cover `safety_margin`,
+  `output_reserve_share` and `min_output_tokens`, and `gr_settings_table()`
+  links those options to them.
+* `?hr_budget` gives the default reply reserve as `output_reserve_share` of
+  the usable window rather than a fixed quarter, and says that a reserve
+  leaving no input room, an explicit one included, drops to
+  `min_output_tokens` before the error.
 * `?gr_result` lists every field a result carries, including `cached`,
   `served_model`, `response_id`, `fingerprint`, `attempts` and, for a
   request the limits did not send, `refused` and `refusal`.
