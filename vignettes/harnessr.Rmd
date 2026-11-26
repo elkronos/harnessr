@@ -521,7 +521,7 @@ Here are the ones that matter first, with their defaults and when to change each
 
 `vignette("settings")` lists all 228 with their defaults and where each
 default came from, and `gr_settings_table()` returns them in R. The settings
-page links each important one to a walkthrough at the end of one of seven guides.
+page links each important one to a walkthrough at the end of one of eight guides.
 Each walkthrough says what the setting trades off, the signs that point to
 changing it and how to test a change. To compare the values of a setting,
 `hr_sweep()` builds one arm per value, as `vignette("compare")` shows.
@@ -542,6 +542,8 @@ hr_options(old)
 
 - `vignette("core")`: the calls underneath every guide here: clients, what a
   call returns, the trace, structured replies and errors by class.
+- `vignette("models")`: what harnessr knows about a model, the prices you set,
+  cost estimates and token counts.
 - `vignette("ingest")`: getting text out of PDFs, Word files, web pages and
   scans, and cleaning it.
 - `vignette("segment")`: cutting documents into chunks, and comparing chunkings
