@@ -6,8 +6,8 @@ template:
 articles:
 - title: Get started
   desc: >
-    The ideas, installing, connecting a model, and a first question checked
-    from start to finish.
+    The ideas, installing, connecting a model, the core in brief, and a first
+    question about a document checked from start to finish.
   contents:
   - harnessr
 

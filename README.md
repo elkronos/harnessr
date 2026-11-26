@@ -3,24 +3,35 @@
 [![R-CMD-check](https://github.com/elkronos/harnessr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/elkronos/harnessr/actions/workflows/R-CMD-check.yaml)
 [![tests](https://github.com/elkronos/harnessr/actions/workflows/tests.yaml/badge.svg)](https://github.com/elkronos/harnessr/actions/workflows/tests.yaml)
 
-For one document, `answer_document()` picks an ingest, a segmentation and a
-reading strategy, and returns an answer with a trace of everything it did. For
-a folder, `gr_screen()` decides which documents count, `gr_extract()` fills a
-typed schema across all of them, and `gr_synthesise()` writes the result up,
-citing the rows each section rests on and flagging any sentence that cites
-none. Every model call is budgeted, recorded and checked, and can be cached.
+harnessr is a harness for calls to large language models. It composes calls
+into steps and chains, checks spending limits before each request, can cache
+replies so a repeated request is paid for once, records every call in a trace
+you can save and replay offline, and checks what came back. Any client goes
+through it: an OpenAI-compatible endpoint, any provider ellmer supports, a
+function of your own, or an offline stand-in.
+
+A document layer is built on that core. For one document, `answer_document()`
+picks an ingest, a segmentation and a reading strategy, and returns an answer
+with the trace of everything it did. For a folder, `gr_screen()` decides which
+documents count, `gr_extract()` fills a typed schema across all of them, and
+`gr_synthesise()` writes the result up, citing the rows each section rests on
+and flagging any sentence that cites none.
 
 ![Two stacked layers. Your code calls the document layer (gr_ functions for ingest, segment, read, screen, extract, claims, synthesis and review) or the core (hr_ functions for the client, calls, cache, trace and ledger, budget and governor, registry and modules, and composition). The document layer calls the core, the core sends requests to a model provider, and the core never calls the document layer.](man/figures/layers.svg)
 
 Your code can call either layer: the document functions (`gr_`) build on the
 core functions (`hr_`), and the core never calls the document layer.
 
+The [guides](#guides) explain each part in depth and all run offline, without a
+key. `vignette("harnessr")` walks through the core in brief and then a first
+document question. The core guides follow, starting with `vignette("core")` for
+calls, clients and the trace, then models and prices, context, effort, limits
+and caching, composing steps, and measuring. The document guides build on
+them. All are on the website, <https://elkronos.github.io/harnessr/>, with the
+reference for every function.
+
 harnessr was called readgpt up to version 0.6.0. If you have code written for
 readgpt, `vignette("migrate")` lists the old names and what replaced them.
-
-The [guides](#guides) explain each part in depth and all run offline, without a
-key. Start with `vignette("harnessr")`. They are also on the website,
-<https://elkronos.github.io/harnessr/>, with the reference for every function.
 
 ## Install
 
@@ -44,9 +55,27 @@ unless harnessr can carry on without it. `vignette("harnessr")` lists them.
 
 ## Quick start
 
+One call through the core, with `hr_mock_client()` standing in for a model so
+it runs without a key. The trace records the request, its tokens and its cost:
+
 ```r
 library(harnessr)
 
+cl  <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+tr  <- hr_trace()
+res <- hr_call(cl, "What was revenue in fiscal 2024?", trace = tr, label = "ask")
+as.data.frame(tr)[, c("stage", "model", "tokens_in", "tokens_out", "usd")]
+#>   stage      model tokens_in tokens_out usd
+#> 1   ask mock-model        14         13   0
+```
+
+`res$text` holds the reply and `res$ok` says whether the call succeeded.
+`vignette("core")` covers every kind of client, what a result holds, the trace,
+structured replies and checks on a reply.
+
+The document layer runs a whole pipeline over a file in one call:
+
+```r
 ans <- answer_document("report.pdf", "What was Q3 revenue?", recipe = "needle")
 ans$answer
 ans$partial
@@ -110,10 +139,12 @@ limit does not cover it.
 hr_register_model("gpt-5.6-terra", input_usd = 2, output_usd = 12)
 ```
 
-Then the quick start above runs against the real model. `vignette("harnessr")`
-covers the other ways to give a key, company gateways, other providers and
-local models through ellmer, and any other backend. `vignette("runs")` shows how
-to set many prices from a file and keep them current.
+Then `answer_document()` in the quick start runs against the real model, and
+`hr_call()` does too when you give it `hr_client()` in place of the stand-in.
+`vignette("harnessr")` covers the other ways to give a key, company gateways,
+other providers and local models through ellmer, and any other backend.
+`vignette("models")` shows how to set many prices from a file and keep them
+current.
 
 ## Guides
 
@@ -123,7 +154,7 @@ document guides build on them.
 
 ### Get started
 
-- [Get started](https://elkronos.github.io/harnessr/articles/harnessr.html) (`harnessr`): the ideas, installing, connecting, a first question checked from start to finish, cost, a glossary.
+- [Get started](https://elkronos.github.io/harnessr/articles/harnessr.html) (`harnessr`): the ideas, installing, connecting, the core in brief (a call, its trace, prices and limits, context, effort), then a first question about a document checked from start to finish, cost, a glossary.
 
 ### Core
 
