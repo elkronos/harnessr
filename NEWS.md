@@ -575,7 +575,7 @@ says how to test it with `hr_sweep()`. The settings come to 219 in all.
   that was sent: `top_k` under the `fast` recipe, which sends the whole
   document, is one.
 * **`gr_settings_table()`** returns every setting of every stage in one table
-  of 195 rows: the ingest, segment and read schemas (with the entries of
+  of 227 rows: the ingest, segment and read schemas (with the entries of
   `cleaner_opts` and `layout_opts` the built-in code reads), the arguments of
   the screening, extraction, synthesis and evaluation functions, and every
   `gr_options()` option. Each row has its stage, the function that takes it,
