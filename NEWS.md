@@ -89,6 +89,15 @@ before `premise`, which stays last).
   `api_headers`, `embedding_model`, `max_retries`, `retry_pause_base`,
   `request_timeout`, `temperature` and `actor`, and `gr_settings_table()`
   links those options to them.
+* New guide, `vignette("models")` ("Models, prices and tokens"), in the Core
+  group. It covers what the registry knows about a model and how sure it is
+  (`hr_models()`, `hr_model_info()`, `hr_model_limits()`), adding a model and
+  setting prices (`hr_register_model()`, `hr_load_models()`), cost estimates
+  (`hr_estimate_cost()`), models with no price and old prices, and token
+  counting (`hr_count_tokens()`, `hr_tokenizer()`, `hr_set_tokenizer()`). Its
+  settings walkthroughs cover `unknown_model_action`, `allow_unpriced`,
+  `price_max_age_days` and `tokenizer`, and `gr_settings_table()` links those
+  options to them.
 * `?gr_result` lists every field a result carries, including `cached`,
   `served_model`, `response_id`, `fingerprint`, `attempts` and, for a
   request the limits did not send, `refused` and `refusal`.
