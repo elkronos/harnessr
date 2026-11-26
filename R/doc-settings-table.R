@@ -227,7 +227,13 @@
   options.max_cost_usd = "runs#set-limits", options.max_calls = "runs#set-limits",
   options.max_tokens_total = "runs#set-limits", options.max_output_tokens = "runs#set-limits",
   options.allowed_models = "runs#set-limits", options.allow_unpriced = "runs#set-limits",
-  options.price_max_age_days = "runs#set-price-age")
+  options.price_max_age_days = "runs#set-price-age",
+  options.model = "core#set-endpoint", options.api = "core#set-endpoint",
+  options.api_base = "core#set-endpoint", options.api_headers = "core#set-endpoint",
+  options.embedding_model = "core#set-endpoint",
+  options.max_retries = "core#set-retries", options.retry_pause_base = "core#set-retries",
+  options.request_timeout = "core#set-retries",
+  options.temperature = "core#set-temperature", options.actor = "core#set-actor")
 
 #' The stages of gr_settings_table(), in the order a run uses them.
 #' @noRd
