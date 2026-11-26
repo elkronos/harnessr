@@ -2,6 +2,7 @@
 
 #' Compute a usable input-token budget for one model call
 #'
+#' @description
 #' This is the single arithmetic chokepoint that every prompt-building path in
 #' the package must go through. It has three guarantees:
 #'

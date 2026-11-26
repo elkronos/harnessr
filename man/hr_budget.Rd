@@ -35,8 +35,6 @@ known; see \code{\link[=hr_model_info]{hr_model_info()}}).
 \description{
 This is the single arithmetic chokepoint that every prompt-building path in
 the package must go through. It has three guarantees:
-}
-\details{
 \itemize{
 \item the returned \code{input} budget is always \strong{strictly positive};
 \item \code{input + output <= context_window * (1 - safety_margin)};

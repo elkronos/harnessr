@@ -136,7 +136,7 @@ and has a walkthrough that says how to test it with `hr_sweep()`.
   Each changes the requests of a reader in a way that needs its own
   benchmark arm, and neither was needed for the policy itself.
 
-The read stage now has 50 settings and the synthesise stage 29, 224 in all.
+The read stage now has 50 settings and the synthesise stage 29, 227 in all.
 
 ## Reading options
 
@@ -219,7 +219,7 @@ Each option below is off by default, so a default run sends the requests it
 sent before, keeps its store, cache and replay keys, and returns the tables
 it returned. Each is declared with its evidence (`untested` unless a source
 is named), is listed by `gr_settings_table()`, and has a walkthrough that
-says how to test it with `hr_sweep()`. The settings come to 219 in all.
+says how to test it with `hr_sweep()`. The settings come to 227 in all.
 
 * `gr_extract()` gains `resolve = "vote"`, which keeps the value most of a
   document's chunks gave, for no extra request; a tie goes to the earliest
@@ -575,7 +575,7 @@ says how to test it with `hr_sweep()`. The settings come to 219 in all.
   that was sent: `top_k` under the `fast` recipe, which sends the whole
   document, is one.
 * **`gr_settings_table()`** returns every setting of every stage in one table
-  of 195 rows: the ingest, segment and read schemas (with the entries of
+  of 227 rows: the ingest, segment and read schemas (with the entries of
   `cleaner_opts` and `layout_opts` the built-in code reads), the arguments of
   the screening, extraction, synthesis and evaluation functions, and every
   `gr_options()` option. Each row has its stage, the function that takes it,
@@ -2218,7 +2218,7 @@ corpus store key is computed as before.
   screening sheet carries the reference's frame as an
   opaque key, so it reads back as a usable reference without `items`.
 
-# readgpt 0.6.0
+# Version 0.6.0 (readgpt)
 
 ## New
 
@@ -2703,11 +2703,11 @@ corpus store key is computed as before.
 
 * **The spending limit is checked against what a run spends.** `max_cost_usd`
   was checked once, before the first request, against an estimate that priced
-  every reply at its maximum length: a run was refused at an estimate of $5.54
-  that cost $0.11, and a run that did start was never checked again. Now each
+  every reply at its maximum length: a run was refused at an estimate of \$5.54
+  that cost \$0.11, and a run that did start was never checked again. Now each
   request is priced as it is recorded, and a run stops once what it has spent
   reaches the limit, returning a partial answer with `notes$cost_cap_reached`,
-  which prints as "stopped at the $5 spending limit". The cost of a request is
+  which prints as "stopped at the \$5 spending limit". The cost of a request is
   known only once it is made, so a run can pass the limit by one request. This
   applies wherever the call cap is checked: every reader, and the review stages
   that call a model, which now warn when a limit stopped them
@@ -2933,7 +2933,7 @@ corpus store key is computed as before.
     ("aged 18-" then "65 years") is not a quotation of "65 years".
   - An extracted value is verified only when its quote states it, in digits or
     in words and in the notations papers use ("Twenty-four", "two and a half",
-    "1 204", "0,45", "0·84", "3.2 x 10^-5", "1.2 million", "$1.2 bn"), with the
+    "1 204", "0,45", "0·84", "3.2 x 10^-5", "1.2 million", "\$1.2 bn"), with the
     number words of Spanish, Portuguese, French, Italian, German and Dutch read
     too; a count word verifies a value only where it counts something. A quote
     in a script whose number words are not read, and that states no readable
@@ -3495,7 +3495,7 @@ corpus store key is computed as before.
 
 * A chat model registered with only one of its two prices is refused.
 
-# readgpt 0.5.1
+# Version 0.5.1 (readgpt)
 
 ## New
 
@@ -3748,7 +3748,7 @@ corpus store key is computed as before.
   and `rerank_min_score`. All three are now checked, and reader coverage rose
   from 75.1% to 82.5%.
 
-# readgpt 0.5.0
+# Version 0.5.0 (readgpt)
 
 ## New
 
@@ -3830,7 +3830,7 @@ corpus store key is computed as before.
   extracted, and values with no verbatim span. Every source is accounted for at
   every stage it reached, so the arithmetic closes.
 
-# readgpt 0.4.2
+# Version 0.4.2 (readgpt)
 
 ## Fixed
 
@@ -3849,7 +3849,7 @@ corpus store key is computed as before.
   no such escape hatch to keep. R's own partial matching already resolved the
   prefix cases (`cit` finds `cite`); this covers the rest.
 
-# readgpt 0.4.1
+# Version 0.4.1 (readgpt)
 
 ## Fixed
 
@@ -3873,7 +3873,7 @@ corpus store key is computed as before.
   There were no tests for `parallel = TRUE` in the suite at all, and CI did not
   install `future`, so any that had existed would have skipped. Both fixed.
 
-# readgpt 0.4.0
+# Version 0.4.0 (readgpt)
 
 Reading a corpus for an answer and reading it for a *table* are different jobs.
 This release is the second one.
@@ -4030,7 +4030,7 @@ This release is the second one.
   `"failed"`. "Not reported" is a finding; the `status` column is what separates
   it from a document that was never read.
 
-# readgpt 0.3.0
+# Version 0.3.0 (readgpt)
 
 Two additions, one theme: the model call is the only part of this package that
 costs money or fails to repeat itself, and neither of those had to be true
@@ -4284,7 +4284,7 @@ twice.
   for and giving no way to see why. A run with a finite `min_score` may now use
   more chunks than it did.
 
-# readgpt 0.2.0
+# Version 0.2.0 (readgpt)
 
 A rewrite. The package is now a proper R package with three independent,
 registry-based axes (**ingest**, **segment**, **read**) instead of five

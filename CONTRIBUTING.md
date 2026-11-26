@@ -32,8 +32,8 @@ knits every guide with no key and no network, checks the registry counts
 the get started guide states against the registries, fails if two readers
 share a traversal signature, and fails if any of that left a new or
 changed file in the repository that `git status` reports. Files `.gitignore` names are not reported, so output that matches
-one of its patterns (`docs/`, `*.Rout`, `readgpt_history_*.json`,
-`sim-results/`) passes that check unseen.
+one of its patterns (`docs/`, `*.Rout`, `sim-results/`) passes that check
+unseen.
 
 These scripts rewrite fixtures the tests compare against. Run them from
 the repository root, and only when you mean to change what they record:
@@ -101,7 +101,10 @@ review turns its check green without a new push. Lint reads no label, so a
 label change does not rerun it; a push or a reopen does. A new push to a pull request cancels the older runs
 of the same workflow. On `main`, each merge gets its own run of
 `R-CMD-check.yaml` and `tests.yaml`, and `pkgdown.yaml` builds and publishes
-the site from the newest push to `main`.
+the site from the newest push to `main`. Only a run on `main` publishes: a
+release does not start `pkgdown.yaml`, and a run by hand on another branch
+builds the site without publishing it. Each publish replaces everything on
+`gh-pages`.
 
 `pr-checks.yaml` used to run five checks: `no weakened tests`,
 `no unreviewed dependencies`, `lint changed R files`,

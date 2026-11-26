@@ -24,7 +24,7 @@ NOTE and skipped the CRAN incoming check. That check gives the second NOTE.
   ```
   installed size is  6.3Mb
   sub-directories of 1Mb or more:
-    doc    1.8Mb
+    doc    1.9Mb
     help   1.1Mb
     R      3.0Mb
   ```

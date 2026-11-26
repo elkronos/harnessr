@@ -96,13 +96,15 @@ clusters.
 \code{n_items} items can detect, and \code{hr_n_needed()} the number of items needed
 to detect a given one. Both use the closed form for a paired comparison of
 two proportions with a true difference of 0:
-}
-\details{
+
 n_eff = (t_(C - 1, 1 - alpha') + t_(C - 1, power))^2 x p_disc / Delta^2,
 
 with t quantiles on C - 1 degrees of freedom for C clusters: the degrees
 of freedom of the cluster-robust t bound that \code{\link[=hr_report]{hr_report()}} tests
-non-inferiority with. p_disc is the share of items on which the two arms
+non-inferiority with.
+}
+\details{
+p_disc is the share of items on which the two arms
 disagree, so p_disc / n_eff is the variance of the mean paired
 difference. Items in one
 cluster are not independent, so the effective number of items is

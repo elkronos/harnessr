@@ -521,8 +521,9 @@ aggregate(correct ~ param.ocr_min_chars, bench, mean)
 hr_sweep_check(bench)
 ```
 
-A row from `hr_sweep_check()` means no page crossed the threshold between the
-two values, so they read the documents the same way.
+A row from `hr_sweep_check()` means no page crossed the threshold between that
+arm's value and an earlier one, so the two arms read the documents the same
+way.
 
 Sweep `ocr_trigger` the same way. It decides which pages OCR reads before any
 request goes out, so `doc$stats$unread_pages` and the `"ocr"` blocks of each

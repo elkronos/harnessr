@@ -448,10 +448,11 @@ test_that("run-tests.sh needs every package harnessr imports, and knitr for --ch
 })
 
 # ---------------------------------------------------------------------------
-# A pull request that changes a Markdown page the site renders builds the site.
+# A pull request that changes a Markdown page the site renders builds the site,
+# and only main publishes it.
 # ---------------------------------------------------------------------------
 
-test_that("the pkgdown pull request filter covers every Markdown page the site renders", {
+test_that("the pkgdown workflow builds every Markdown page change and publishes only main", {
   skip_on_cran()
   wf <- source_file(".github", "workflows", "pkgdown.yaml")
   skip_if(is.null(wf), "the workflow is not available")
@@ -479,4 +480,51 @@ test_that("the pkgdown pull request filter covers every Markdown page the site r
   for (p in pages) expect_true(covered(p), info = p)
   expect_true(covered("R/core-request.R"))
   expect_false(covered("tests/testthat/test-boundary.R"))
+
+  # Only main publishes, and a publish replaces gh-pages. A release built the
+  # site from its tag, which pointed at an old commit, and that site replaced
+  # the current one.
+  code <- y[!grepl("^\\s*#", y)]
+  on_at <- grep("^on:\\s*$", code)
+  expect_length(on_at, 1L)
+  rest <- code[seq.int(on_at + 1L, length(code))]
+  triggers <- rest[seq_len(match(TRUE, grepl("^\\S", rest)) - 1L)]
+  events <- sub("^  ([a-z_]+):.*$", "\\1", grep("^  [a-z_]+:", triggers, value = TRUE))
+  expect_setequal(events, c("push", "pull_request", "workflow_dispatch"))
+
+  step <- grep("^\\s+- name: Deploy to GitHub Pages\\s*$", code)
+  expect_length(step, 1L)
+  after <- code[seq.int(step + 1L, length(code))]
+  body <- after[seq_len(match(TRUE, c(grepl("^\\s+- ", after), TRUE)) - 1L)]
+  cond <- paste(trimws(body[seq_len(grep("^\\s+uses:", body)[1] - 1L)]), collapse = " ")
+  cond <- gsub("\\s+", " ", trimws(sub("^if:\\s*>-?\\s*", "", cond)))
+  expect_identical(cond, paste(
+    "github.event_name != 'pull_request' &&",
+    "(github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')"))
+  expect_true(any(grepl("^\\s+clean: true\\s*$", body)))
+})
+
+# ---------------------------------------------------------------------------
+# The site's changelog keeps every release. pkgdown's news page drops a
+# section whose heading does not start with the package name, "version" or
+# "changes in" before the version number, so "# readgpt 0.6.0" left every
+# readgpt release off the site.
+# ---------------------------------------------------------------------------
+
+test_that("every release heading in NEWS.md is one the site's changelog keeps", {
+  path <- test_path("..", "..", "NEWS.md")
+  if (!file.exists(path)) path <- system.file("NEWS.md", package = "harnessr")
+  expect_true(file.exists(path))
+  y <- readLines(path, warn = FALSE, encoding = "UTF-8")
+  fence <- cumsum(grepl("^\\s*```", y)) %% 2L == 1L
+  heads <- sub("^#\\s+", "", y[!fence & grepl("^# ", y)])
+  expect_gt(length(heads), 1L)
+  # The pattern of pkgdown's news_version().
+  kept <- grepl("^(harnessr|version|changes in)\\s+v?\\d+[.-]\\d+", heads,
+                ignore.case = TRUE, perl = TRUE)
+  expect_true(all(kept), info = paste(heads[!kept], collapse = "; "))
+  expect_match(heads[1], "^harnessr ")
+  # A pair of unescaped dollar signs in prose becomes TeX math on the page.
+  prose <- gsub("`[^`]*`", "", y[!fence])
+  expect_false(any(grepl("(^|[^\\\\])\\$[0-9]", prose)))
 })
