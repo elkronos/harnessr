@@ -111,7 +111,7 @@ change.</p>
 <span><span class="co">#&gt;   extract           7     3</span></span>
 <span><span class="co">#&gt;   synthesise       24     5</span></span>
 <span><span class="co">#&gt;   evaluate         20    10</span></span>
-<span><span class="co">#&gt;   options          29     5</span></span></code></pre></div>
+<span><span class="co">#&gt;   options          30     5</span></span></code></pre></div>
 <div class="section level2">
 <h2 id="reading-the-tables">Reading the tables<a class="anchor" aria-label="anchor" href="#reading-the-tables"></a>
 </h2>
@@ -2304,13 +2304,22 @@ and embedding models alike.</td>
 <tr class="odd">
 <td align="left"><a href="runs.html#set-limits"><code>allow_unpriced</code></a></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>FALSE</code></td>
+<td align="left"><code>TRUE</code></td>
 <td align="left">advanced</td>
-<td align="left"></td>
+<td align="left">untested</td>
 <td align="left">Whether a chat model with no registered price may be
 called while max_cost_usd is set.</td>
 </tr>
 <tr class="even">
+<td align="left"><a href="runs.html#set-price-age"><code>price_max_age_days</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>120</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">How old a price may be, in days, before a cost computed
+from it warns with class hr_stale_price.</td>
+</tr>
+<tr class="odd">
 <td align="left"><code>unknown_model_action</code></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>warn</code></td>
@@ -2319,7 +2328,7 @@ called while max_cost_usd is set.</td>
 <td align="left">“warn” or “error” when a model id is not in the
 registry.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>actor</code></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code></td>
@@ -2329,7 +2338,7 @@ registry.</td>
 every hr_trace() records: system, owner, run_by, purpose and
 approved_by, each one string.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>auto_max_tokens</code></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>50000</code></td>
@@ -2339,7 +2348,7 @@ approved_by, each one string.</td>
 with recipe = “auto” reads with “fast” (one request); a larger one is
 read with “thorough”.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>auto_room_share</code></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>0.5</code></td>
@@ -2349,7 +2358,7 @@ read with “thorough”.</td>
 fill at most this share of the input room hr_budget() leaves on every
 model of the run.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>reasoning_floor</code></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>2048</code></td>
@@ -2358,7 +2367,7 @@ model of the run.</td>
 <td align="left">The smallest output cap a request to a reasoning model
 is sent with.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>output_reserve_share</code></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>0.25</code></td>
@@ -2368,7 +2377,7 @@ is sent with.</td>
 the reply when no reserve_output is given, between min_output_tokens and
 the model’s output limit.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>near_verbatim_sim</code></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>0.9</code></td>
@@ -2379,7 +2388,7 @@ near_verbatim_short_chars characters (after normalising), and one
 shorter than that, needs for the edit-distance matcher to score it
 near_verbatim (see gr_verify_evidence()).</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>near_verbatim_sim_short</code></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>0.95</code></td>
@@ -2390,7 +2399,7 @@ near_verbatim_short_chars characters (after normalising), and one
 shorter than that, needs for the edit-distance matcher to score it
 near_verbatim (see gr_verify_evidence()).</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>near_verbatim_short_chars</code></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>40</code></td>

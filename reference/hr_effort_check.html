@@ -147,11 +147,12 @@ from <code><a href="hr_report.html">hr_report()</a></code>'s <code>ni</code> tab
 
 <dt><code>cost</code></dt>
 <dd><p>One row per arm: <code>arm</code>, <code>accuracy</code> (the mean of
-<code>correct</code> over reportable rows), <code>usd</code> (mean per run), <code>calls</code> (model
+<code>correct</code> over reportable rows), <code>usd</code> (mean per run, <code>NA</code> when a run has no price), <code>calls</code> (model
 requests per run), <code>escalations</code> (raises per run), <code>escalated_calls</code>
 (requests per run sent at a raised effort) and <code>resolved</code> (the share
 of raises whose stage fired none of the same triggers again, <code>NA</code>
-with none).</p></dd>
+with none), then <code>priced</code>, <code>as_of</code> and <code>certain</code>, where <code>usd</code>'s
+prices came from, as in <code><a href="hr_report.html">hr_report()</a></code>'s <code>cost</code> table.</p></dd>
 
 <dt><code>best_fixed</code></dt>
 <dd><p>The most accurate comparator.</p></dd>
@@ -243,10 +244,15 @@ counts every request, raised or not.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   vs low          margin 10.0 pts, difference +10.0 pts, lower bound -6.7: non-inferior</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   vs high         margin 10.0 pts, difference +0.0 pts, lower bound -9.9: non-inferior</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   best fixed comparator: high</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       arm accuracy      usd calls escalations escalated_calls resolved</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       low      0.9 6.86e-05     2         0.0             0.0       NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      high      1.0 6.86e-05     2         0.0             0.0       NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  escalate      1.0 6.86e-05     2         0.1             0.1        1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       arm accuracy usd calls escalations escalated_calls resolved priced as_of</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       low      0.9  NA     2         0.0             0.0       NA  FALSE  &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      high      1.0  NA     2         0.0             0.0       NA  FALSE  &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  escalate      1.0  NA     2         0.1             0.1        1  FALSE  &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  certain</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   usd is NA for low, high, escalate: no price set for a model of those arms (set one with hr_register_model() or hr_load_models())</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

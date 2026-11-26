@@ -93,8 +93,9 @@
 name up to version 0.6.0, or for its first version (v1). Each table
 lists an old name, the name that replaced it and what to change in your
 code. None of the old names has an alias: calling an old function stops
-with “could not find function”. <code>NEWS.md</code> lists every change
-release by release.</p>
+with “could not find function”. One section has no table: built-in
+models now carry no prices, so you set the prices you pay.
+<code>NEWS.md</code> lists every change release by release.</p>
 <p>The files listed under “What still loads”, at the end of this page,
 still load. A response cache written by readgpt 0.5.1 or earlier is not
 read.</p>
@@ -346,6 +347,43 @@ counts the old figure came from.</td>
 </table>
 </div>
 <div class="section level2">
+<h2 id="from-readgpt-0-6-0-models-carry-no-prices">From readgpt 0.6.0: models carry no prices<a class="anchor" aria-label="anchor" href="#from-readgpt-0-6-0-models-carry-no-prices"></a>
+</h2>
+<p>readgpt 0.6.0 shipped a price for each built-in model. harnessr ships
+their limits and no prices, because providers change prices more often
+than the package is released. Three things change for code written for
+0.6.0:</p>
+<ul>
+<li>A cost for a built-in model is <code>NA</code> until you set its
+prices. That holds for <code><a href="../reference/hr_estimate_cost.html">hr_estimate_cost()</a></code>,
+<code><a href="../reference/hr_trace_cost.html">hr_trace_cost()</a></code> and every other report of a cost in
+dollars.</li>
+<li>Under <code>max_cost_usd</code>, a request to a chat model with no
+price is sent, as in 0.6.0. 0.6.0 warned with class
+<code>gr_cost_uncheckable</code> on every read; now the first such
+request to each model in a session warns with class
+<code>hr_unpriced_model</code>, and later ones do not. The spending
+limit does not count the request; <code>max_calls</code> and
+<code>max_tokens_total</code> do.</li>
+<li>A cost computed from prices older than
+<code>price_max_age_days</code> (120 by default) warns with class
+<code>hr_stale_price</code>, once per model per session.</li>
+</ul>
+<p>Set the prices you pay with <code><a href="../reference/hr_register_model.html">hr_register_model()</a></code> for one
+model, or with <code><a href="../reference/hr_load_models.html">hr_load_models()</a></code> for a file of them. A
+built-in model keeps its limits when you give only its prices:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="co"># Illustrative figures: use your provider's current prices.</span></span>
+<span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"gpt-4o"</span>, input_usd <span class="op">=</span> <span class="fl">2.50</span>, output_usd <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/hr_estimate_cost.html">hr_estimate_cost</a></span><span class="op">(</span><span class="st">"gpt-4o"</span>, input_tokens <span class="op">=</span> <span class="fl">120000</span>, output_tokens <span class="op">=</span> <span class="fl">4000</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 0.34</span></span></code></pre></div>
+<p>To refuse unpriced requests instead, set the new option
+<code>hr_options(allow_unpriced = FALSE)</code>. “Models, prices and
+token counts” in <code><a href="../articles/runs.html">vignette("runs")</a></code> walks through setting
+prices from a file, checking them and keeping them current.</p>
+</div>
+<div class="section level2">
 <h2 id="from-v1">From v1<a class="anchor" aria-label="anchor" href="#from-v1"></a>
 </h2>
 <p>v1, the package’s first version, had six entry points that 0.2.0
@@ -435,7 +473,7 @@ for reference and A/B comparison. The package does not load it. To
 reproduce its ingestion and chunking under the current code, use the
 <code>legacy</code> recipe. It strips digits, as v1 did, and cuts
 3000-token paragraph chunks with no overlap:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">legacy</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_recipes.html">gr_recipes</a></span><span class="op">(</span><span class="st">"legacy"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="st">"Revenue was 45.2 million dollars in fiscal 2024."</span>, <span class="va">legacy</span><span class="op">$</span><span class="va">ingest</span><span class="op">)</span><span class="op">$</span><span class="va">text</span></span>

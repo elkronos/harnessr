@@ -228,7 +228,11 @@ arm2), <code>lower</code>, <code>upper</code>, <code>method</code> (<code>"clust
 <dt><code>cost</code></dt>
 <dd><p>Per arm: <code>usd_per_item</code>, <code>usd_per_correct</code>,
 <code>tokens_per_item</code>, <code>tokens_per_correct</code>, each with <code>_lower</code> and
-<code>_upper</code>, <code>usd_estimated_share</code> and <code>estimated_flag</code>.</p></dd>
+<code>_upper</code>, <code>usd_estimated_share</code>, <code>estimated_flag</code>, and where the
+prices came from: <code>priced</code> (every run's models have a price), <code>as_of</code>
+(the oldest month among those prices) and <code>certain</code> (every model's
+registry entry is a fact, not a guess), from the columns of the same
+names in an <code><a href="hr_benchmark.html">hr_benchmark()</a></code> result, <code>NA</code> for a table without them.</p></dd>
 
 <dt><code>frontier</code></dt>
 <dd><p>Per arm: <code>usd_per_item</code>, <code>accuracy</code>, <code>on_frontier</code>,

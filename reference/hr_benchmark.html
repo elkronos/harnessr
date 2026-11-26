@@ -202,6 +202,13 @@ note <code><a href="hr_report.html">hr_report()</a></code> adds.</p></dd>
 <dt><code>reportable</code></dt>
 <dd><p><code>FALSE</code> for rows on the dev split.</p></dd>
 
+<dt><code>priced</code>, <code>as_of</code>, <code>certain</code></dt>
+<dd><p>Where the run's <code>usd</code> came from,
+over the models its requests used: <code>TRUE</code> when every one has a price,
+the oldest month among their prices, and <code>TRUE</code> when every registry
+entry is a fact rather than a guess (see <code><a href="hr_trace_cost.html">hr_trace_cost()</a></code>). <code>NA</code> for
+a run that made no request.</p></dd>
+
 <dt><code>param.&lt;name&gt;</code></dt>
 <dd><p>One column per setting the arms record: the
 settings of an arm built by <code><a href="gr_arm.html">gr_arm()</a></code> (<code>param.recipe</code>,
@@ -216,8 +223,8 @@ the reference hash, <code>runs</code>, <code>split</code>, <code>seed</code>, th
 traces. <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> shows each arm's accuracy over the reportable rows, the
 mean over runs within each item and then over items, leaving out items
 with no label; the dev split's accuracy, when there is one, is shown apart
-in its own column. It adds failures and cost, and is descriptive only: no
-interval.</p>
+in its own column. It adds failures and cost, with the month of the prices
+or the models that have none, and is descriptive only: no interval.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -333,6 +340,7 @@ caller's random state is left as it was.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;hr_bench&gt; 1 arm(s) x 4 item(s) in 2 cluster(s) x 5 run(s); split test; scorer exact_normalised</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  arm accuracy runs wrong failed budget_stop usd   </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  ask 0.750    20   5     0      0           0.0000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   cost: $0.0000 across mock-model, prices as of 2026-11</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Descriptive only: accuracy is the mean over runs within each item, then over labelled items, with no interval.</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">bench</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"item"</span>, <span class="st">"run"</span>, <span class="st">"correct"</span>, <span class="st">"failure_kind"</span>, <span class="st">"draw_index"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   item run correct failure_kind draw_index</span>

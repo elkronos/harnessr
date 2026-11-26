@@ -23,6 +23,8 @@ documents.
 library(harnessr)
 old <- hr_options(verbose = FALSE, embedder = "lexical")
 op <- options(digits = 3)
+# Illustrative prices for a stand-in model. For a real model, use your
+# provider's current prices.
 hr_register_model("mock-model", context_window = 128000, max_output = 16384,
                   input_usd = 1, output_usd = 4)
 ```
@@ -249,6 +251,7 @@ b_read
 #>  stuff      0.847    320  49    0      0           0.0972
 #>  map_reduce 0.906    320  30    0      0           0.2430
 #>  retrieve   0.894    320  34    0      0           0.0686
+#>   cost: $0.4088 across mock-model, prices as of 2026-11
 #>   Descriptive only: accuracy is the mean over runs within each item, then over labelled items, with no interval.
 hr_trace_summary(attr(b_read, "trace"))[, c("calls", "tokens_in", "tokens_out")]
 #>   calls tokens_in tokens_out
@@ -430,6 +433,7 @@ b_seg_dev
 #>  fixed_80     -        0.688 80   5     20     0           0.0178
 #>  sentence_80  -        0.500 80   0     40     0           0.0151
 #>  paragraph_80 -        0.688 80   5     20     0           0.0158
+#>   cost: $0.0902 across mock-model, prices as of 2026-11
 #>   480 row(s) on the dev split are not reportable; their accuracy is the dev column alone.
 #>   Descriptive only: accuracy is the mean over runs within each item, then over labelled items, with no interval.
 ```
@@ -486,6 +490,7 @@ b_k_dev
 #>  top_k_1 -        0.738 80   1     20     0           0.0133
 #>  top_k_2 -        0.950 80   4      0     0           0.0153
 #>  top_k_4 -        0.912 80   7      0     0           0.0199
+#>   cost: $0.0485 across mock-model, prices as of 2026-11
 #>   240 row(s) on the dev split are not reportable; their accuracy is the dev column alone.
 #>   Descriptive only: accuracy is the mean over runs within each item, then over labelled items, with no interval.
 ```
@@ -702,6 +707,8 @@ judge_cl <- hr_mock_client(function(messages, params) {
   sprintf('{"verdict": "%s", "reason": "Compared."}', v)
 })
 rubric <- "Which candidate gives fiscal 2024 revenue?"
+# Illustrative prices for a stand-in model. For a real model, use your
+# provider's current prices.
 hr_register_model("mock-judge", context_window = 128000, max_output = 4096,
                   input_usd = 1, output_usd = 4)
 set.seed(5)

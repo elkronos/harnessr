@@ -71,6 +71,7 @@ knows about documents, which is why they are core.
 | [`hr_cache_client()`](https://elkronos.github.io/harnessr/reference/hr_cache_client.md) | test-adversarial.R, test-backend.R and 34 more | Attaches a response cache to any client. |
 | [`hr_cache_stats()`](https://elkronos.github.io/harnessr/reference/hr_cache_stats.md) | test-cache-replay.R, test-compat-legacy-keys.R and 5 more | Counts the entries, hits and misses of a response cache. |
 | [`hr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/hr_ellmer_client.md) | test-backend.R, test-effort.R and 7 more | Wraps an ellmer chat as a client. |
+| [`hr_load_models()`](https://elkronos.github.io/harnessr/reference/hr_load_models.md) | test-core-models-file.R | Registers models and their prices from a CSV file, for any provider. |
 | [`hr_model_limits()`](https://elkronos.github.io/harnessr/reference/hr_model_limits.md) | test-core-names.R | The context window and output cap of any registered model. |
 | [`hr_models()`](https://elkronos.github.io/harnessr/reference/hr_models.md) | test-hardening.R | Lists the model registry. |
 | [`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md) | test-adversarial.R, test-backend.R and 51 more | Adds or corrects a model in the registry the budgets and costs read. |

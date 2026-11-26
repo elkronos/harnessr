@@ -142,8 +142,10 @@ sampled pages when not every page was read, which <code>note</code> then says),
 
 <dt><code>totals</code></dt>
 <dd><p>Files, readable files, bytes, known <code>tokens</code>,
-<code>tokens_unknown</code> (readable files whose size cannot be counted yet), and
-<code>cost_floor_usd</code>.</p></dd>
+<code>tokens_unknown</code> (readable files whose size cannot be counted yet),
+<code>cost_floor_usd</code>, and where its prices came from: <code>priced</code>, <code>as_of</code>
+and <code>certain</code>, as <code><a href="hr_estimate_cost.html">hr_estimate_cost()</a></code> gives them with
+<code>detail = TRUE</code>.</p></dd>
 
 <dt><code>root</code></dt>
 <dd><p>The directory surveyed, or <code>NA</code>.</p></dd>
@@ -223,10 +225,10 @@ four dollars from four hundred), not to be a quote.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">inv</span> <span class="op">&lt;-</span> <span class="fu">gr_inventory</span><span class="op">(</span><span class="va">d</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">inv</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;gr_inventory&gt; /tmp/RtmpvIvW4q/file1bf33b7ea596</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;gr_inventory&gt; /tmp/Rtmp5mYesE/file1c0545569cd</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   2 file(s), 44.0 B; 1 readable</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   1 ready, 1 no_extractor</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   tokens: 16   cost floor: $0.01 (gpt-5.6-terra, one call per document)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   tokens: 16   cost floor: unknown: no price set for gpt-5.6-terra (set one with hr_register_model() or hr_load_models())</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ! 1 file(s) would be skipped: .doc (1). gr_register_extractor() adds a format.</span>
 <span class="r-in"><span><span class="va">inv</span><span class="op">$</span><span class="va">files</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"file"</span>, <span class="st">"folder"</span>, <span class="st">"ext"</span>, <span class="st">"status"</span>, <span class="st">"tokens"</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>              file folder ext       status tokens</span>

@@ -2,6 +2,108 @@
 
 ## harnessr 0.6.0.9000
 
+### Built-in models carry limits and no prices
+
+Providers change prices more often than harnessr is released, so
+harnessr no longer ships them. You set the prices you pay.
+
+- The built-in models now come from `inst/extdata/models.csv`: context
+  window, output cap, kind, reasoning, temperature support and embedding
+  dimensions, checked as of 2026-08. Their limits are unchanged. Their
+  `input_usd` and `output_usd` are `NA`, so
+  [`hr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/hr_estimate_cost.md)
+  returns `NA` for them until you set prices, and under a `max_cost_usd`
+  limit a request to one is sent with a warning (below).
+- New `hr_load_models(file)` registers models from a CSV file. A row may
+  name a built-in model and give only `input_usd`, `output_usd` and
+  `as_of`: the model keeps its limits and gains the prices. A malformed
+  file stops with an error of class `hr_bad_models_file` naming the row
+  and column, and registers nothing.
+  [`?hr_load_models`](https://elkronos.github.io/harnessr/reference/hr_load_models.md)
+  documents the format.
+- [`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md)
+  prices a known model without its limits:
+  `hr_register_model("gpt-4o", input_usd = 2.5, output_usd = 10)` keeps
+  gpt-4o’s context window, output cap and other fields. Leaving out
+  either limit changes the current entry and keeps every value you leave
+  out. A call that gives both limits works as before.
+- A built-in models file that cannot be read stops the package from
+  loading, with an error of class `hr_bad_models_file`, instead of
+  leaving the registry empty.
+- `allow_unpriced` now defaults to `TRUE`. Under a spending limit, a
+  request to a chat model with no price is sent instead of refused. The
+  trace prices it `NA`, and the first such request to each model in a
+  session warns with class `hr_unpriced_model` that the spending limit
+  does not cover the model until you set its prices. Token and call
+  limits still apply. `hr_options(allow_unpriced = FALSE)` or
+  `hr_governor(allow_unpriced = FALSE)` restores the refusal. A trace’s
+  config snapshot records the new default. A read gives this warning
+  before it starts, and no longer adds a `gr_cost_uncheckable` warning
+  on every run.
+  [`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
+  and replays are not warned about. With `parallel = TRUE` the workers
+  do not repeat this warning or the stale price warning, and it names
+  the limit you set, not a worker’s share.
+- New option `price_max_age_days` (120). A cost computed from prices
+  older than that, counted from the first day of their `as_of` month,
+  warns with class `hr_stale_price`, once per model per session. `NULL`
+  turns the warning off. Set the current prices again to clear it.
+- To set prices, call `hr_register_model(id, input_usd =, output_usd =)`
+  for one model, or keep a CSV file of prices with an `as_of` column and
+  load it with
+  [`hr_load_models()`](https://elkronos.github.io/harnessr/reference/hr_load_models.md)
+  at the top of each script. “Models, prices and token counts” in
+  [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
+  walks through both, checking prices with
+  [`hr_models()`](https://elkronos.github.io/harnessr/reference/hr_models.md),
+  unpriced models and stale prices.
+  [`vignette("migrate")`](https://elkronos.github.io/harnessr/articles/migrate.md)
+  lists what changes for code written for 0.6.0. The guides, the README
+  and the examples set illustrative prices before they show a cost.
+
+### Cost reports say where their prices came from
+
+Every report of a cost in dollars now says, for each model it prices,
+whether the model has a price, the month of that price, and whether its
+registry entry is a fact or a guess. Existing columns and fields keep
+their names and meanings, and the new ones come after them (in
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md),
+before `premise`, which stays last).
+
+- [`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md),
+  [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) on a
+  trace,
+  [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md),
+  [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)’s
+  `summary` and the cost table of
+  [`hr_effort_check()`](https://elkronos.github.io/harnessr/reference/hr_effort_check.md)
+  gain the columns `priced`, `as_of` and `certain`.
+  [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)’s
+  `cost` table gains them per arm, and adds a note naming any arm with
+  an unpriced model.
+  [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md)’s
+  `judge_cost` gains the same fields and `models`.
+  [`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md)’s
+  `totals` gains them for its cost floor.
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)’s
+  `summary` gains them after `warnings` (before `premise`), and the
+  audit report’s corpus table shows them in a `prices` column.
+- [`hr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/hr_estimate_cost.md)
+  gains `detail`. `detail = TRUE` returns a one-row data frame: `model`,
+  `usd`, `priced`, `as_of` and `certain`. The default still returns the
+  figure alone.
+- Printed costs give the month of their prices, as in
+  `$0.0021 across gpt-4o, prices as of 2026-11`. A model with no price
+  prints as “no price set for ”, with
+  [`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md)
+  and
+  [`hr_load_models()`](https://elkronos.github.io/harnessr/reference/hr_load_models.md)
+  named as the way to set one. A total over several models of which some
+  have no price says that it covers the priced models only, where it
+  used to print “cost unknown”. The data still hold `NA` for such a
+  total. The progress line says “spent on priced models” in the same
+  case. The audit report’s cost table has a `prices` column.
+
 ### Renamed core functions
 
 The 27 core functions that still began with `gr_` now begin with `hr_`,

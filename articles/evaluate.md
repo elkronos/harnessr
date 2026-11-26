@@ -41,6 +41,8 @@ times that.
 library(harnessr)
 old <- hr_options(verbose = FALSE, embedder = "lexical")
 
+# Illustrative prices for a stand-in model. For a real model, use your
+# provider's current prices.
 hr_register_model("mock-small", context_window = 128000, max_output = 4096,
                   input_usd = 0.2, output_usd = 0.8)
 hr_register_model("mock-large", context_window = 128000, max_output = 4096,
@@ -359,6 +361,7 @@ bench
 #>  arm   accuracy runs wrong failed budget_stop usd   
 #>  small 0.750    40   10    0      0           0.0013
 #>  large 1.000    40    0    0      0           0.0132
+#>   cost: $0.0145 across mock-large, mock-small, prices as of 2026-11
 #>   Descriptive only: accuracy is the mean over runs within each item, then over labelled items, with no interval.
 head(bench[, c("item", "arm", "run", "correct", "failure_kind", "usd", "draw_index")])
 #>    item   arm run correct failure_kind      usd draw_index
@@ -508,6 +511,7 @@ rpt
 #>  estimated       on_frontier frontier_share
 #>  100.000% (flag) yes         1.000         
 #>  100.000% (flag) yes         1.000         
+#>   prices as of 2026-11
 #> 
 #> Failures (all counted wrong):
 #>  arm   wrong without_parse_refusal
@@ -836,10 +840,10 @@ plan <- hr_reference(ids, labels = rep("yes", n), cluster = docs, split = "test"
 design <- hr_mdd(n, n_clusters = 50, icc = 0.1, p_disc = 0.15)
 reg <- hr_register_contrasts(plan, hr_contrast("small", "large", margin = 0.10), design)
 reg
-#> <hr_contrast_registration> 1 contrast(s), 1 confirmatory; registered 2026-11-26T12:32:42.493Z
+#> <hr_contrast_registration> 1 contrast(s), 1 confirmatory; registered 2026-11-26T21:42:42.424Z
 #>  contrast       label        margin mdd cost_test
 #>  small vs large confirmatory 10.0   7.8 yes      
-#>   Margins and MDD in points; reference d453122a93af; hash 03cc76ffc1c7
+#>   Margins and MDD in points; reference d453122a93af; hash 50f9c2f73fea
 ```
 
 Here the stand-in model finds each item easier or harder by document and
@@ -936,6 +940,8 @@ positives, and sensitivity then has an interval of about plus or minus
 
 ``` r
 
+# Illustrative prices for a stand-in model. For a real model, use your
+# provider's current prices.
 hr_register_model("mock-judge", context_window = 128000, max_output = 4096,
                   input_usd = 1, output_usd = 4)
 cfg <- hr_judge_config("mock-judge", "Does the response give the reference's answer?",

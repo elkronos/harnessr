@@ -26,7 +26,7 @@ table(settings$stage, settings$tier)[unique(settings$stage), ]
 #>   extract           7     3
 #>   synthesise       24     5
 #>   evaluate         20    10
-#>   options          29     5
+#>   options          30     5
 ```
 
 ## Reading the tables
@@ -416,7 +416,8 @@ covers the limits.
 | [`max_tokens_total`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | advanced |  | Most tokens one run may use: the prompt and reply tokens of every call, cache hits included, and the text sent to be embedded. |
 | [`max_output_tokens`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | advanced |  | The largest output cap one request may be sent with. |
 | [`allowed_models`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | advanced |  | Character vector of the model ids a run may call, chat and embedding models alike. |
-| [`allow_unpriced`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `FALSE` | advanced |  | Whether a chat model with no registered price may be called while max_cost_usd is set. |
+| [`allow_unpriced`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `TRUE` | advanced | untested | Whether a chat model with no registered price may be called while max_cost_usd is set. |
+| [`price_max_age_days`](https://elkronos.github.io/harnessr/articles/runs.html#set-price-age) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `120` | advanced | untested | How old a price may be, in days, before a cost computed from it warns with class hr_stale_price. |
 | `unknown_model_action` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `warn` | advanced |  | “warn” or “error” when a model id is not in the registry. |
 | `actor` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | [`list()`](https://rdrr.io/r/base/list.html) | advanced |  | A named list (or character vector) of the actor fields every hr_trace() records: system, owner, run_by, purpose and approved_by, each one string. |
 | `auto_max_tokens` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `50000` | advanced | untested | The largest document, in tokens, that answer_document() with recipe = “auto” reads with “fast” (one request); a larger one is read with “thorough”. |

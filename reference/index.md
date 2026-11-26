@@ -50,7 +50,9 @@ and the README.
 - [`hr_model_limits()`](https://elkronos.github.io/harnessr/reference/hr_model_limits.md)
   : Context and output limits for a model
 - [`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md)
-  : Register a model (or override a built-in entry)
+  : Register a model, or set the prices of a known one
+- [`hr_load_models()`](https://elkronos.github.io/harnessr/reference/hr_load_models.md)
+  : Register models from a CSV file
 
 ## Get text out of files
 

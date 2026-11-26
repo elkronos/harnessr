@@ -132,7 +132,10 @@ An object of class `hr_judgement`, a list with
 - `judge_cost`:
 
   A list of `usd` (`NA` when the model has no price), `tokens_in`,
-  `tokens_out` and `calls`, over the judge's own requests.
+  `tokens_out` and `calls`, over the judge's own requests, then where
+  the prices came from: `priced`, `as_of` and `certain` (as in
+  [`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md),
+  over the judge's models) and `models`, the models priced.
 
 - `mode`, `model`, `candidates` (the ids), `config_hash`:
 

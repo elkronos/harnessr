@@ -428,9 +428,14 @@ easy to miss: a few old `.doc` files nobody can read, scanned PDFs
 without text, an empty file, or a subfolder you forgot about.
 [`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md)
 finds all of these in seconds, without calling a model and without an
-API key:
+API key. Its cost floor needs your model’s price, which harnessr does
+not ship, so the example sets one first:
 
 ``` r
+
+# Illustrative figures, in USD per million tokens: use your provider's current
+# prices.
+hr_register_model(hr_options("model"), input_usd = 2, output_usd = 12)
 
 inbox <- file.path(tempdir(), "inbox")
 dir.create(inbox, showWarnings = FALSE)
@@ -443,10 +448,10 @@ invisible(file.create(file.path(inbox, "empty.txt")))
 
 inv <- gr_inventory(inbox)
 inv
-#> <gr_inventory> /tmp/Rtmp5K39oM/inbox
+#> <gr_inventory> /tmp/Rtmp5JrVED/inbox
 #>   4 file(s), 1.9 KB; 2 readable
 #>   2 ready, 1 no_extractor, 1 empty
-#>   tokens: 549   cost floor: $0.01 (gpt-5.6-terra, one call per document)
+#>   tokens: 549   cost floor: $0.01 (gpt-5.6-terra, one call per document), prices as of 2026-11
 #>   ! 1 file(s) would be skipped: .doc (1). gr_register_extractor() adds a format.
 ```
 

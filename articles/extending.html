@@ -467,9 +467,10 @@ exact match.</p>
 <h2 id="models">Models<a class="anchor" aria-label="anchor" href="#models"></a>
 </h2>
 <p>The model registry holds each model’s context window, output limit
-and prices. Use <code><a href="../reference/hr_register_model.html">hr_register_model()</a></code> to add a model the
-package does not know, or to override a built-in entry whose prices have
-gone stale:</p>
+and prices. harnessr ships the limits of its built-in models and no
+prices. Use <code><a href="../reference/hr_register_model.html">hr_register_model()</a></code> to add a model the package
+does not know, to correct a built-in entry, or to give a model the
+prices you pay:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"my-local-llama"</span>, context_window <span class="op">=</span> <span class="fl">32768</span>, max_output <span class="op">=</span> <span class="fl">4096</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/hr_model_info.html">hr_model_info</a></span><span class="op">(</span><span class="st">"my-local-llama"</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"context_window"</span>, <span class="st">"source"</span>, <span class="st">"certain"</span><span class="op">)</span><span class="op">]</span></span>
@@ -486,20 +487,21 @@ gone stale:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_estimate_cost.html">hr_estimate_cost</a></span><span class="op">(</span><span class="st">"my-local-llama"</span>, <span class="fl">1000</span>, <span class="fl">500</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<p>While a spending limit is set, harnessr refuses a request to a
-language model with no registered price before sending it. Embedding
-models and <code><a href="../reference/hr_mock_client.html">hr_mock_client()</a></code> are exempt. You have two ways
-forward:</p>
-<ul>
-<li>give <code>input_usd</code> and <code>output_usd</code> in US
-dollars per million tokens;</li>
-<li>let a local model run unpriced with
-<code>hr_options(allow_unpriced = TRUE)</code>.</li>
-</ul>
+<p>While a spending limit is set, harnessr sends a request to a language
+model with no registered price and warns, once per model per session,
+that the limit does not count it. Embedding models and
+<code><a href="../reference/hr_mock_client.html">hr_mock_client()</a></code> are exempt. Give <code>input_usd</code>
+and <code>output_usd</code> in US dollars per million tokens, zero for a
+local model, and the limit counts the model’s requests. To refuse
+unpriced requests instead, set
+<code>hr_options(allow_unpriced = FALSE)</code>.</p>
 <p>The section on connecting to a model in
-<code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> shows both for a model reached through
-ellmer. <code>reasoning = TRUE</code> marks a model that takes an effort
-setting.</p>
+<code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> registers a hosted model at its prices
+and a local one at zero, both reached through ellmer.
+<code>reasoning = TRUE</code> marks a model that takes an effort
+setting. To set the prices of many models at once from a file, and to
+keep them current, see “Models, prices and token counts” in
+<code><a href="../articles/runs.html">vignette("runs")</a></code>.</p>
 </div>
 <div class="section level2">
 <h2 id="using-what-you-registered">Using what you registered<a class="anchor" aria-label="anchor" href="#using-what-you-registered"></a>

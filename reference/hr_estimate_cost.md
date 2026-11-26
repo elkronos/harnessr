@@ -9,7 +9,8 @@ hr_estimate_cost(
   model,
   input_tokens,
   output_tokens = 0,
-  cached_input_tokens = 0
+  cached_input_tokens = 0,
+  detail = FALSE
 )
 ```
 
@@ -29,15 +30,30 @@ hr_estimate_cost(
   They are priced at the model's `cached_input_usd` when it has one, and
   as other input tokens when it does not.
 
+- detail:
+
+  `FALSE` (the default) for the figure alone; `TRUE` for a data frame
+  that also says where the prices came from.
+
 ## Value
 
 A single numeric USD figure, or `NA_real_` when the model has no pricing
 in the registry, or no output price and `output_tokens` above zero (an
 embedding model's missing output price counts as zero, since it produces
-no output tokens). Pricing is seeded from the registry's `as_of`
-snapshot. Treat it as an estimate, and use
+no output tokens). harnessr ships no prices: set them with
 [`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md)
-to correct it.
+or
+[`hr_load_models()`](https://elkronos.github.io/harnessr/reference/hr_load_models.md).
+Treat the figure as an estimate. When the model's prices are older than
+`hr_options("price_max_age_days")` (120 days by default, counted from
+the first day of their `as_of` month), the first figure computed from
+them in a session warns with class `hr_stale_price`.
+
+With `detail = TRUE`, a one-row data frame instead: `model`, `usd` (the
+same figure), `priced` (whether the model has a price), `as_of` (the
+month of its prices, `NA` without one) and `certain` (`FALSE` when the
+model's registry entry is a family guess or the default; see
+[`hr_model_info()`](https://elkronos.github.io/harnessr/reference/hr_model_info.md)).
 
 ## See also
 
@@ -50,6 +66,7 @@ Other cost and token functions:
 [`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md),
 [`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md),
 [`hr_count_tokens()`](https://elkronos.github.io/harnessr/reference/hr_count_tokens.md),
+[`hr_load_models()`](https://elkronos.github.io/harnessr/reference/hr_load_models.md),
 [`hr_model_info()`](https://elkronos.github.io/harnessr/reference/hr_model_info.md),
 [`hr_model_limits()`](https://elkronos.github.io/harnessr/reference/hr_model_limits.md),
 [`hr_models()`](https://elkronos.github.io/harnessr/reference/hr_models.md),
@@ -62,9 +79,19 @@ Other cost and token functions:
 ## Examples
 
 ``` r
+# harnessr ships no prices, so a built-in model's cost is NA until you set
+# them. Not 0: nothing says the run is free.
+hr_estimate_cost("gpt-4o", input_tokens = 120000, output_tokens = 4000)
+#> [1] NA
+
+# Set the prices you pay. These figures are illustrative: use your
+# provider's current prices, in USD per million tokens.
+hr_register_model("gpt-4o", input_usd = 2.50, output_usd = 10)
 hr_estimate_cost("gpt-4o", input_tokens = 120000, output_tokens = 4000)
 #> [1] 0.34
-hr_estimate_cost("a-model-with-no-pricing", 1000, 100)
-#> Warning: Model 'a-model-with-no-pricing' is not in the registry. Falling back to a conservative 128000-token context with a 4096-token output reserve. Register the real limits with hr_register_model('a-model-with-no-pricing', context_window = ..., max_output = ...) so budgets and cost estimates are correct.
-#> [1] NA
+
+# Where the figure's prices came from.
+hr_estimate_cost("gpt-4o", 120000, 4000, detail = TRUE)
+#>    model  usd priced   as_of certain
+#> 1 gpt-4o 0.34   TRUE 2026-11    TRUE
 ```

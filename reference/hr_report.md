@@ -172,7 +172,12 @@ An object of class `hr_bench_report`, a list with
 
   Per arm: `usd_per_item`, `usd_per_correct`, `tokens_per_item`,
   `tokens_per_correct`, each with `_lower` and `_upper`,
-  `usd_estimated_share` and `estimated_flag`.
+  `usd_estimated_share`, `estimated_flag`, and where the prices came
+  from: `priced` (every run's models have a price), `as_of` (the oldest
+  month among those prices) and `certain` (every model's registry entry
+  is a fact, not a guess), from the columns of the same names in an
+  [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+  result, `NA` for a table without them.
 
 - `frontier`:
 

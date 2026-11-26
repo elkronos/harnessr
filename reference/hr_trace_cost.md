@@ -34,6 +34,16 @@ exception is a model whose every request failed without sending a token
 (an embeddings request to an endpoint that has none, say): that cost
 nothing, priced or not, so it contributes 0.
 
+Three more columns say where each row's prices came from: `priced`
+(whether the model has a price), `as_of` (the month of its prices, `NA`
+without one) and `certain` (`FALSE` when the model's registry entry is a
+family guess or the default; see
+[`hr_model_info()`](https://elkronos.github.io/harnessr/reference/hr_model_info.md)).
+They describe the registry when you call this, which is also what `usd`
+is priced at. Printed, a trace shows the cost with the month of its
+prices, and names each model with no price; a total over models of which
+some have no price says it covers only the priced ones.
+
 ## Details
 
 This is why the token totals on
@@ -60,8 +70,8 @@ ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
 hr_trace_cost(ans$trace)
 #>        model calls paid_calls paid_in paid_out usd paid_reasoning
 #> 1 mock-model     1          1     607       13   0              0
-#>   paid_cached_in
-#> 1              0
+#>   paid_cached_in priced   as_of certain
+#> 1              0   TRUE 2026-11    TRUE
 
 # Priced by the model each step records: a mock's own model, at no cost.
 # A cached re-run costs nothing for a different reason: paid_calls falls

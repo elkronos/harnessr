@@ -50,11 +50,12 @@ hr_backend_client(
   the model registry you will get the usual unknown-model warning and a
   conservative context window. Under the default spending limit
   (`hr_options(max_cost_usd =)`), a call to a `model` with no registered
-  price is also refused and not sent. Register the model with
+  price is sent with a warning that the limit does not cover it, and its
+  cost is recorded as `NA`. Register the model with
   [`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md),
-  giving `input_usd` and `output_usd` as well as its limits, or set
-  `hr_options(allow_unpriced = TRUE)`. The context window you register
-  is what sizes your chunks.
+  giving `input_usd` and `output_usd` as well as its limits, so the
+  limit counts it. The context window you register is what sizes your
+  chunks.
 
 - id:
 
@@ -122,7 +123,7 @@ evidence.
 
 ``` r
 # Register the model first: its limits size the calls, and a price (zero
-# here) lets the default spending limit count them instead of refusing.
+# here) lets the default spending limit count them.
 hr_register_model("my-backend", context_window = 8000, max_output = 1000,
                   input_usd = 0, output_usd = 0)
 

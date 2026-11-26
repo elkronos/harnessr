@@ -115,7 +115,8 @@ says which: `"calls"` for `max_calls`, `"cost"` for `max_cost_usd`,
 `worst_usd`, the run's `calls` and `spent_usd` at that moment, and the
 `message`. A refused request is not a call and has no step. `spent_usd`
 is what the calls so far cost. A call to a model with no registered
-price (sent under `allow_unpriced = TRUE`) adds nothing to it, so
+price (sent under `allow_unpriced = TRUE`, the default) adds nothing to
+it, so
 [`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md)
 is the full account. `replayed_usd` is what the calls a
 [`hr_replay_client()`](https://elkronos.github.io/harnessr/reference/hr_replay_client.md)
@@ -261,6 +262,13 @@ order they were made, and none for local steps such as segmentation:
   model it said answered, `NA` where it did not. Each is present only
   when some request in the trace has it.
 
+- `priced`, `as_of`, `certain`:
+
+  Last, where `usd`'s price came from, as in
+  [`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md):
+  whether the model has a price, the month of its prices (`NA` without
+  one), and whether its registry entry is a fact rather than a guess.
+
 A request's `usd` prices its cached input tokens at the model's cached
 input rate when
 [`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md)
@@ -284,11 +292,11 @@ ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 150))
 invisible(gr_read(ch, "What was revenue?", cl, "map_reduce", trace = tr))
 #> Reading with 'map_reduce' (all|N+logN|tree) over 5 chunk(s).
 print(tr)
-#> <gr_trace run_20261126122935.757_05c0bd>  7 steps, 6 model calls, 1118 in / 36 out tokens, 0 error(s)
+#> <gr_trace run_20261126213905.993_811fd4>  7 steps, 6 model calls, 1118 in / 36 out tokens, 0 error(s)
 #>   steps: map.answer x5, preflight x1, reduce x1 
-#>   cost: $0.0000 across mock-model
+#>   cost: $0.0000 across mock-model, prices as of 2026-11
 #>   usage: estimated locally for 100% of requests (the provider reported none)
-#>   started: 2026-11-26T12:29:35.757Z 
+#>   started: 2026-11-26T21:39:05.994Z 
 
 # One row per request, with what each cost and how long it took.
 reqs <- as.data.frame(tr)

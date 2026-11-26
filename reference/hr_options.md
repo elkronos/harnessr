@@ -161,9 +161,10 @@ changing an option mid-session affects subsequent runs.
   worker is held to its share of what is left. A chat model with no
   registered price (see
   [`hr_models()`](https://elkronos.github.io/harnessr/reference/hr_models.md))
-  is refused under a limit unless `allow_unpriced` is `TRUE`. Under a
-  limit of 0 a model registered at no cost runs and one with a price is
-  refused. `NULL` removes the limit.
+  is not held by the limit: its requests are sent with a warning, unless
+  `allow_unpriced` is `FALSE`. Under a limit of 0 a model registered at
+  no cost runs and one with a price is refused. `NULL` removes the
+  limit.
 
 - `max_calls` (400):
 
@@ -181,7 +182,7 @@ changing an option mid-session affects subsequent runs.
   call, cache hits included, and the text sent to be embedded. A request
   is refused when what the run has used plus its prompt and its reply at
   the cap would pass it. The limit that still bounds a run on a model
-  with no price under `allow_unpriced = TRUE`. `NULL` for no limit.
+  with no price. `NULL` for no limit.
 
 - `max_output_tokens` (NULL):
 
@@ -195,12 +196,28 @@ changing an option mid-session affects subsequent runs.
   Character vector of the model ids a run may call, chat and embedding
   models alike. A request to any other is refused. `NULL` for any model.
 
-- `allow_unpriced` (FALSE):
+- `allow_unpriced` (TRUE):
 
   Whether a chat model with no registered price may be called while
-  `max_cost_usd` is set. Off, such a request is refused with a condition
-  of class `hr_unpriced_model`; on, it is sent and its cost is recorded
-  as unknown (`NA`).
+  `max_cost_usd` is set. On, such a request is sent, its cost is
+  recorded as unknown (`NA`), and the first request to each such model
+  in a session warns with class `hr_unpriced_model`. Off, it is refused
+  with a condition of that class. Untested: harnessr ships no prices, so
+  off would refuse every built-in model until you set its prices with
+  [`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md)
+  or
+  [`hr_load_models()`](https://elkronos.github.io/harnessr/reference/hr_load_models.md).
+
+- `price_max_age_days` (120):
+
+  How old a price may be, in days, before a cost computed from it warns
+  with class `hr_stale_price`. A price's age is counted from the first
+  day of its `as_of` month (see
+  [`hr_models()`](https://elkronos.github.io/harnessr/reference/hr_models.md)),
+  and the warning is given once per model per session. Built-in models
+  have no prices, so it applies to prices you set. `NULL` turns the
+  warning off. Untested: about four months, so prices set once are
+  checked again a few times a year.
 
 - `unknown_model_action` ("warn"):
 
@@ -273,14 +290,16 @@ changing an option mid-session affects subsequent runs.
 ## Where the defaults come from
 
 The settings listed last above were constants in the code until they
-were options; each keeps the constant's value. A trace records them (in
-its options snapshot) only when one is not its default, so a trace made
-at the defaults reads as it did before they existed. Each tuning
-setting's entry above (`temperature`, `max_retries`, `retry_pause_base`,
-`request_timeout`, `safety_margin`, `min_output_tokens`, `workers` and
-the settings listed last) says where its default came from; "untested"
-means no measurement backs the value. The other entries are switches,
-limits and names, which are choices rather than tuned values.
+were options; each keeps the constant's value. A trace records them, and
+`price_max_age_days`, (in its options snapshot) only when one is not its
+default, so a trace made at the defaults reads as it did before they
+existed. Each tuning setting's entry above (`temperature`,
+`max_retries`, `retry_pause_base`, `request_timeout`, `safety_margin`,
+`min_output_tokens`, `workers`, `price_max_age_days` and the settings
+listed last) says where its default came from, as does
+`allow_unpriced`'s; "untested" means no measurement backs the value. The
+other entries are switches, limits and names, which are choices rather
+than tuned values.
 
 ## Checked values
 
@@ -300,13 +319,14 @@ The tuning settings (`safety_margin` \[0, 0.5\], `min_output_tokens`
 `request_timeout` \[1, 3600\], `workers` \[1, 32\], `temperature` \[0,
 2\], `auto_max_tokens` \[0, 1e7\], `auto_room_share` \[0, 1\],
 `reasoning_floor` \[0, 1e6\], `output_reserve_share` \[0, 0.9\],
-`near_verbatim_sim` and `near_verbatim_sim_short` \[0, 1\] and
-`near_verbatim_short_chars` \[0, 1e4\]) read a number written as text as
-that number. A value they cannot read, such as `NA` or `"x"`, warns
-(`gr_bad_option`) and leaves the current setting unchanged; a value
-outside the range is clamped into it, with the same warning.
-Whole-number settings are rounded down. `temperature` also takes `NULL`,
-its default.
+`near_verbatim_sim` and `near_verbatim_sim_short` \[0, 1\],
+`near_verbatim_short_chars` \[0, 1e4\] and `price_max_age_days` \[0,
+3650\]) read a number written as text as that number. A value they
+cannot read, such as `NA` or `"x"`, warns (`gr_bad_option`) and leaves
+the current setting unchanged; a value outside the range is clamped into
+it, with the same warning. Whole-number settings are rounded down.
+`temperature` also takes `NULL`, its default, and `price_max_age_days`
+takes `NULL` to turn its warning off.
 
 ## See also
 

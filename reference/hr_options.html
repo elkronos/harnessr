@@ -207,9 +207,9 @@ that sends batches is also refused before it starts when its worst case,
 every reply at its token cap and the price of the dearest model it uses,
 would pass the limit, and each worker is held to its share of what is
 left. A chat model with no registered price (see <code><a href="hr_models.html">hr_models()</a></code>) is
-refused under a limit unless <code>allow_unpriced</code> is <code>TRUE</code>. Under a limit of 0 a
-model registered at no cost runs and one with a price is refused. <code>NULL</code>
-removes the limit.</p></dd>
+not held by the limit: its requests are sent with a warning, unless
+<code>allow_unpriced</code> is <code>FALSE</code>. Under a limit of 0 a model registered at no
+cost runs and one with a price is refused. <code>NULL</code> removes the limit.</p></dd>
 
 <dt><code>max_calls</code> (400)</dt>
 <dd><p>Hard cap on model calls per run, checked before
@@ -224,8 +224,8 @@ cap.</p></dd>
 prompt and reply tokens of every call, cache hits included, and the
 text sent to be embedded. A request is refused when what the run has
 used plus its prompt and its reply at the cap would pass it. The limit
-that still bounds a run on a model with no price under
-<code>allow_unpriced = TRUE</code>. <code>NULL</code> for no limit.</p></dd>
+that still bounds a run on a model with no price. <code>NULL</code> for no
+limit.</p></dd>
 
 <dt><code>max_output_tokens</code> (NULL)</dt>
 <dd><p>The largest output cap one request may
@@ -238,11 +238,23 @@ for no ceiling.</p></dd>
 may call, chat and embedding models alike. A request to any other is
 refused. <code>NULL</code> for any model.</p></dd>
 
-<dt><code>allow_unpriced</code> (FALSE)</dt>
+<dt><code>allow_unpriced</code> (TRUE)</dt>
 <dd><p>Whether a chat model with no registered price
-may be called while <code>max_cost_usd</code> is set. Off, such a request is
-refused with a condition of class <code>hr_unpriced_model</code>; on, it is sent
-and its cost is recorded as unknown (<code>NA</code>).</p></dd>
+may be called while <code>max_cost_usd</code> is set. On, such a request is sent,
+its cost is recorded as unknown (<code>NA</code>), and the first request to each
+such model in a session warns with class <code>hr_unpriced_model</code>. Off, it is
+refused with a condition of that class. Untested: harnessr ships no
+prices, so off would refuse every built-in model until you set its
+prices with <code><a href="hr_register_model.html">hr_register_model()</a></code> or <code><a href="hr_load_models.html">hr_load_models()</a></code>.</p></dd>
+
+<dt><code>price_max_age_days</code> (120)</dt>
+<dd><p>How old a price may be, in days, before
+a cost computed from it warns with class <code>hr_stale_price</code>. A price's age
+is counted from the first day of its <code>as_of</code> month (see <code><a href="hr_models.html">hr_models()</a></code>),
+and the warning is given once per model per session. Built-in models
+have no prices, so it applies to prices you set. <code>NULL</code> turns the
+warning off. Untested: about four months, so prices set once are
+checked again a few times a year.</p></dd>
 
 <dt><code>unknown_model_action</code> ("warn")</dt>
 <dd><p><code>"warn"</code> or <code>"error"</code> when a model id
@@ -306,14 +318,15 @@ than the default joins the store key of <code><a href="gr_read_many.html">gr_rea
 
 
 <p>The settings listed last above were constants in the code until they were
-options; each keeps the constant's value. A trace records them (in its
-options snapshot) only when one is not its default, so a trace made at the
-defaults reads as it did before they existed. Each tuning setting's entry
-above (<code>temperature</code>, <code>max_retries</code>, <code>retry_pause_base</code>, <code>request_timeout</code>,
-<code>safety_margin</code>, <code>min_output_tokens</code>, <code>workers</code> and the settings listed
-last) says where its default came from; "untested" means no measurement
-backs the value. The other entries are switches, limits and names, which
-are choices rather than tuned values.</p>
+options; each keeps the constant's value. A trace records them, and
+<code>price_max_age_days</code>, (in its options snapshot) only when one is not its
+default, so a trace made at the defaults reads as it did before they
+existed. Each tuning setting's entry above (<code>temperature</code>, <code>max_retries</code>,
+<code>retry_pause_base</code>, <code>request_timeout</code>, <code>safety_margin</code>,
+<code>min_output_tokens</code>, <code>workers</code>, <code>price_max_age_days</code> and the settings
+listed last) says where its default came from, as does <code>allow_unpriced</code>'s;
+"untested" means no measurement backs the value. The other entries are
+switches, limits and names, which are choices rather than tuned values.</p>
     </div>
     <div class="section level2">
     <h2 id="checked-values">Checked values<a class="anchor" aria-label="anchor" href="#checked-values"></a></h2>
@@ -333,12 +346,14 @@ vector of ids, and <code>allow_unpriced</code> <code>TRUE</code> or <code>FALSE<
 <code>request_timeout</code> [1, 3600], <code>workers</code> [1, 32], <code>temperature</code>
 [0, 2], <code>auto_max_tokens</code> [0, 1e7], <code>auto_room_share</code> [0, 1],
 <code>reasoning_floor</code> [0, 1e6], <code>output_reserve_share</code> [0, 0.9],
-<code>near_verbatim_sim</code> and <code>near_verbatim_sim_short</code> [0, 1] and
-<code>near_verbatim_short_chars</code> [0, 1e4]) read a number written as text as that number. A value they cannot
+<code>near_verbatim_sim</code> and <code>near_verbatim_sim_short</code> [0, 1],
+<code>near_verbatim_short_chars</code> [0, 1e4] and <code>price_max_age_days</code>
+[0, 3650]) read a number written as text as that number. A value they cannot
 read, such as <code>NA</code> or <code>"x"</code>, warns (<code>gr_bad_option</code>) and leaves the current
 setting unchanged; a value outside the range is clamped into it, with the
 same warning. Whole-number settings are rounded down. <code>temperature</code> also
-takes <code>NULL</code>, its default.</p>
+takes <code>NULL</code>, its default, and <code>price_max_age_days</code> takes <code>NULL</code> to turn
+its warning off.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

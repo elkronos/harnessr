@@ -63,6 +63,7 @@ Other cost and token functions:
 [`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md),
 [`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md),
 [`hr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/hr_estimate_cost.md),
+[`hr_load_models()`](https://elkronos.github.io/harnessr/reference/hr_load_models.md),
 [`hr_model_info()`](https://elkronos.github.io/harnessr/reference/hr_model_info.md),
 [`hr_model_limits()`](https://elkronos.github.io/harnessr/reference/hr_model_limits.md),
 [`hr_models()`](https://elkronos.github.io/harnessr/reference/hr_models.md),

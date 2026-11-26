@@ -196,9 +196,10 @@ package, which covers about twenty providers, local models through
 Ollama among them.
 
 The spending limit is on by default, and it can hold only for a model
-with a registered price. Register the model you built the ellmer object
-with, at your provider’s current prices in US dollars per million
-tokens. A local model has no price to register, so let it run unpriced:
+with a registered price. harnessr ships no prices, so register the model
+you built the ellmer object with, at your provider’s current prices in
+US dollars per million tokens. A local model costs nothing, so register
+it at zero:
 
 ``` r
 
@@ -209,12 +210,13 @@ hr_register_model("claude-sonnet-4-5", context_window = 200000, max_output = 640
 cl <- hr_ellmer_client(chat_anthropic(model = "claude-sonnet-4-5"))
 answer_document("report.pdf", "What was revenue?", "thorough", client = cl)
 
-hr_options(allow_unpriced = TRUE)
+hr_register_model("llama3.1", context_window = 128000, max_output = 4096,
+                  input_usd = 0, output_usd = 0)
 cl <- hr_ellmer_client(chat_ollama(model = "llama3.1"))
 ```
 
-Without a registered price, a run under `max_cost_usd` stops before its
-first request with an `hr_unpriced_model` error.
+Without a registered price, a run under `max_cost_usd` is sent with an
+`hr_unpriced_model` warning, and the spending limit does not count it.
 [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
 covers unpriced models and what changes through ellmer (temperature and
 embeddings).
@@ -332,7 +334,7 @@ bad <- answer_document(gr_example(), "What was revenue in 2024?",
 bad
 #> <gr_answer> reader=stuff (PARTIAL)
 #>   Q: What was revenue in 2024?
-#>   1 model call(s), 611 in / 0 out tokens, 1 error(s), $0.0000 across mock-model
+#>   1 model call(s), 611 in / 0 out tokens, 1 error(s), $0.0000 across mock-model, prices as of 2026-11
 #>   ---
 #> Not found in the part of the document that was read.
 #>   ---
@@ -430,20 +432,30 @@ row per request, with its cost and how long it took. The `prompt` and
 
 as.data.frame(ans$trace)[, c("stage", "tokens_in", "tokens_out", "usd", "seconds")]
 #>          stage tokens_in tokens_out usd seconds
-#> 1 stuff.answer       611         13   0   0.001
+#> 1 stuff.answer       611         13   0   0.002
 ```
 
-`usd` is priced from harnessr’s list of known models
+`usd` comes from the prices in harnessr’s model registry
 ([`hr_models()`](https://elkronos.github.io/harnessr/reference/hr_models.md)).
-A model it does not know is priced as unknown rather than free. You can
-also estimate before sending anything. Here is a 120,000-token document
-with a 4,000-token answer:
+The mock costs nothing. For a real model, harnessr knows the limits but
+ships no prices, because providers change prices more often than the
+package is released. You set the price you pay, in US dollars per
+million tokens. Until you do, the model’s cost is `NA`, never 0.
+
+Set the default model’s price, then estimate before sending anything.
+Here is a 120,000-token document with a 4,000-token answer:
 
 ``` r
 
+# Illustrative figures: use your provider's current prices.
+hr_register_model(hr_options("model"), input_usd = 2, output_usd = 12)
 hr_estimate_cost(hr_options("model"), input_tokens = 120000, output_tokens = 4000)
 #> [1] 0.288
 ```
+
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
+shows how to set the prices of many models from a file and keep them
+current.
 
 Two safety limits are on from the start: \$5 and 400 requests per
 document. harnessr checks each request before sending it, against what
@@ -585,7 +597,7 @@ table(factor(settings$stage, unique(settings$stage)))
 #>     ingest    segment       read     screen    extract synthesise   evaluate 
 #>         21         20         50         33         10         29         30 
 #>    options 
-#>         34
+#>         35
 ```
 
 | stage | settings | where you set it | guide |
@@ -597,7 +609,7 @@ table(factor(settings$stage, unique(settings$stage)))
 | extract | 10 | the arguments of [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md) | [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md) |
 | synthesise | 29 | the arguments of [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) and the functions beside it | [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md) |
 | evaluate | 30 | the arguments of [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md), [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) and [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | [`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md), [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md) |
-| options | 34 | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md), for the whole session | [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md) |
+| options | 35 | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md), for the whole session | [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md) |
 
 Most runs change a few of them, and
 [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
@@ -630,7 +642,7 @@ defaults and when to change each:
 | options | `cache_dir` (a temporary directory) | a long run should be paid for once and survive the session |
 
 [`vignette("settings")`](https://elkronos.github.io/harnessr/articles/settings.md)
-lists all 227 with their defaults and where each default came from, and
+lists all 228 with their defaults and where each default came from, and
 [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
 returns them in R. The settings page links each important one to a
 walkthrough at the end of one of six guides. Each walkthrough says what

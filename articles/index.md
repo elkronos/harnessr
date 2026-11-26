@@ -40,8 +40,8 @@ segmenters and settings with intervals.
 
 ### Control cost and settings
 
-Set spending limits, pay for a request once, replay a run, and look up
-every setting with its default.
+Set model prices and spending limits, pay for a request once, replay a
+run, and look up every setting with its default.
 
 - [Cost, limits and reproducible
   runs](https://elkronos.github.io/harnessr/articles/runs.md):

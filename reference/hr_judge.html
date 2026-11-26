@@ -198,7 +198,10 @@ candidate), <code>reason</code> and <code>error</code>.</p></dd>
 
 <dt><code>judge_cost</code></dt>
 <dd><p>A list of <code>usd</code> (<code>NA</code> when the model has no price),
-<code>tokens_in</code>, <code>tokens_out</code> and <code>calls</code>, over the judge's own requests.</p></dd>
+<code>tokens_in</code>, <code>tokens_out</code> and <code>calls</code>, over the judge's own requests,
+then where the prices came from: <code>priced</code>, <code>as_of</code> and <code>certain</code> (as
+in <code><a href="hr_trace_cost.html">hr_trace_cost()</a></code>, over the judge's models) and <code>models</code>, the
+models priced.</p></dd>
 
 <dt><code>mode</code>, <code>model</code>, <code>candidates</code> (the ids), <code>config_hash</code></dt>
 <dd><p>What was

@@ -51,7 +51,8 @@ hr_governor(
 - allow_unpriced:
 
   `TRUE` to send requests to models with no registered price under a
-  spending limit.
+  spending limit, with a warning once per model per session; `FALSE` to
+  refuse them.
 
 ## Value
 
@@ -97,19 +98,28 @@ token ceiling), `"output"` (the per-call ceiling), `"model"` (not an
 allowed model) or `"unpriced"`.
 
 A text-generation model with no registered price cannot be held to a
-spending limit, so while `max_cost_usd` is a finite number a request to
-one is refused (a condition of class `hr_unpriced_model` as well as
-`hr_budget_refused`), unless `allow_unpriced = TRUE`. With
-`allow_unpriced = TRUE` the request is sent, the trace prices it at
-`NA`, never 0, and `max_calls`, `max_tokens_total` and the other limits
-still apply: `max_tokens_total` is the limit that bounds such a run,
-since the spending limit cannot. An embedding model with no price is not
-refused; its requests count against `max_calls` and add nothing to the
+spending limit. harnessr ships no prices, so by default
+(`allow_unpriced = TRUE`) a request to one is sent while `max_cost_usd`
+is a finite number, and the trace prices it at `NA`, never 0. The first
+such request to each model in a session warns, with class
+`hr_unpriced_model`, that the spending limit does not cover the model
+until you set its prices with
+[`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md)
+or
+[`hr_load_models()`](https://elkronos.github.io/harnessr/reference/hr_load_models.md).
+`max_calls`, `max_tokens_total` and the other limits still apply:
+`max_tokens_total` is the limit that bounds such a run, since the
+spending limit cannot. With `allow_unpriced = FALSE` the request is
+refused instead (a condition of class `hr_unpriced_model` as well as
+`hr_budget_refused`), for a run in which every request must be priced.
+An embedding model with no price is neither refused nor warned about
+here; its requests count against `max_calls` and add nothing to the
 spend, as
 [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 warns.
 [`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
-makes no paid requests and is never refused as unpriced. A request an
+makes no paid requests, so it is never refused or warned about as
+unpriced. A request an
 [`hr_cache()`](https://elkronos.github.io/harnessr/reference/hr_cache.md)
 answers spends nothing and is checked only against `max_calls`,
 `max_output_tokens` and `allowed_models`.
@@ -160,10 +170,14 @@ tr$stop_reason
 #> [1] "calls"
 
 # A request whose worst case would pass the spending limit is not sent.
+# The limit needs a price; this one is illustrative, so use your
+# provider's current prices.
+hr_register_model("my-priced-model", context_window = 128000, max_output = 4096,
+                  input_usd = 2.5, output_usd = 10)
 tr <- hr_trace(governor = hr_governor(max_cost_usd = 0.001))
-res <- hr_call(cl, "hi", model = "gpt-4o", trace = tr)
+res <- hr_call(cl, "hi", model = "my-priced-model", trace = tr)
 res$refused
 #> [1] TRUE
 res$error
-#> [1] "spending limit reached: the 'call' request could cost up to $0.16 (up to 13 prompt tokens, and 16384 reply tokens at its cap), and the run has spent $0 of its $0.001 limit, so it was not sent; raise hr_options(max_cost_usd =) or ask for a smaller max_output"
+#> [1] "spending limit reached: the 'call' request could cost up to $0.04 (up to 13 prompt tokens, and 4096 reply tokens at its cap), and the run has spent $0 of its $0.001 limit, so it was not sent; raise hr_options(max_cost_usd =) or ask for a smaller max_output"
 ```

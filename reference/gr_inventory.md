@@ -76,8 +76,10 @@ An object of class `gr_inventory`:
 - `totals`:
 
   Files, readable files, bytes, known `tokens`, `tokens_unknown`
-  (readable files whose size cannot be counted yet), and
-  `cost_floor_usd`.
+  (readable files whose size cannot be counted yet), `cost_floor_usd`,
+  and where its prices came from: `priced`, `as_of` and `certain`, as
+  [`hr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/hr_estimate_cost.md)
+  gives them with `detail = TRUE`.
 
 - `root`:
 
@@ -167,10 +169,10 @@ writeLines("notes", file.path(d, "notes.doc"))   # no extractor claims .doc
 
 inv <- gr_inventory(d)
 inv
-#> <gr_inventory> /tmp/RtmpvIvW4q/file1bf33b7ea596
+#> <gr_inventory> /tmp/Rtmp5mYesE/file1c0545569cd
 #>   2 file(s), 44.0 B; 1 readable
 #>   1 ready, 1 no_extractor
-#>   tokens: 16   cost floor: $0.01 (gpt-5.6-terra, one call per document)
+#>   tokens: 16   cost floor: unknown: no price set for gpt-5.6-terra (set one with hr_register_model() or hr_load_models())
 #>   ! 1 file(s) would be skipped: .doc (1). gr_register_extractor() adds a format.
 inv$files[, c("file", "folder", "ext", "status", "tokens")]
 #>              file folder ext       status tokens

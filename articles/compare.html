@@ -110,6 +110,8 @@ section repeats the steps on your own documents.</p>
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/harnessr" class="external-link">harnessr</a></span><span class="op">)</span></span>
 <span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span>
 <span><span class="va">op</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>digits <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co"># Illustrative prices for a stand-in model. For a real model, use your</span></span>
+<span><span class="co"># provider's current prices.</span></span>
 <span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"mock-model"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">16384</span>,</span>
 <span>                  input_usd <span class="op">=</span> <span class="fl">1</span>, output_usd <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></code></pre></div>
 <p>The stand-in model’s id is <code>mock-model</code>, and its price
@@ -317,6 +319,7 @@ that rank highest.</li>
 <span><span class="co">#&gt;  stuff      0.847    320  49    0      0           0.0972</span></span>
 <span><span class="co">#&gt;  map_reduce 0.906    320  30    0      0           0.2430</span></span>
 <span><span class="co">#&gt;  retrieve   0.894    320  34    0      0           0.0686</span></span>
+<span><span class="co">#&gt;   cost: $0.4088 across mock-model, prices as of 2026-11</span></span>
 <span><span class="co">#&gt;   Descriptive only: accuracy is the mean over runs within each item, then over labelled items, with no interval.</span></span>
 <span><span class="fu"><a href="../reference/hr_trace_summary.html">hr_trace_summary</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">b_read</span>, <span class="st">"trace"</span><span class="op">)</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"calls"</span>, <span class="st">"tokens_in"</span>, <span class="st">"tokens_out"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   calls tokens_in tokens_out</span></span>
@@ -479,6 +482,7 @@ segmenter and size, and the arms run on the dev split:</p>
 <span><span class="co">#&gt;  fixed_80     -        0.688 80   5     20     0           0.0178</span></span>
 <span><span class="co">#&gt;  sentence_80  -        0.500 80   0     40     0           0.0151</span></span>
 <span><span class="co">#&gt;  paragraph_80 -        0.688 80   5     20     0           0.0158</span></span>
+<span><span class="co">#&gt;   cost: $0.0902 across mock-model, prices as of 2026-11</span></span>
 <span><span class="co">#&gt;   480 row(s) on the dev split are not reportable; their accuracy is the dev column alone.</span></span>
 <span><span class="co">#&gt;   Descriptive only: accuracy is the mean over runs within each item, then over labelled items, with no interval.</span></span></code></pre></div>
 <p>The print shows accuracy only in the dev column, and
@@ -530,6 +534,7 @@ make the prompt longer. The sweep runs on dev:</p>
 <span><span class="co">#&gt;  top_k_1 -        0.738 80   1     20     0           0.0133</span></span>
 <span><span class="co">#&gt;  top_k_2 -        0.950 80   4      0     0           0.0153</span></span>
 <span><span class="co">#&gt;  top_k_4 -        0.912 80   7      0     0           0.0199</span></span>
+<span><span class="co">#&gt;   cost: $0.0485 across mock-model, prices as of 2026-11</span></span>
 <span><span class="co">#&gt;   240 row(s) on the dev split are not reportable; their accuracy is the dev column alone.</span></span>
 <span><span class="co">#&gt;   Descriptive only: accuracy is the mean over runs within each item, then over labelled items, with no interval.</span></span></code></pre></div>
 <p><code>top_k = 2</code> is highest on dev, at 0.950.
@@ -721,6 +726,8 @@ whichever text it was shown first:</p>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'{"verdict": "%s", "reason": "Compared."}'</span>, <span class="va">v</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
 <span><span class="va">rubric</span> <span class="op">&lt;-</span> <span class="st">"Which candidate gives fiscal 2024 revenue?"</span></span>
+<span><span class="co"># Illustrative prices for a stand-in model. For a real model, use your</span></span>
+<span><span class="co"># provider's current prices.</span></span>
 <span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"mock-judge"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">4096</span>,</span>
 <span>                  input_usd <span class="op">=</span> <span class="fl">1</span>, output_usd <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">5</span><span class="op">)</span></span>

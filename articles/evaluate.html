@@ -123,6 +123,8 @@ $0.20 and $0.80 per million input and output tokens, and
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/harnessr" class="external-link">harnessr</a></span><span class="op">)</span></span>
 <span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Illustrative prices for a stand-in model. For a real model, use your</span></span>
+<span><span class="co"># provider's current prices.</span></span>
 <span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"mock-small"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">4096</span>,</span>
 <span>                  input_usd <span class="op">=</span> <span class="fl">0.2</span>, output_usd <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"mock-large"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">4096</span>,</span>
@@ -398,6 +400,7 @@ the report is unclear on 30% of requests; asked as
 <span><span class="co">#&gt;  arm   accuracy runs wrong failed budget_stop usd   </span></span>
 <span><span class="co">#&gt;  small 0.750    40   10    0      0           0.0013</span></span>
 <span><span class="co">#&gt;  large 1.000    40    0    0      0           0.0132</span></span>
+<span><span class="co">#&gt;   cost: $0.0145 across mock-large, mock-small, prices as of 2026-11</span></span>
 <span><span class="co">#&gt;   Descriptive only: accuracy is the mean over runs within each item, then over labelled items, with no interval.</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">bench</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"item"</span>, <span class="st">"arm"</span>, <span class="st">"run"</span>, <span class="st">"correct"</span>, <span class="st">"failure_kind"</span>, <span class="st">"usd"</span>, <span class="st">"draw_index"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    item   arm run correct failure_kind      usd draw_index</span></span>
@@ -531,6 +534,7 @@ fewer so it builds quickly.</p>
 <span><span class="co">#&gt;  estimated       on_frontier frontier_share</span></span>
 <span><span class="co">#&gt;  100.000% (flag) yes         1.000         </span></span>
 <span><span class="co">#&gt;  100.000% (flag) yes         1.000         </span></span>
+<span><span class="co">#&gt;   prices as of 2026-11</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Failures (all counted wrong):</span></span>
 <span><span class="co">#&gt;  arm   wrong without_parse_refusal</span></span>
@@ -830,10 +834,10 @@ begun to score, with class
 <span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mdd.html">hr_mdd</a></span><span class="op">(</span><span class="va">n</span>, n_clusters <span class="op">=</span> <span class="fl">50</span>, icc <span class="op">=</span> <span class="fl">0.1</span>, p_disc <span class="op">=</span> <span class="fl">0.15</span><span class="op">)</span></span>
 <span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_contrast.html">hr_register_contrasts</a></span><span class="op">(</span><span class="va">plan</span>, <span class="fu"><a href="../reference/hr_contrast.html">hr_contrast</a></span><span class="op">(</span><span class="st">"small"</span>, <span class="st">"large"</span>, margin <span class="op">=</span> <span class="fl">0.10</span><span class="op">)</span>, <span class="va">design</span><span class="op">)</span></span>
 <span><span class="va">reg</span></span>
-<span><span class="co">#&gt; &lt;hr_contrast_registration&gt; 1 contrast(s), 1 confirmatory; registered 2026-11-26T12:32:42.493Z</span></span>
+<span><span class="co">#&gt; &lt;hr_contrast_registration&gt; 1 contrast(s), 1 confirmatory; registered 2026-11-26T21:42:42.424Z</span></span>
 <span><span class="co">#&gt;  contrast       label        margin mdd cost_test</span></span>
 <span><span class="co">#&gt;  small vs large confirmatory 10.0   7.8 yes      </span></span>
-<span><span class="co">#&gt;   Margins and MDD in points; reference d453122a93af; hash 03cc76ffc1c7</span></span></code></pre></div>
+<span><span class="co">#&gt;   Margins and MDD in points; reference d453122a93af; hash 50f9c2f73fea</span></span></code></pre></div>
 <p>Here the stand-in model finds each item easier or harder by document
 and by item, and <code>mock-small</code> is a little worse on every one.
 The governor allows the 3000 calls the benchmark needs:</p>
@@ -915,7 +919,9 @@ minimums. At 10% prevalence, 100 labels hold 10 positives, and
 sensitivity then has an interval of about plus or minus 0.3. Here the
 judge’s simulated decisions are right 90% of the time:</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"mock-judge"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">4096</span>,</span>
+<code class="sourceCode R"><span><span class="co"># Illustrative prices for a stand-in model. For a real model, use your</span></span>
+<span><span class="co"># provider's current prices.</span></span>
+<span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"mock-judge"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">4096</span>,</span>
 <span>                  input_usd <span class="op">=</span> <span class="fl">1</span>, output_usd <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="va">cfg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_judge_config.html">hr_judge_config</a></span><span class="op">(</span><span class="st">"mock-judge"</span>, <span class="st">"Does the response give the reference's answer?"</span>,</span>
 <span>                       mode <span class="op">=</span> <span class="st">"grade"</span><span class="op">)</span></span>

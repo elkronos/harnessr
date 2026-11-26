@@ -180,10 +180,17 @@ which is <code>usd</code> for a right answer, <code>Inf</code> for a wrong one t
 something and <code>NA</code> for a wrong one that cost nothing or one whose
 correctness is not known.</p></dd>
 
+<dt><code>priced</code>, <code>as_of</code>, <code>certain</code></dt>
+<dd><p>Where <code>usd</code>'s prices came from,
+over the models the recipe used: <code>TRUE</code> when every one has a price,
+the oldest month among their prices, and <code>TRUE</code> when every registry
+entry is a fact rather than a guess (see <code><a href="hr_trace_cost.html">hr_trace_cost()</a></code>). <code>NA</code> for
+a recipe that made no request. They follow every column above.</p></dd>
+
 <dt><code>premise</code></dt>
 <dd><p>Only when a recipe checks the question's premise: what
 the model said the document states instead, or <code>NA</code>; see <code>premise</code> in
-<code><a href="gr_read_spec.html">gr_read_spec()</a></code>.</p></dd>
+<code><a href="gr_read_spec.html">gr_read_spec()</a></code>. Always the last column.</p></dd>
 
 
 </dl></div>
@@ -245,14 +252,16 @@ cut short is not shared with a later recipe.</p>
 <span class="r-in"><span><span class="co"># One trace covers all three, so this is the cost of the whole comparison.</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="hr_trace_summary.html">hr_trace_summary</a></span><span class="op">(</span><span class="va">cmp</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                          run_id calls cached steps tokens_in tokens_out errors</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 run_20261126122849.781_e36edf     5      0    16      2122         65      0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 run_20261126213815.970_bb5b24     5      0    16      2122         65      0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   elapsed_s embed_calls embed_tokens tokens_reasoning tokens_cached_in</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      0.16           0            0                0                0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      0.18           0            0                0                0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   usage_estimated</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1               1</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># What each recipe cost, and what a right answer cost. The mock is free, so</span></span></span>
 <span class="r-in"><span><span class="co"># register a price for it under another name to see the columns filled.</span></span></span>
+<span class="r-in"><span><span class="co"># The figures are illustrative: for a real model, use your provider's</span></span></span>
+<span class="r-in"><span><span class="co"># current prices.</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"priced-mock"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">4096</span>,</span></span>
 <span class="r-in"><span>                  input_usd <span class="op">=</span> <span class="fl">2</span>, output_usd <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu">gr_compare</span><span class="op">(</span><span class="fu"><a href="gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"fast"</span>, <span class="st">"precise"</span><span class="op">)</span>,</span></span>

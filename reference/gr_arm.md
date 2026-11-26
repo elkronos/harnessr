@@ -217,5 +217,6 @@ bench
 #>  arm      accuracy runs wrong failed budget_stop usd   
 #>  fast     0.500    10   5     0      0           0.0000
 #>  thorough 0.500    10   5     0      0           0.0000
+#>   cost: $0.0000 across mock-model, prices as of 2026-11
 #>   Descriptive only: accuracy is the mean over runs within each item, then over labelled items, with no interval.
 ```

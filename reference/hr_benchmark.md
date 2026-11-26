@@ -159,6 +159,15 @@ item x arm x run and the columns
 
   `FALSE` for rows on the dev split.
 
+- `priced`, `as_of`, `certain`:
+
+  Where the run's `usd` came from, over the models its requests used:
+  `TRUE` when every one has a price, the oldest month among their
+  prices, and `TRUE` when every registry entry is a fact rather than a
+  guess (see
+  [`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md)).
+  `NA` for a run that made no request.
+
 - `param.<name>`:
 
   One column per setting the arms record: the settings of an arm built
@@ -178,7 +187,8 @@ traces. [`print()`](https://rdrr.io/r/base/print.html) shows each arm's
 accuracy over the reportable rows, the mean over runs within each item
 and then over items, leaving out items with no label; the dev split's
 accuracy, when there is one, is shown apart in its own column. It adds
-failures and cost, and is descriptive only: no interval.
+failures and cost, with the month of the prices or the models that have
+none, and is descriptive only: no interval.
 
 ## Details
 
@@ -322,6 +332,7 @@ bench
 #> <hr_bench> 1 arm(s) x 4 item(s) in 2 cluster(s) x 5 run(s); split test; scorer exact_normalised
 #>  arm accuracy runs wrong failed budget_stop usd   
 #>  ask 0.750    20   5     0      0           0.0000
+#>   cost: $0.0000 across mock-model, prices as of 2026-11
 #>   Descriptive only: accuracy is the mean over runs within each item, then over labelled items, with no interval.
 head(bench[, c("item", "run", "correct", "failure_kind", "draw_index")])
 #>   item run correct failure_kind draw_index

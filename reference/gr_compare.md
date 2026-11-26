@@ -114,11 +114,22 @@ is a data frame with one row per recipe and these columns:
   `Inf` for a wrong one that cost something and `NA` for a wrong one
   that cost nothing or one whose correctness is not known.
 
+- `priced`, `as_of`, `certain`:
+
+  Where `usd`'s prices came from, over the models the recipe used:
+  `TRUE` when every one has a price, the oldest month among their
+  prices, and `TRUE` when every registry entry is a fact rather than a
+  guess (see
+  [`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md)).
+  `NA` for a recipe that made no request. They follow every column
+  above.
+
 - `premise`:
 
   Only when a recipe checks the question's premise: what the model said
   the document states instead, or `NA`; see `premise` in
   [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md).
+  Always the last column.
 
 ## Details
 
@@ -193,14 +204,16 @@ cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "signature", "chunks_
 # One trace covers all three, so this is the cost of the whole comparison.
 hr_trace_summary(cmp$trace)
 #>                          run_id calls cached steps tokens_in tokens_out errors
-#> 1 run_20261126122849.781_e36edf     5      0    16      2122         65      0
+#> 1 run_20261126213815.970_bb5b24     5      0    16      2122         65      0
 #>   elapsed_s embed_calls embed_tokens tokens_reasoning tokens_cached_in
-#> 1      0.16           0            0                0                0
+#> 1      0.18           0            0                0                0
 #>   usage_estimated
 #> 1               1
 
 # What each recipe cost, and what a right answer cost. The mock is free, so
 # register a price for it under another name to see the columns filled.
+# The figures are illustrative: for a real model, use your provider's
+# current prices.
 hr_register_model("priced-mock", context_window = 128000, max_output = 4096,
                   input_usd = 2, output_usd = 8)
 cmp <- gr_compare(gr_example(), "What was revenue?", c("fast", "precise"),

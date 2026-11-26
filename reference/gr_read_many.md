@@ -160,16 +160,26 @@ and `store`.
 
 `document`, `document_id`, `answer`, `not_found`, `partial`, `reader`,
 `chunks`, `chunks_used`, `calls`, `cached`, `tokens_in`, `tokens_out`,
-`cost_usd`, `seconds`, `status`, `duplicate_of`, `error`, `warnings`.
+`cost_usd`, `seconds`, `status`, `duplicate_of`, `error`, `warnings`,
+`priced`, `as_of`, `certain`.
 
 `warnings` holds what harnessr warned about while reading that document,
 joined with `" | "`, or `NA` when it raised nothing. The warnings still
 print as they happen; this column is what lets you tie them to a
 document afterwards.
 
+`priced`, `as_of` and `certain` say where `cost_usd`'s prices came from,
+as in
+[`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md):
+`priced` is `TRUE` when every model the document's requests were billed
+to has a price, `as_of` is the oldest month among those prices, and
+`certain` is `TRUE` when every model's registry entry is a fact. All
+three are `NA` for a document with no requests, and for a row restored
+from a store written before these columns existed.
+
 With `premise = TRUE` in the recipe's read spec (see
 [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md))
-there is one more column, after `warnings`: `premise`, the sentence in
+there is one more column, after `certain`: `premise`, the sentence in
 which the model said what the document states instead of the question's
 premise, or `NA` when it reported nothing contradicting it. Such a row's
 `answer` is that sentence and its `not_found` is `FALSE`.
@@ -305,25 +315,25 @@ b <- tempfile(fileext = ".txt"); writeLines("Revenue was 51.8 million.", b)
 
 out <- gr_read_many(c(a, b), "What was revenue?", "fast", client = cl)
 #> 2 document(s), and hr_options(max_calls) is 400 PER DOCUMENT, so this run may make up to 800 call(s). Pass max_total_calls = to cap the run.
-#> [1/2] file1bf37fcbded3.txt
-#> Extracting 'file1bf37fcbded3.txt' with the 'txt' extractor.
+#> [1/2] file1c054b895f50.txt
+#> Extracting 'file1c054b895f50.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~11 tokens (0 chars removed by cleaning).
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).
-#> [2/2] file1bf34847f0d.txt
-#> Extracting 'file1bf34847f0d.txt' with the 'txt' extractor.
+#> [2/2] file1c05337f8493.txt
+#> Extracting 'file1c05337f8493.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~11 tokens (0 chars removed by cleaning).
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).
 out$summary[, c("document", "answer", "not_found", "status")]
 #>               document                            answer not_found status
-#> 1 file1bf37fcbded3.txt Revenue was 45.2 million dollars.     FALSE     ok
-#> 2  file1bf34847f0d.txt Revenue was 45.2 million dollars.     FALSE     ok
+#> 1 file1c054b895f50.txt Revenue was 45.2 million dollars.     FALSE     ok
+#> 2 file1c05337f8493.txt Revenue was 45.2 million dollars.     FALSE     ok
 
 # A missing file is one bad row, not a failed run.
 bad <- gr_read_many(c(a, "no-such-file.txt"), "What was revenue?", "fast", client = cl)
 #> 2 document(s), and hr_options(max_calls) is 400 PER DOCUMENT, so this run may make up to 800 call(s). Pass max_total_calls = to cap the run.
-#> [1/2] file1bf37fcbded3.txt
+#> [1/2] file1c054b895f50.txt
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).
@@ -331,7 +341,7 @@ bad <- gr_read_many(c(a, "no-such-file.txt"), "What was revenue?", "fast", clien
 #> Warning: Document 'no-such-file.txt' failed: File not found: 'no-such-file.txt'. If you meant to pass document text rather than a path, it must not end in something that looks like a file extension.
 bad$summary[, c("document", "status", "error")]
 #>               document status
-#> 1 file1bf37fcbded3.txt     ok
+#> 1 file1c054b895f50.txt     ok
 #> 2     no-such-file.txt failed
 #>                                                                                                                                                       error
 #> 1                                                                                                                                                      <NA>
@@ -341,6 +351,6 @@ bad$summary[, c("document", "status", "error")]
 hr_trace_cost(out$trace)
 #>        model calls paid_calls paid_in paid_out usd paid_reasoning
 #> 1 mock-model     2          2     190       26   0              0
-#>   paid_cached_in
-#> 1              0
+#>   paid_cached_in priced   as_of certain
+#> 1              0   TRUE 2026-11    TRUE
 ```

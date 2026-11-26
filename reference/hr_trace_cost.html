@@ -97,6 +97,14 @@ no registered price contributes <code>NA</code>, so a total that silently omitte
 unpriced model is impossible. The exception is a model whose every request
 failed without sending a token (an embeddings request to an endpoint that
 has none, say): that cost nothing, priced or not, so it contributes 0.</p>
+<p>Three more columns say where each row's prices came from: <code>priced</code>
+(whether the model has a price), <code>as_of</code> (the month of its prices, <code>NA</code>
+without one) and <code>certain</code> (<code>FALSE</code> when the model's registry entry is a
+family guess or the default; see <code><a href="hr_model_info.html">hr_model_info()</a></code>). They describe the
+registry when you call this, which is also what <code>usd</code> is priced at.
+Printed, a trace shows the cost with the month of its prices, and names
+each model with no price; a total over models of which some have no
+price says it covers only the priced ones.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -121,8 +129,8 @@ cost nothing at all.</p>
 <span class="r-in"><span><span class="fu">hr_trace_cost</span><span class="op">(</span><span class="va">ans</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>        model calls paid_calls paid_in paid_out usd paid_reasoning</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 mock-model     1          1     607       13   0              0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   paid_cached_in</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1              0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   paid_cached_in priced   as_of certain</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1              0   TRUE 2026-11    TRUE</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Priced by the model each step records: a mock's own model, at no cost.</span></span></span>
 <span class="r-in"><span><span class="co"># A cached re-run costs nothing for a different reason: paid_calls falls</span></span></span>

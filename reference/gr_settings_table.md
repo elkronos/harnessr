@@ -104,7 +104,7 @@ s <- gr_settings_table()
 table(s$stage)
 #> 
 #>   evaluate    extract     ingest    options       read     screen    segment 
-#>         30         10         21         34         50         33         20 
+#>         30         10         21         35         50         33         20 
 #> synthesise 
 #>         29 
 s[s$tier == "basic", c("stage", "name", "default")]

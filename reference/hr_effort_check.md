@@ -86,10 +86,14 @@ An object of class `hr_effort_check`, a list of
 - `cost`:
 
   One row per arm: `arm`, `accuracy` (the mean of `correct` over
-  reportable rows), `usd` (mean per run), `calls` (model requests per
-  run), `escalations` (raises per run), `escalated_calls` (requests per
-  run sent at a raised effort) and `resolved` (the share of raises whose
-  stage fired none of the same triggers again, `NA` with none).
+  reportable rows), `usd` (mean per run, `NA` when a run has no price),
+  `calls` (model requests per run), `escalations` (raises per run),
+  `escalated_calls` (requests per run sent at a raised effort) and
+  `resolved` (the share of raises whose stage fired none of the same
+  triggers again, `NA` with none), then `priced`, `as_of` and `certain`,
+  where `usd`'s prices came from, as in
+  [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)'s
+  `cost` table.
 
 - `best_fixed`:
 
@@ -193,8 +197,13 @@ chk
 #>   vs low          margin 10.0 pts, difference +10.0 pts, lower bound -6.7: non-inferior
 #>   vs high         margin 10.0 pts, difference +0.0 pts, lower bound -9.9: non-inferior
 #>   best fixed comparator: high
-#>       arm accuracy      usd calls escalations escalated_calls resolved
-#>       low      0.9 6.86e-05     2         0.0             0.0       NA
-#>      high      1.0 6.86e-05     2         0.0             0.0       NA
-#>  escalate      1.0 6.86e-05     2         0.1             0.1        1
+#>       arm accuracy usd calls escalations escalated_calls resolved priced as_of
+#>       low      0.9  NA     2         0.0             0.0       NA  FALSE  <NA>
+#>      high      1.0  NA     2         0.0             0.0       NA  FALSE  <NA>
+#>  escalate      1.0  NA     2         0.1             0.1        1  FALSE  <NA>
+#>  certain
+#>     TRUE
+#>     TRUE
+#>     TRUE
+#>   usd is NA for low, high, escalate: no price set for a model of those arms (set one with hr_register_model() or hr_load_models())
 ```
