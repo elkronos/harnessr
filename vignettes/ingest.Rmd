@@ -18,7 +18,12 @@ here, or damaged by too much clean-up, stays lost or damaged: no later step
 restores it. This guide covers what harnessr can read, what it keeps and
 removes, and how to check a folder before you spend anything on it.
 
-`vignette("harnessr")` introduces the package and the ideas used here.
+Ingestion makes no model calls, so it rests on only two pieces of the core.
+The token counts in `doc$stats` and in `gr_inventory()` come from the counter
+that "Counting tokens" in `vignette("models")` describes. The cost floor that
+`gr_inventory()` reports uses the prices you set, as "Prices" in
+`vignette("models")` shows. `vignette("core")` covers the model calls that
+later steps make, and `vignette("harnessr")` introduces the package.
 
 ```{r message = FALSE}
 library(harnessr)
@@ -325,8 +330,8 @@ In a folder of documents, problems that a single file makes obvious are easy to
 miss: a few old `.doc` files nobody can read, scanned PDFs without text, an
 empty file, or a subfolder you forgot about. `gr_inventory()` finds all of these
 in seconds, without calling a model and without an API key. Its cost floor
-needs your model's price, which harnessr does not ship, so the example sets one
-first:
+needs your model's price, which harnessr does not ship ("Prices" in
+`vignette("models")`), so the example sets one first:
 
 ```{r}
 # Illustrative figures, in USD per million tokens: use your provider's current
@@ -381,7 +386,10 @@ configuration. Group the rows yourself and pass each group the recipe you
 picked. `vignette("review")` covers reading a whole folder.
 
 `inv$totals` adds up the tokens and prices one request per readable file with
-your model: the file's tokens in, and an assumed 500-token answer out. Treat
+your model: the file's tokens in, and an assumed 500-token answer out.
+`hr_estimate_cost()` gives the figure and its `priced`, `as_of` and `certain`
+columns ("What a cost estimate says: `hr_estimate_cost()`" in
+`vignette("models")`). Treat
 `cost_floor_usd` as a rough guide, not a bound. Reading strategies that make
 several requests per document cost more, and short answers cost less. The total
 leaves out files whose size is unknown until OCR reads them; `tokens_unknown`
