@@ -137,6 +137,12 @@ before `premise`, which stays last).
   `hr_validate()`) moved from `vignette("extending")` to "Checking settings"
   in `vignette("core")`. The extending guide's section on models now points
   to `vignette("models")`, which covers the same ground.
+* `vignette("runs")` is now "Limits, caching and replay". Its walkthrough of
+  models, prices and token counts moved to `vignette("models")`, whose
+  Prices section keeps the `#models-prices` anchor. Its effort sections
+  moved to `vignette("effort")`, including the `effort_mode` walkthrough
+  with its `#set-effort-mode` anchor, and `gr_settings_table()` links
+  `effort_mode` there.
 * `?gr_result` lists every field a result carries, including `cached`,
   `served_model`, `response_id`, `fingerprint`, `attempts` and, for a
   request the limits did not send, `refused` and `refusal`.
