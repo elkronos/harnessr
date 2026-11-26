@@ -34,6 +34,12 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Core</h6></li>
+    <li><a class="dropdown-item" href="../articles/core.html">The core: calls, clients and results</a></li>
+    <li><a class="dropdown-item" href="../articles/models.html">Models, prices and tokens</a></li>
+    <li><a class="dropdown-item" href="../articles/context.html">Context: budgets, fitting and cutting</a></li>
+    <li><a class="dropdown-item" href="../articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
@@ -239,7 +245,7 @@ are kept as <code>tokens$reasoning</code> and
 <span><span class="co">#&gt; List of 4</span></span>
 <span><span class="co">#&gt;  $ label      : chr "reduce"</span></span>
 <span><span class="co">#&gt;  $ attempts   : int 1</span></span>
-<span><span class="co">#&gt;  $ started_utc: chr "2026-11-26T21:44:35.407Z"</span></span>
+<span><span class="co">#&gt;  $ started_utc: chr "2026-11-26T22:24:00.470Z"</span></span>
 <span><span class="co">#&gt;  $ tokens     :List of 3</span></span>
 <span><span class="co">#&gt;   ..$ input     : int 296</span></span>
 <span><span class="co">#&gt;   ..$ output    : int 13</span></span>
@@ -319,10 +325,10 @@ values of <code>api_headers</code>, since they can hold credentials.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span>owner <span class="op">=</span> <span class="st">"finance team"</span>, run_by <span class="op">=</span> <span class="st">"ana"</span>, purpose <span class="op">=</span> <span class="st">"Q3 check"</span><span class="op">)</span></span>
 <span><span class="va">tr</span></span>
-<span><span class="co">#&gt; &lt;gr_trace run_20261126214436.004_8accb7&gt;  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)</span></span>
+<span><span class="co">#&gt; &lt;gr_trace run_20261126222401.047_b4d016&gt;  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)</span></span>
 <span><span class="co">#&gt;   cost: no cost recorded</span></span>
 <span><span class="co">#&gt;   actor: owner = finance team, run_by = ana, purpose = Q3 check </span></span>
-<span><span class="co">#&gt;   started: 2026-11-26T21:44:36.004Z</span></span>
+<span><span class="co">#&gt;   started: 2026-11-26T22:24:01.047Z</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">tr</span><span class="op">$</span><span class="va">config</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "options"   "r_version"</span></span></code></pre></div>
 <p><code>as_json(ans)</code> writes the answer with every prompt and
@@ -589,9 +595,11 @@ stopped.</li>
 <h3 id="how-much-the-model-reasons">How much the model reasons<a class="anchor" aria-label="anchor" href="#how-much-the-model-reasons"></a>
 </h3>
 <p><code>effort</code> sets how much a reasoning model reasons on each
-call, stage by stage. <code><a href="../articles/readers.html">vignette("readers")</a></code> explains how
-effort is billed, which models it is sent to, and the label each stage’s
-calls carry.</p>
+call, stage by stage. <code><a href="../articles/effort.html">vignette("effort")</a></code> covers effort in
+the core: which models take it, how it is billed, the cache and the
+trace, and effort that rises when needed.
+<code><a href="../articles/readers.html">vignette("readers")</a></code> lists the label each reader’s calls
+carry.</p>
 <p>In a review, the same vector goes to each stage.
 <code><a href="../reference/gr_screen.html">gr_screen()</a></code> and <code><a href="../reference/gr_extract.html">gr_extract()</a></code> take it as a
 recipe override; <code><a href="../reference/gr_claims.html">gr_claims()</a></code>, <code><a href="../reference/gr_outline.html">gr_outline()</a></code> and
@@ -645,7 +653,10 @@ which model answers, give that client its own <code>base_url</code> or
 <li>failures: a rate limit or a refusal belongs to the moment, and
 storing one would make a blip permanent;</li>
 <li>a reply cut off at its output cap;</li>
-<li>a structured reply that does not fit its schema.</li>
+<li>a structured reply that does not fit its schema, when the readers or
+<code>ctx$call_json()</code> in a benchmark arm make the request.
+<code><a href="../reference/hr_call.html">hr_call()</a></code> does not parse a reply, so it caches a reply to a
+schema call like any other (see <code><a href="../articles/core.html">vignette("core")</a></code>).</li>
 </ul>
 <p>The default directory is under <code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir()</a></code>, so a cache
 costs nothing and vanishes with the session. For a long run, point it at
@@ -856,7 +867,9 @@ its life, and a wrong price makes a spending limit hold at the wrong
 place. You set the prices you pay, and harnessr uses them for every cost
 it reports and for <code>max_cost_usd</code>.</p>
 <p>The prices below are illustrative. Use your provider’s current
-prices, in US dollars per million tokens.</p>
+prices, in US dollars per million tokens.
+<code><a href="../articles/models.html">vignette("models")</a></code> covers the registry, prices and token
+counts in full.</p>
 <div class="section level3">
 <h3 id="what-harnessr-knows-about-a-model">What harnessr knows about a model<a class="anchor" aria-label="anchor" href="#what-harnessr-knows-about-a-model"></a>
 </h3>
@@ -882,9 +895,10 @@ prices.</p>
 <code>source</code> says where the entry came from, and
 <code>certain</code> is <code>FALSE</code> when harnessr guessed the
 model from its name or fell back to its default. An id the registry does
-not know warns with <code>gr_unknown_model</code> and gets a 128k
-context window and no price. Its cost then shows as <code>NA</code>
-rather than a wrong figure.</p>
+not know warns with <code>gr_unknown_model</code> and gets the limits of
+a family pattern its name matches, or else a 128k context window, and no
+price. Its cost then shows as <code>NA</code> rather than a wrong
+figure.</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_model_info.html">hr_model_info</a></span><span class="op">(</span><span class="st">"gpt-4o-mini"</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"context_window"</span>, <span class="st">"max_output"</span>, <span class="st">"source"</span>, <span class="st">"certain"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt; List of 4</span></span>
@@ -1033,7 +1047,7 @@ the registry as it was:</p>
 <code class="sourceCode R"><span><span class="va">bad</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"bad-prices.csv"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"id,input_usd,output_usd"</span>, <span class="st">"gpt-4.1,two,8"</span><span class="op">)</span>, <span class="va">bad</span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_load_models.html">hr_load_models</a></span><span class="op">(</span><span class="va">bad</span><span class="op">)</span>, hr_bad_models_file <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "Models file '/tmp/RtmpN2nHD8/bad-prices.csv', row 1, column 'input_usd': 'two' is not a price; give USD per 1M tokens as a number of 0 or more, such as 2.5."</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "Models file '/tmp/RtmpqYP24p/bad-prices.csv', row 1, column 'input_usd': 'two' is not a price; give USD per 1M tokens as a number of 0 or more, such as 2.5."</span></span></code></pre></div>
 <p><code><a href="../reference/hr_load_models.html">?hr_load_models</a></code> documents the format in full.</p>
 </div>
 <div class="section level3">
@@ -1184,8 +1198,9 @@ falling back, because a silent fallback would change every budget
 calculation.</p>
 <p><code><a href="../reference/hr_budget.html">hr_budget()</a></code> does the context arithmetic for every
 request. It cannot return a non-positive input budget: in that case it
-raises an error that says what to change. <code><a href="../reference/hr_options.html">?hr_options</a></code>
-documents every setting.</p>
+raises an error that says what to change.
+<code><a href="../articles/context.html">vignette("context")</a></code> covers budgets and cuts in full, and
+<code><a href="../reference/hr_options.html">?hr_options</a></code> documents every setting.</p>
 </div>
 </div>
 <div class="section level2">

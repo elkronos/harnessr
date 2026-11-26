@@ -529,8 +529,10 @@ reasoning and come back cut off, so give it room with
 (below) counts recipes that differ only in effort as different, so you
 can test what a lower effort costs.
 [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
-covers effort across a literature review and what each trace step
-records.
+covers effort across a literature review, and
+[`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md)
+covers effort in the core: its cost, the cache, the trace and raising it
+when a stage goes wrong.
 
 ## Asking for citations
 

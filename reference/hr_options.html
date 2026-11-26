@@ -26,6 +26,12 @@ on.exit()."></head><body>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Core</h6></li>
+    <li><a class="dropdown-item" href="../articles/core.html">The core: calls, clients and results</a></li>
+    <li><a class="dropdown-item" href="../articles/models.html">Models, prices and tokens</a></li>
+    <li><a class="dropdown-item" href="../articles/context.html">Context: budgets, fitting and cutting</a></li>
+    <li><a class="dropdown-item" href="../articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
@@ -161,8 +167,10 @@ measured against it.</p></dd>
 <dt><code>min_output_tokens</code> (256)</dt>
 <dd><p>Floor on the completion room <code><a href="hr_budget.html">hr_budget()</a></code>
 reserves <em>when <code>reserve_output</code> is not given explicitly</em>. An explicit
-<code>reserve_output</code> is honoured down to 1. Untested: set as a floor for a
-short reply.</p></dd>
+<code>reserve_output</code> is used between 1 token and the model's <code>max_output</code>,
+unless it leaves no input room;
+then it drops to this floor, as the default reserve does. Untested: set
+as a floor for a short reply.</p></dd>
 
 <dt><code>cache_documents</code> (TRUE)</dt>
 <dd><p>Cache ingestion per file + settings. The key
@@ -297,7 +305,9 @@ default joins the response-cache key and the store key of
 <dd><p>The share of the usable window
 <code><a href="hr_budget.html">hr_budget()</a></code> reserves for the reply when no <code>reserve_output</code> is given,
 between <code>min_output_tokens</code> and the model's output limit. It sets the
-input room, so how much of a document fits one request. Untested.</p></dd>
+input room of such a budget. The readers give <code>max_answer_tokens</code> as
+the reserve, so it does not change how much of a document they fit
+in one request. Untested.</p></dd>
 
 <dt><code>near_verbatim_sim</code> (0.90), <code>near_verbatim_sim_short</code> (0.95),
 <code>near_verbatim_short_chars</code> (40)</dt>

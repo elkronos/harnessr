@@ -6,10 +6,16 @@ and every successful model call is written to disk, keyed on the exact
 request. Re-issuing the same request returns the stored response without
 touching the network: free, instant, and byte-identical even at a
 temperature above zero. A failed call is never written, and neither is a
-reply cut off at the output cap or a structured (JSON-schema) reply that
-does not parse, so re-running asks again. An unparseable structured
-reply that an earlier version did store is asked again rather than
+reply cut off at the output cap, so re-running asks again. A structured
+(JSON-schema) reply that does not parse is not written either when the
+package's own structured calls make the request (the readers,
+`ctx$call_json()` in an
+[`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md)),
+and one an earlier version did store is asked again rather than
 replayed.
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
+does not parse a reply, so a reply to a schema call made with it is
+written like any other.
 
 ## Usage
 
@@ -124,7 +130,7 @@ for reproducing a recorded run
 ``` r
 cache <- hr_cache(dir = file.path(tempdir(), "harnessr-example-cache"))
 cache
-#> <gr_cache> /tmp/Rtmp5mYesE/harnessr-example-cache
+#> <gr_cache> /tmp/RtmpHP7OlR/harnessr-example-cache
 #>   0 entries, 0.0 B on disk; 0 hit(s), 0 miss(es), 0 write(s)
 
 # Nothing is written until a call is cached.

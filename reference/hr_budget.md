@@ -5,7 +5,7 @@ in the package must go through. It has three guarantees:
 
 - the returned `input` budget is always **strictly positive**;
 
-- `input + output <= context_window * (1 - safety_margin)`;
+- `input + output + overhead <= context_window * (1 - safety_margin)`;
 
 - if no positive budget exists, it raises a `gr_budget_error` naming the
   parameter to change, rather than returning a negative number that
@@ -33,11 +33,14 @@ hr_budget(
 
   Tokens to reserve for the completion. An explicit value is clamped to
   the model's `max_output`. `NULL` reserves
-  `min(max_output, max(min_output_tokens, usable / 4))`, where `usable`
-  is the context window after `safety_margin` and `min_output_tokens` is
-  a
+  `min(max_output, max(min_output_tokens, usable * output_reserve_share))`,
+  where `usable` is the context window after `safety_margin`, and
+  `min_output_tokens` (default 256) and `output_reserve_share` (default
+  0.25) are
   [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
-  setting (default 256).
+  settings. When the reserve leaves no positive input budget, explicit
+  or not, it is lowered to `min_output_tokens` (or kept, if already
+  smaller) before an error is raised.
 
 - overhead:
 

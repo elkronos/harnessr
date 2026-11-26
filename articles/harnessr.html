@@ -34,6 +34,12 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Core</h6></li>
+    <li><a class="dropdown-item" href="../articles/core.html">The core: calls, clients and results</a></li>
+    <li><a class="dropdown-item" href="../articles/models.html">Models, prices and tokens</a></li>
+    <li><a class="dropdown-item" href="../articles/context.html">Context: budgets, fitting and cutting</a></li>
+    <li><a class="dropdown-item" href="../articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
@@ -460,7 +466,7 @@ columns hold exactly what was sent and what came back:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">ans</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"stage"</span>, <span class="st">"tokens_in"</span>, <span class="st">"tokens_out"</span>, <span class="st">"usd"</span>, <span class="st">"seconds"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;          stage tokens_in tokens_out usd seconds</span></span>
-<span><span class="co">#&gt; 1 stuff.answer       611         13   0   0.002</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 stuff.answer       611         13   0   0.001</span></span></code></pre></div>
 <p><code>usd</code> comes from the prices in harnessr’s model registry
 (<code><a href="../reference/hr_models.html">hr_models()</a></code>). The mock costs nothing. For a real model,
 harnessr knows the limits but ships no prices, because providers change
@@ -512,7 +518,7 @@ reasoning costs less.</p>
 <p>You can also set <code>effort</code> by stage: low for the many
 routine requests, high for the few that judge.
 <code><a href="../reference/gr_read_spec.html">?gr_read_spec</a></code> lists the stages and suggests a starting
-point.</p>
+point, and <code><a href="../articles/effort.html">vignette("effort")</a></code> covers effort in full.</p>
 </div>
 <div class="section level2">
 <h2 id="choosing-a-recipe">Choosing a recipe<a class="anchor" aria-label="anchor" href="#choosing-a-recipe"></a>
@@ -878,7 +884,7 @@ sooner</td>
 <p><code><a href="../articles/settings.html">vignette("settings")</a></code> lists all 228 with their defaults
 and where each default came from, and <code><a href="../reference/gr_settings_table.html">gr_settings_table()</a></code>
 returns them in R. The settings page links each important one to a
-walkthrough at the end of one of six guides. Each walkthrough says what
+walkthrough at the end of one of ten guides. Each walkthrough says what
 the setting trades off, the signs that point to changing it and how to
 test a change. To compare the values of a setting,
 <code><a href="../reference/hr_sweep.html">hr_sweep()</a></code> builds one arm per value, as
@@ -899,6 +905,20 @@ each statement citing the study it came from.
 <h2 id="where-to-go-next">Where to go next<a class="anchor" aria-label="anchor" href="#where-to-go-next"></a>
 </h2>
 <ul>
+<li>
+<code><a href="../articles/core.html">vignette("core")</a></code>: the calls underneath every guide
+here: clients, what a call returns, the trace, structured replies and
+errors by class.</li>
+<li>
+<code><a href="../articles/models.html">vignette("models")</a></code>: what harnessr knows about a model,
+the prices you set, cost estimates and token counts.</li>
+<li>
+<code><a href="../articles/context.html">vignette("context")</a></code>: how a prompt is kept inside a
+model’s context window, and what is cut when it does not fit.</li>
+<li>
+<code><a href="../articles/effort.html">vignette("effort")</a></code>: how hard a reasoning model reasons,
+by stage or raised only when a stage goes wrong, and what that
+costs.</li>
 <li>
 <code><a href="../articles/ingest.html">vignette("ingest")</a></code>: getting text out of PDFs, Word
 files, web pages and scans, and cleaning it.</li>

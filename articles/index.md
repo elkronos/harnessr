@@ -8,6 +8,24 @@ from start to finish.
 - [Get started with
   harnessr](https://elkronos.github.io/harnessr/articles/harnessr.md):
 
+### Core
+
+Calls and clients without a document: what a call returns, the trace
+that records it, structured replies, checks on a reply, signals and
+errors by class. The model registry, the prices you set and how tokens
+are counted. How a prompt is kept inside a context window, and what is
+cut when it does not fit. How hard a reasoning model reasons, by stage
+or raised when a stage goes wrong.
+
+- [The core: calls, clients and
+  results](https://elkronos.github.io/harnessr/articles/core.md):
+- [Models, prices and
+  tokens](https://elkronos.github.io/harnessr/articles/models.md):
+- [Context: budgets, fitting and
+  cutting](https://elkronos.github.io/harnessr/articles/context.md):
+- [Effort: how hard the model
+  reasons](https://elkronos.github.io/harnessr/articles/effort.md):
+
 ### Read a document
 
 Get text out of a file, cut it into chunks, and choose how the model

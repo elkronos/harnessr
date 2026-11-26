@@ -26,6 +26,8 @@ answer says what it rests on and whether anything went wrong. See
 Clients for OpenAI-compatible endpoints, any provider ellmer supports,
 any function you write, and an offline stand-in for practice and tests.
 See
+[`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md),
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md),
 [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
 and the README.
 
@@ -189,9 +191,13 @@ report, with the screening measured against a hand-screened sample. See
 
 ## Cost, limits and tracing
 
-Settings and spending limits, token counts and cost estimates, and the
-trace every run records. See
-[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md).
+Settings and spending limits, token counts and cost estimates, context
+budgets and cuts, reasoning effort, and the trace every run records. See
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md),
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md),
+[`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md)
+and
+[`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md).
 
 - [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
   : Get or set package options

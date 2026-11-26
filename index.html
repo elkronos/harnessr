@@ -36,6 +36,12 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Core</h6></li>
+    <li><a class="dropdown-item" href="articles/core.html">The core: calls, clients and results</a></li>
+    <li><a class="dropdown-item" href="articles/models.html">Models, prices and tokens</a></li>
+    <li><a class="dropdown-item" href="articles/context.html">Context: budgets, fitting and cutting</a></li>
+    <li><a class="dropdown-item" href="articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
     <li><a class="dropdown-item" href="articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="articles/segment.html">Cutting documents into chunks</a></li>
@@ -155,6 +161,20 @@
 <ul>
 <li>
 <a href="https://elkronos.github.io/harnessr/articles/harnessr.html">Get started</a> (<code>harnessr</code>): the ideas, installing, connecting, a first question checked from start to finish, cost, a glossary.</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="core">Core<a class="anchor" aria-label="anchor" href="#core"></a>
+</h3>
+<ul>
+<li>
+<a href="https://elkronos.github.io/harnessr/articles/core.html">The core: calls, clients and results</a> (<code>core</code>): calls without a document, every kind of client, what a result holds, the trace, structured replies, checks, signals, errors by class.</li>
+<li>
+<a href="https://elkronos.github.io/harnessr/articles/models.html">Models, prices and tokens</a> (<code>models</code>): what harnessr knows about a model, adding one, setting the prices you pay, cost estimates, models with no price or old prices, and counting tokens.</li>
+<li>
+<a href="https://elkronos.github.io/harnessr/articles/context.html">Context: budgets, fitting and cutting</a> (<code>context</code>): how much room a prompt has, fitting its pieces into that room, which part of a cut piece is kept, and the cuts the trace records.</li>
+<li>
+<a href="https://elkronos.github.io/harnessr/articles/effort.html">Effort: how hard the model reasons</a> (<code>effort</code>): which models take a reasoning effort, setting it per call or per stage, what it costs and does to the cache, raising it only when a stage goes wrong, and measuring whether that pays.</li>
 </ul>
 </div>
 <div class="section level3">

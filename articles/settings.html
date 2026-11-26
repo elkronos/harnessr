@@ -34,6 +34,12 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Core</h6></li>
+    <li><a class="dropdown-item" href="../articles/core.html">The core: calls, clients and results</a></li>
+    <li><a class="dropdown-item" href="../articles/models.html">Models, prices and tokens</a></li>
+    <li><a class="dropdown-item" href="../articles/context.html">Context: budgets, fitting and cutting</a></li>
+    <li><a class="dropdown-item" href="../articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
@@ -2106,7 +2112,7 @@ limits.</p>
 stage.</td>
 </tr>
 <tr class="even">
-<td align="left"><code>tokenizer</code></td>
+<td align="left"><a href="models.html#set-tokenizer"><code>tokenizer</code></a></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>heuristic</code></td>
 <td align="left">advanced</td>
@@ -2116,7 +2122,7 @@ dependencies), “words”, “chars”, “tiktoken” (needs reticulate), or a
 name registered via hr_set_tokenizer().</td>
 </tr>
 <tr class="odd">
-<td align="left"><code>model</code></td>
+<td align="left"><a href="core.html#set-endpoint"><code>model</code></a></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>gpt-5.6-terra</code></td>
 <td align="left">basic</td>
@@ -2124,7 +2130,7 @@ name registered via hr_set_tokenizer().</td>
 <td align="left">Default chat model.</td>
 </tr>
 <tr class="even">
-<td align="left"><code>embedding_model</code></td>
+<td align="left"><a href="core.html#set-endpoint"><code>embedding_model</code></a></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>text-embedding-3-small</code></td>
 <td align="left">advanced</td>
@@ -2132,7 +2138,7 @@ name registered via hr_set_tokenizer().</td>
 <td align="left">Default embedding model.</td>
 </tr>
 <tr class="odd">
-<td align="left"><code>api_base</code></td>
+<td align="left"><a href="core.html#set-endpoint"><code>api_base</code></a></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>https://api.openai.com/v1</code></td>
 <td align="left">advanced</td>
@@ -2141,7 +2147,7 @@ name registered via hr_set_tokenizer().</td>
 endpoint.</td>
 </tr>
 <tr class="even">
-<td align="left"><code>api_headers</code></td>
+<td align="left"><a href="core.html#set-endpoint"><code>api_headers</code></a></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>character(0)</code></td>
 <td align="left">advanced</td>
@@ -2151,7 +2157,7 @@ every request, for gateways that do not authenticate with a bearer
 token.</td>
 </tr>
 <tr class="odd">
-<td align="left"><code>api</code></td>
+<td align="left"><a href="core.html#set-endpoint"><code>api</code></a></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>responses</code></td>
 <td align="left">advanced</td>
@@ -2159,7 +2165,7 @@ token.</td>
 <td align="left">“responses” or “chat” request shape.</td>
 </tr>
 <tr class="even">
-<td align="left"><code>temperature</code></td>
+<td align="left"><a href="core.html#set-temperature"><code>temperature</code></a></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>NULL</code></td>
 <td align="left">advanced</td>
@@ -2167,7 +2173,7 @@ token.</td>
 <td align="left">Default sampling temperature.</td>
 </tr>
 <tr class="odd">
-<td align="left"><code>max_retries</code></td>
+<td align="left"><a href="core.html#set-retries"><code>max_retries</code></a></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>4</code></td>
 <td align="left">advanced</td>
@@ -2175,7 +2181,7 @@ token.</td>
 <td align="left">Retries for transient failures.</td>
 </tr>
 <tr class="even">
-<td align="left"><code>retry_pause_base</code></td>
+<td align="left"><a href="core.html#set-retries"><code>retry_pause_base</code></a></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>2</code></td>
 <td align="left">advanced</td>
@@ -2183,7 +2189,7 @@ token.</td>
 <td align="left">Seconds; exponential backoff base.</td>
 </tr>
 <tr class="odd">
-<td align="left"><code>request_timeout</code></td>
+<td align="left"><a href="core.html#set-retries"><code>request_timeout</code></a></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>120</code></td>
 <td align="left">advanced</td>
@@ -2191,7 +2197,7 @@ token.</td>
 <td align="left">Per-request timeout, seconds.</td>
 </tr>
 <tr class="even">
-<td align="left"><code>safety_margin</code></td>
+<td align="left"><a href="context.html#set-safety-margin"><code>safety_margin</code></a></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>0.1</code></td>
 <td align="left">advanced</td>
@@ -2200,7 +2206,7 @@ token.</td>
 tokenizer error.</td>
 </tr>
 <tr class="odd">
-<td align="left"><code>min_output_tokens</code></td>
+<td align="left"><a href="context.html#set-reply-reserve"><code>min_output_tokens</code></a></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>256</code></td>
 <td align="left">advanced</td>
@@ -2302,7 +2308,7 @@ with.</td>
 and embedding models alike.</td>
 </tr>
 <tr class="odd">
-<td align="left"><a href="runs.html#set-limits"><code>allow_unpriced</code></a></td>
+<td align="left"><a href="models.html#set-unpriced"><code>allow_unpriced</code></a></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>TRUE</code></td>
 <td align="left">advanced</td>
@@ -2311,7 +2317,7 @@ and embedding models alike.</td>
 called while max_cost_usd is set.</td>
 </tr>
 <tr class="even">
-<td align="left"><a href="runs.html#set-price-age"><code>price_max_age_days</code></a></td>
+<td align="left"><a href="models.html#set-price-age"><code>price_max_age_days</code></a></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>120</code></td>
 <td align="left">advanced</td>
@@ -2320,7 +2326,7 @@ called while max_cost_usd is set.</td>
 from it warns with class hr_stale_price.</td>
 </tr>
 <tr class="odd">
-<td align="left"><code>unknown_model_action</code></td>
+<td align="left"><a href="models.html#set-unknown-model"><code>unknown_model_action</code></a></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>warn</code></td>
 <td align="left">advanced</td>
@@ -2329,7 +2335,7 @@ from it warns with class hr_stale_price.</td>
 registry.</td>
 </tr>
 <tr class="even">
-<td align="left"><code>actor</code></td>
+<td align="left"><a href="core.html#set-actor"><code>actor</code></a></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code></td>
 <td align="left">advanced</td>
@@ -2359,7 +2365,7 @@ fill at most this share of the input room hr_budget() leaves on every
 model of the run.</td>
 </tr>
 <tr class="odd">
-<td align="left"><code>reasoning_floor</code></td>
+<td align="left"><a href="effort.html#set-reasoning-floor"><code>reasoning_floor</code></a></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>2048</code></td>
 <td align="left">advanced</td>
@@ -2368,7 +2374,7 @@ model of the run.</td>
 is sent with.</td>
 </tr>
 <tr class="even">
-<td align="left"><code>output_reserve_share</code></td>
+<td align="left"><a href="context.html#set-reply-reserve"><code>output_reserve_share</code></a></td>
 <td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>0.25</code></td>
 <td align="left">advanced</td>

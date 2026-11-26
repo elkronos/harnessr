@@ -167,6 +167,29 @@ installed in R as `vignette("name")`.
   (`harnessr`): the ideas, installing, connecting, a first question
   checked from start to finish, cost, a glossary.
 
+### Core
+
+- [The core: calls, clients and
+  results](https://elkronos.github.io/harnessr/articles/core.html)
+  (`core`): calls without a document, every kind of client, what a
+  result holds, the trace, structured replies, checks, signals, errors
+  by class.
+- [Models, prices and
+  tokens](https://elkronos.github.io/harnessr/articles/models.html)
+  (`models`): what harnessr knows about a model, adding one, setting the
+  prices you pay, cost estimates, models with no price or old prices,
+  and counting tokens.
+- [Context: budgets, fitting and
+  cutting](https://elkronos.github.io/harnessr/articles/context.html)
+  (`context`): how much room a prompt has, fitting its pieces into that
+  room, which part of a cut piece is kept, and the cuts the trace
+  records.
+- [Effort: how hard the model
+  reasons](https://elkronos.github.io/harnessr/articles/effort.html)
+  (`effort`): which models take a reasoning effort, setting it per call
+  or per stage, what it costs and does to the cache, raising it only
+  when a stage goes wrong, and measuring whether that pays.
+
 ### Read a document
 
 - [Getting text out of
@@ -267,6 +290,8 @@ answer says what it rests on and whether anything went wrong. See
 Clients for OpenAI-compatible endpoints, any provider ellmer supports,
 any function you write, and an offline stand-in for practice and tests.
 See
+[`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md),
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md),
 [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
 and the README.
 
@@ -430,9 +455,13 @@ report, with the screening measured against a hand-screened sample. See
 
 ## Cost, limits and tracing
 
-Settings and spending limits, token counts and cost estimates, and the
-trace every run records. See
-[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md).
+Settings and spending limits, token counts and cost estimates, context
+budgets and cuts, reasoning effort, and the trace every run records. See
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md),
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md),
+[`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md)
+and
+[`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md).
 
 - [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
   : Get or set package options
@@ -779,6 +808,24 @@ from start to finish.
 
 - [Get started with
   harnessr](https://elkronos.github.io/harnessr/articles/harnessr.md):
+
+### Core
+
+Calls and clients without a document: what a call returns, the trace
+that records it, structured replies, checks on a reply, signals and
+errors by class. The model registry, the prices you set and how tokens
+are counted. How a prompt is kept inside a context window, and what is
+cut when it does not fit. How hard a reasoning model reasons, by stage
+or raised when a stage goes wrong.
+
+- [The core: calls, clients and
+  results](https://elkronos.github.io/harnessr/articles/core.md):
+- [Models, prices and
+  tokens](https://elkronos.github.io/harnessr/articles/models.md):
+- [Context: budgets, fitting and
+  cutting](https://elkronos.github.io/harnessr/articles/context.md):
+- [Effort: how hard the model
+  reasons](https://elkronos.github.io/harnessr/articles/effort.md):
 
 ### Read a document
 

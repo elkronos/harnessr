@@ -34,6 +34,12 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Core</h6></li>
+    <li><a class="dropdown-item" href="../articles/core.html">The core: calls, clients and results</a></li>
+    <li><a class="dropdown-item" href="../articles/models.html">Models, prices and tokens</a></li>
+    <li><a class="dropdown-item" href="../articles/context.html">Context: budgets, fitting and cutting</a></li>
+    <li><a class="dropdown-item" href="../articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
@@ -742,7 +748,9 @@ spend the whole output cap reasoning and come back cut off, so give it
 room with <code>max_answer_tokens</code>. <code><a href="../reference/gr_compare.html">gr_compare()</a></code>
 (below) counts recipes that differ only in effort as different, so you
 can test what a lower effort costs. <code><a href="../articles/runs.html">vignette("runs")</a></code> covers
-effort across a literature review and what each trace step records.</p>
+effort across a literature review, and <code><a href="../articles/effort.html">vignette("effort")</a></code>
+covers effort in the core: its cost, the cache, the trace and raising it
+when a stage goes wrong.</p>
 </div>
 <div class="section level2">
 <h2 id="asking-for-citations">Asking for citations<a class="anchor" aria-label="anchor" href="#asking-for-citations"></a>

@@ -167,6 +167,29 @@ installed in R as `vignette("name")`.
   (`harnessr`): the ideas, installing, connecting, a first question
   checked from start to finish, cost, a glossary.
 
+### Core
+
+- [The core: calls, clients and
+  results](https://elkronos.github.io/harnessr/articles/core.html)
+  (`core`): calls without a document, every kind of client, what a
+  result holds, the trace, structured replies, checks, signals, errors
+  by class.
+- [Models, prices and
+  tokens](https://elkronos.github.io/harnessr/articles/models.html)
+  (`models`): what harnessr knows about a model, adding one, setting the
+  prices you pay, cost estimates, models with no price or old prices,
+  and counting tokens.
+- [Context: budgets, fitting and
+  cutting](https://elkronos.github.io/harnessr/articles/context.html)
+  (`context`): how much room a prompt has, fitting its pieces into that
+  room, which part of a cut piece is kept, and the cuts the trace
+  records.
+- [Effort: how hard the model
+  reasons](https://elkronos.github.io/harnessr/articles/effort.html)
+  (`effort`): which models take a reasoning effort, setting it per call
+  or per stage, what it costs and does to the cache, raising it only
+  when a stage goes wrong, and measuring whether that pays.
+
 ### Read a document
 
 - [Getting text out of

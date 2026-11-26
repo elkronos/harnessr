@@ -103,8 +103,9 @@ changing an option mid-session affects subsequent runs.
   Floor on the completion room
   [`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md)
   reserves *when `reserve_output` is not given explicitly*. An explicit
-  `reserve_output` is honoured down to 1. Untested: set as a floor for a
-  short reply.
+  `reserve_output` is used between 1 token and the model's `max_output`,
+  unless it leaves no input room; then it drops to this floor, as the
+  default reserve does. Untested: set as a floor for a short reply.
 
 - `cache_documents` (TRUE):
 
@@ -269,7 +270,9 @@ changing an option mid-session affects subsequent runs.
   [`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md)
   reserves for the reply when no `reserve_output` is given, between
   `min_output_tokens` and the model's output limit. It sets the input
-  room, so how much of a document fits one request. Untested.
+  room of such a budget. The readers give `max_answer_tokens` as the
+  reserve, so it does not change how much of a document they fit in one
+  request. Untested.
 
 - `near_verbatim_sim` (0.90), `near_verbatim_sim_short` (0.95),
   `near_verbatim_short_chars` (40):

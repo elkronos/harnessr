@@ -38,6 +38,12 @@ reduce.level1 belongs to reduce."></head><body>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Core</h6></li>
+    <li><a class="dropdown-item" href="../articles/core.html">The core: calls, clients and results</a></li>
+    <li><a class="dropdown-item" href="../articles/models.html">Models, prices and tokens</a></li>
+    <li><a class="dropdown-item" href="../articles/context.html">Context: budgets, fitting and cutting</a></li>
+    <li><a class="dropdown-item" href="../articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
@@ -151,9 +157,12 @@ the text a reply that signals it starts with.</p></dd>
 step of the trace, or a reply cut off at its output cap; a cut made while
 a stage packs its requests belongs to that stage, including one made
 before its first request),
-<code>"parse_failure"</code> (a reply to a structured request, such as
-<code>ctx$call_json()</code>, that is not JSON) and
-<code>"schema_failure"</code> (one that does not fit the schema). <code>replies</code> names
+<code>"parse_failure"</code> (a reply to one of harnessr's own structured requests,
+such as <code>ctx$call_json()</code> in a benchmark arm, a judge or a document reader,
+that is not JSON) and
+<code>"schema_failure"</code> (one that does not fit the schema). <code><a href="hr_call.html">hr_call()</a></code> with a
+<code>schema</code> does not parse its reply, so it fires neither: check the reply
+and report it with <code><a href="hr_effort_event.html">hr_effort_event()</a></code>. <code>replies</code> names
 replies that are triggers: a named character vector from trigger to the
 text a reply starts with, such as <code>c(not_in_document = "NOT_IN_DOCUMENT")</code>;
 such a trigger fires when every request of the stage replied with it.

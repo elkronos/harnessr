@@ -26,6 +26,12 @@ model calls and needs no API key."></head><body>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Core</h6></li>
+    <li><a class="dropdown-item" href="../articles/core.html">The core: calls, clients and results</a></li>
+    <li><a class="dropdown-item" href="../articles/models.html">Models, prices and tokens</a></li>
+    <li><a class="dropdown-item" href="../articles/context.html">Context: budgets, fitting and cutting</a></li>
+    <li><a class="dropdown-item" href="../articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
@@ -225,7 +231,7 @@ four dollars from four hundred), not to be a quote.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">inv</span> <span class="op">&lt;-</span> <span class="fu">gr_inventory</span><span class="op">(</span><span class="va">d</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">inv</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;gr_inventory&gt; /tmp/Rtmp5mYesE/file1c0545569cd</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;gr_inventory&gt; /tmp/RtmpHP7OlR/file1bf29327b92</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   2 file(s), 44.0 B; 1 readable</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   1 ready, 1 no_extractor</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   tokens: 16   cost floor: unknown: no price set for gpt-5.6-terra (set one with hr_register_model() or hr_load_models())</span>

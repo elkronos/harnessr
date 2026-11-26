@@ -3,17 +3,23 @@
 written to disk, keyed on the exact request. Re-issuing the same request
 returns the stored response without touching the network: free, instant, and
 byte-identical even at a temperature above zero. A failed call is never
-written, and neither is a reply cut off at the output cap or a structured
-(JSON-schema) reply that does not parse, so re-running asks again. An
-unparseable structured reply that an earlier version did store is asked
-again rather than replayed."><meta property="og:description" content="Wrap a client with hr_cache_client() and every successful model call is
+written, and neither is a reply cut off at the output cap, so re-running
+asks again. A structured (JSON-schema) reply that does not parse is not
+written either when the package's own structured calls make the request
+(the readers, ctx$call_json() in an hr_arm()), and one an earlier
+version did store is asked again rather than replayed. hr_call() does not
+parse a reply, so a reply to a schema call made with it is written like any
+other."><meta property="og:description" content="Wrap a client with hr_cache_client() and every successful model call is
 written to disk, keyed on the exact request. Re-issuing the same request
 returns the stored response without touching the network: free, instant, and
 byte-identical even at a temperature above zero. A failed call is never
-written, and neither is a reply cut off at the output cap or a structured
-(JSON-schema) reply that does not parse, so re-running asks again. An
-unparseable structured reply that an earlier version did store is asked
-again rather than replayed."></head><body>
+written, and neither is a reply cut off at the output cap, so re-running
+asks again. A structured (JSON-schema) reply that does not parse is not
+written either when the package's own structured calls make the request
+(the readers, ctx$call_json() in an hr_arm()), and one an earlier
+version did store is asked again rather than replayed. hr_call() does not
+parse a reply, so a reply to a schema call made with it is written like any
+other."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -34,6 +40,12 @@ again rather than replayed."></head><body>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Core</h6></li>
+    <li><a class="dropdown-item" href="../articles/core.html">The core: calls, clients and results</a></li>
+    <li><a class="dropdown-item" href="../articles/models.html">Models, prices and tokens</a></li>
+    <li><a class="dropdown-item" href="../articles/context.html">Context: budgets, fitting and cutting</a></li>
+    <li><a class="dropdown-item" href="../articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
@@ -81,10 +93,13 @@ again rather than replayed."></head><body>
 written to disk, keyed on the exact request. Re-issuing the same request
 returns the stored response without touching the network: free, instant, and
 byte-identical even at a temperature above zero. A failed call is never
-written, and neither is a reply cut off at the output cap or a structured
-(JSON-schema) reply that does not parse, so re-running asks again. An
-unparseable structured reply that an earlier version did store is asked
-again rather than replayed.</p>
+written, and neither is a reply cut off at the output cap, so re-running
+asks again. A structured (JSON-schema) reply that does not parse is not
+written either when the package's own structured calls make the request
+(the readers, <code>ctx$call_json()</code> in an <code><a href="hr_arm.html">hr_arm()</a></code>), and one an earlier
+version did store is asked again rather than replayed. <code><a href="hr_call.html">hr_call()</a></code> does not
+parse a reply, so a reply to a schema call made with it is written like any
+other.</p>
     </div>
 
     <div class="section level2">
@@ -187,7 +202,7 @@ directory stays readable by the version that wrote it.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">cache</span> <span class="op">&lt;-</span> <span class="fu">hr_cache</span><span class="op">(</span>dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"harnessr-example-cache"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">cache</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;gr_cache&gt; /tmp/Rtmp5mYesE/harnessr-example-cache</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;gr_cache&gt; /tmp/RtmpHP7OlR/harnessr-example-cache</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   0 entries, 0.0 B on disk; 0 hit(s), 0 miss(es), 0 write(s)</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Nothing is written until a call is cached.</span></span></span>

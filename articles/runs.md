@@ -167,7 +167,7 @@ str(step[c("label", "attempts", "started_utc", "tokens")])
 #> List of 4
 #>  $ label      : chr "reduce"
 #>  $ attempts   : int 1
-#>  $ started_utc: chr "2026-11-26T21:44:35.407Z"
+#>  $ started_utc: chr "2026-11-26T22:24:00.470Z"
 #>  $ tokens     :List of 3
 #>   ..$ input     : int 296
 #>   ..$ output    : int 13
@@ -254,10 +254,10 @@ out the values of `api_headers`, since they can hold credentials.
 
 tr <- hr_trace(owner = "finance team", run_by = "ana", purpose = "Q3 check")
 tr
-#> <gr_trace run_20261126214436.004_8accb7>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
+#> <gr_trace run_20261126222401.047_b4d016>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
 #>   cost: no cost recorded
 #>   actor: owner = finance team, run_by = ana, purpose = Q3 check 
-#>   started: 2026-11-26T21:44:36.004Z
+#>   started: 2026-11-26T22:24:01.047Z
 names(tr$config)
 #> [1] "options"   "r_version"
 ```
@@ -500,9 +500,11 @@ be stopped part way. The limits apply to them like this:
 
 `effort` sets how much a reasoning model reasons on each call, stage by
 stage.
+[`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md)
+covers effort in the core: which models take it, how it is billed, the
+cache and the trace, and effort that rises when needed.
 [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
-explains how effort is billed, which models it is sent to, and the label
-each stage’s calls carry.
+lists the label each reader’s calls carry.
 
 In a review, the same vector goes to each stage.
 [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
@@ -569,7 +571,12 @@ These replies are never cached, so running again asks again:
 - failures: a rate limit or a refusal belongs to the moment, and storing
   one would make a blip permanent;
 - a reply cut off at its output cap;
-- a structured reply that does not fit its schema.
+- a structured reply that does not fit its schema, when the readers or
+  `ctx$call_json()` in a benchmark arm make the request.
+  [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
+  does not parse a reply, so it caches a reply to a schema call like any
+  other (see
+  [`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)).
 
 The default directory is under
 [`tempdir()`](https://rdrr.io/r/base/tempfile.html), so a cache costs
@@ -793,6 +800,8 @@ reports and for `max_cost_usd`.
 
 The prices below are illustrative. Use your provider’s current prices,
 in US dollars per million tokens.
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md)
+covers the registry, prices and token counts in full.
 
 ### What harnessr knows about a model
 
@@ -823,8 +832,9 @@ Once you set prices, it is the month of the prices.
 looks up one model. Its `source` says where the entry came from, and
 `certain` is `FALSE` when harnessr guessed the model from its name or
 fell back to its default. An id the registry does not know warns with
-`gr_unknown_model` and gets a 128k context window and no price. Its cost
-then shows as `NA` rather than a wrong figure.
+`gr_unknown_model` and gets the limits of a family pattern its name
+matches, or else a 128k context window, and no price. Its cost then
+shows as `NA` rather than a wrong figure.
 
 ``` r
 
@@ -947,7 +957,7 @@ registry as it was:
 bad <- file.path(tempdir(), "bad-prices.csv")
 writeLines(c("id,input_usd,output_usd", "gpt-4.1,two,8"), bad)
 tryCatch(hr_load_models(bad), hr_bad_models_file = function(e) conditionMessage(e))
-#> [1] "Models file '/tmp/RtmpN2nHD8/bad-prices.csv', row 1, column 'input_usd': 'two' is not a price; give USD per 1M tokens as a number of 0 or more, such as 2.5."
+#> [1] "Models file '/tmp/RtmpqYP24p/bad-prices.csv', row 1, column 'input_usd': 'two' is not a price; give USD per 1M tokens as a number of 0 or more, such as 2.5."
 ```
 
 [`?hr_load_models`](https://elkronos.github.io/harnessr/reference/hr_load_models.md)
@@ -1126,6 +1136,8 @@ budget calculation.
 does the context arithmetic for every request. It cannot return a
 non-positive input budget: in that case it raises an error that says
 what to change.
+[`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md)
+covers budgets and cuts in full, and
 [`?hr_options`](https://elkronos.github.io/harnessr/reference/hr_options.md)
 documents every setting.
 

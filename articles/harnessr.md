@@ -432,7 +432,7 @@ row per request, with its cost and how long it took. The `prompt` and
 
 as.data.frame(ans$trace)[, c("stage", "tokens_in", "tokens_out", "usd", "seconds")]
 #>          stage tokens_in tokens_out usd seconds
-#> 1 stuff.answer       611         13   0   0.002
+#> 1 stuff.answer       611         13   0   0.001
 ```
 
 `usd` comes from the prices in harnessr’s model registry
@@ -505,7 +505,9 @@ less.
 You can also set `effort` by stage: low for the many routine requests,
 high for the few that judge.
 [`?gr_read_spec`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
-lists the stages and suggests a starting point.
+lists the stages and suggests a starting point, and
+[`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md)
+covers effort in full.
 
 ## Choosing a recipe
 
@@ -645,7 +647,7 @@ defaults and when to change each:
 lists all 228 with their defaults and where each default came from, and
 [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
 returns them in R. The settings page links each important one to a
-walkthrough at the end of one of six guides. Each walkthrough says what
+walkthrough at the end of one of ten guides. Each walkthrough says what
 the setting trades off, the signs that point to changing it and how to
 test a change. To compare the values of a setting,
 [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
@@ -671,6 +673,18 @@ covers each of these.
 
 ## Where to go next
 
+- [`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md):
+  the calls underneath every guide here: clients, what a call returns,
+  the trace, structured replies and errors by class.
+- [`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md):
+  what harnessr knows about a model, the prices you set, cost estimates
+  and token counts.
+- [`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md):
+  how a prompt is kept inside a model’s context window, and what is cut
+  when it does not fit.
+- [`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md):
+  how hard a reasoning model reasons, by stage or raised only when a
+  stage goes wrong, and what that costs.
 - [`vignette("ingest")`](https://elkronos.github.io/harnessr/articles/ingest.md):
   getting text out of PDFs, Word files, web pages and scans, and
   cleaning it.
