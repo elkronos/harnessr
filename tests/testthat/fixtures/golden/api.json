@@ -476,6 +476,10 @@
       "formals": ["judge_config", "labels", "n_pos_min = 50", "n_neg_min = 50", "positive = NULL", "B = 2000", "conf = 0.95", "seed = 1"],
       "type": "function"
     },
+    "hr_load_models": {
+      "formals": ["file"],
+      "type": "function"
+    },
     "hr_mdd": {
       "formals": ["n_items", "n_clusters = NULL", "m = NULL", "icc = NULL", "p_disc = NULL", "cv = 0", "power = 0.8", "alpha = 0.025", "n_contrasts = 1", "holm = TRUE"],
       "type": "function"

@@ -13,8 +13,9 @@
 # them. Nothing here installs anything.
 
 .onLoad <- function(libname, pkgname) {
-  hr_state$seed_models <- stats::setNames(.gr_seed_models(),
-                                          vapply(.gr_seed_models(), `[[`, character(1), "id"))
+  # Read from inst/extdata/models.csv. A malformed file stops the load with
+  # an error of class hr_bad_models_file rather than leave the registry empty.
+  hr_state$seed_models <- .gr_seed_models()
   hr_state$model_patterns <- .gr_seed_patterns()
   register_doc_layer()
   register_core_kinds()

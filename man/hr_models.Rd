@@ -8,9 +8,11 @@ hr_models()
 }
 \value{
 A data frame with \code{id}, \code{kind}, \code{context_window}, \code{max_output},
-\code{reasoning}, \code{input_usd_per_1m}, \code{output_usd_per_1m}, \code{as_of} (the month
-the entry was recorded; a stale date is a prompt to verify) and
-\code{cached_input_usd_per_1m}.
+\code{reasoning}, \code{input_usd_per_1m}, \code{output_usd_per_1m}, \code{as_of} and
+\code{cached_input_usd_per_1m}. Built-in models have no prices, so their
+price columns are \code{NA} until you set them. \code{as_of} is the month a
+built-in model's limits were last checked, or the month a registered
+entry was recorded; a stale date is a prompt to verify.
 }
 \description{
 List every known model
@@ -19,7 +21,7 @@ List every known model
 subset(hr_models(), kind == "chat")[, c("id", "context_window", "as_of")]
 }
 \seealso{
-\code{\link[=hr_model_info]{hr_model_info()}}, \code{\link[=hr_register_model]{hr_register_model()}}
+\code{\link[=hr_model_info]{hr_model_info()}}, \code{\link[=hr_register_model]{hr_register_model()}}, \code{\link[=hr_load_models]{hr_load_models()}}
 
 Other cost and token functions: 
 \code{\link{hr_budget}()},
@@ -27,6 +29,7 @@ Other cost and token functions:
 \code{\link{hr_context_policy}()},
 \code{\link{hr_count_tokens}()},
 \code{\link{hr_estimate_cost}()},
+\code{\link{hr_load_models}()},
 \code{\link{hr_model_info}()},
 \code{\link{hr_model_limits}()},
 \code{\link{hr_register_model}()},

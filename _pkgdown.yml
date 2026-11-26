@@ -96,6 +96,7 @@ reference:
   - hr_model_info
   - hr_model_limits
   - hr_register_model
+  - hr_load_models
 
 - title: Get text out of files
   desc: >

@@ -25,9 +25,9 @@ when it has one, and as other input tokens when it does not.}
 A single numeric USD figure, or \code{NA_real_} when the model has no
 pricing in the registry, or no output price and \code{output_tokens} above zero
 (an embedding model's missing output price counts as zero, since it
-produces no output tokens). Pricing is seeded from the registry's \code{as_of}
-snapshot. Treat it as an estimate, and use \code{\link[=hr_register_model]{hr_register_model()}} to
-correct it.
+produces no output tokens). harnessr ships no prices: set them with
+\code{\link[=hr_register_model]{hr_register_model()}} or \code{\link[=hr_load_models]{hr_load_models()}}. Treat the figure as an
+estimate.
 }
 \description{
 Estimate the USD cost of a set of calls
@@ -44,6 +44,7 @@ Other cost and token functions:
 \code{\link{hr_context_fit}()},
 \code{\link{hr_context_policy}()},
 \code{\link{hr_count_tokens}()},
+\code{\link{hr_load_models}()},
 \code{\link{hr_model_info}()},
 \code{\link{hr_model_limits}()},
 \code{\link{hr_models}()},

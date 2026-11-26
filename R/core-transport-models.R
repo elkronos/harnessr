@@ -20,45 +20,16 @@
 # of returning a non-positive value. It errors with an actionable message
 # instead.
 
-# Seed data. `as_of` is stamped so a stale entry is visible rather than implied.
-# Prices are USD per 1M tokens and are used only for pre-flight cost estimates.
-.gr_seed_models <- function() {
-  m <- function(id, context, max_output, input_usd = NA_real_, output_usd = NA_real_,
-                reasoning = FALSE, temperature = TRUE, kind = "chat", dims = NA_integer_) {
-    list(id = id, context_window = as.integer(context), max_output = as.integer(max_output),
-         input_usd = input_usd, output_usd = output_usd, reasoning = reasoning,
-         supports_temperature = temperature, kind = kind, dimensions = dims,
-         as_of = "2026-08")
-  }
-  list(
-    # ---- GPT-5.6 family --------------------------------------------------
-    m("gpt-5.6-sol",   1050000, 128000,  4.00, 20.00, reasoning = TRUE,  temperature = FALSE),
-    m("gpt-5.6-terra", 1050000, 128000,  2.00, 12.00, reasoning = TRUE,  temperature = FALSE),
-    m("gpt-5.6-luna",  1050000, 128000,  1.00,  6.00, reasoning = TRUE,  temperature = FALSE),
-    # ---- Older GPT-5 line -------------------------------------------------
-    m("gpt-5.5",        400000, 128000,  1.75, 14.00, reasoning = TRUE,  temperature = FALSE),
-    m("gpt-5.4",        400000, 128000,  1.25, 10.00, reasoning = TRUE,  temperature = FALSE),
-    m("gpt-5.4-mini",   400000, 128000,  0.75,  4.00, reasoning = TRUE,  temperature = FALSE),
-    m("gpt-5",          400000, 128000,  1.25, 10.00, reasoning = TRUE,  temperature = FALSE),
-    m("gpt-5-mini",     400000, 128000,  0.25,  2.00, reasoning = TRUE,  temperature = FALSE),
-    m("gpt-5-nano",     400000, 128000,  0.05,  0.40, reasoning = TRUE,  temperature = FALSE),
-    # ---- GPT-4 line -------------------------------------------------------
-    m("gpt-4.1",       1047576, 32768,   2.00,  8.00),
-    m("gpt-4.1-mini",  1047576, 32768,   0.40,  1.60),
-    m("gpt-4.1-nano",  1047576, 32768,   0.10,  0.40),
-    m("gpt-4o",         128000, 16384,   2.50, 10.00),
-    m("gpt-4o-mini",    128000, 16384,   0.15,  0.60),
-    m("gpt-4-turbo",    128000,  4096,  10.00, 30.00),
-    m("gpt-4",            8192,  8192,  30.00, 60.00),
-    m("gpt-3.5-turbo",   16385,  4096,   0.50,  1.50),
-    # ---- Embeddings -------------------------------------------------------
-    # Every embedding model OpenAI still lists. Embedding requests are priced
-    # trace steps, so one missing here makes a run's cost unknown, and that
-    # switches off gr_read_many(max_total_usd =) for the whole corpus.
-    m("text-embedding-3-small", 8191, 0, 0.02, 0, kind = "embedding", dims = 1536L),
-    m("text-embedding-3-large", 8191, 0, 0.13, 0, kind = "embedding", dims = 3072L),
-    m("text-embedding-ada-002", 8191, 0, 0.10, 0, kind = "embedding", dims = 1536L)
-  )
+# Built-in models: limits only, read from inst/extdata/models.csv at load
+# time. harnessr ships no prices because providers change them more often
+# than the package is released, and a stale price is worse than none: a
+# spending limit would hold the wrong figure. Users set prices with
+# hr_register_model() or hr_load_models(). `as_of` is the month the limits
+# were last checked. The entries keep the shape they had when they were
+# written in R, with `input_usd` and `output_usd` NA. The reading and
+# checking is in core-transport-models-file.R.
+.gr_seed_models <- function(file = system.file("extdata", "models.csv", package = "harnessr")) {
+  models_file_seed(file)
 }
 
 # Family patterns, tried in order, only after exact and alias lookup fail.
@@ -100,19 +71,36 @@
   cached_input_usd = NA_real_
 )
 
-#' Register a model (or override a built-in entry)
+#' Register a model, or set the prices of a known one
 #'
-#' Use this whenever the shipped registry is stale or you are pointing the
-#' client at a compatible non-OpenAI endpoint. Registered entries take
+#' Use this to add a model the registry does not know, to correct a built-in
+#' entry, or to give a model its prices. harnessr ships each built-in model's
+#' limits but no prices, because providers change prices more often than the
+#' package is released: cost estimates and the `max_cost_usd` limit use the
+#' prices you set here or with [hr_load_models()]. Registered entries take
 #' precedence over everything built in.
 #'
+#' Give both `context_window` and `max_output` to register a model in full:
+#' every other argument you leave out takes its default. Leave either limit
+#' out to change the model's current entry, built in or registered: the new
+#' entry keeps every value you leave out. That is how you price a built-in
+#' model without restating its limits.
+#'
+#' The entry's `as_of`, shown by [hr_models()], is the current month. When you
+#' change an entry that has prices without giving new ones, it keeps the
+#' month of those prices.
+#'
 #' @param id Model id string, exactly as the API expects it.
-#' @param context_window Total context window in tokens.
-#' @param max_output Maximum tokens the model will emit in one response.
-#' @param input_usd,output_usd Price per 1M tokens; used for cost estimates.
-#'   Give both or neither for a chat model: one without the other is an error,
-#'   since a cost with half its price missing cannot be estimated. An embedding
-#'   model needs only `input_usd`.
+#' @param context_window Total context window in tokens. Leave it out to keep
+#'   the current entry's.
+#' @param max_output Maximum tokens the model will emit in one response. Leave
+#'   it out to keep the current entry's.
+#' @param input_usd,output_usd Price per 1M tokens, in USD; used for cost
+#'   estimates and the `max_cost_usd` limit. Give both or neither for a chat
+#'   model: one without the other is an error, since a cost with half its
+#'   price missing cannot be estimated. An embedding model needs only
+#'   `input_usd`. When you change an existing entry, a price you leave out
+#'   keeps its current value.
 #' @param reasoning Whether this is a reasoning model (affects prompt shape).
 #' @param supports_temperature Whether the API accepts `temperature`.
 #' @param kind `"chat"` or `"embedding"`.
@@ -121,8 +109,9 @@
 #'   its prompt cache, where that is billed at its own rate. `NA` (the
 #'   default) prices them as other input tokens, which never undercounts.
 #' @return Invisibly, `id`.
-#' @seealso [hr_models()] to see the registry, [hr_model_info()] for lookup and
-#'   its `certain` flag, [hr_budget()], [hr_estimate_cost()]
+#' @seealso [hr_load_models()] to register many models from a file,
+#'   [hr_models()] to see the registry, [hr_model_info()] for lookup and its
+#'   `certain` flag, [hr_budget()], [hr_estimate_cost()]
 #' @family cost and token functions
 #' @export
 #' @examples
@@ -132,49 +121,33 @@
 #' # Without prices, the cost cap cannot be checked; harnessr says so rather
 #' # than assuming the run is free.
 #' is.na(hr_estimate_cost("my-local-llama", 1000, 500))
+#'
+#' # Price a built-in model and keep its limits. The figures are illustrative:
+#' # use your provider's current prices.
+#' hr_register_model("gpt-4o-mini", input_usd = 0.15, output_usd = 0.60)
+#' hr_model_info("gpt-4o-mini")[c("context_window", "input_usd", "output_usd")]
 hr_register_model <- function(id, context_window, max_output,
                               input_usd = NA_real_, output_usd = NA_real_,
                               reasoning = FALSE, supports_temperature = TRUE,
                               kind = c("chat", "embedding"), dimensions = NA_integer_,
                               cached_input_usd = NA_real_) {
-  kind <- match.arg(kind)
+  if (!missing(kind)) kind <- match.arg(kind)
   if (!is_nonblank(id)) gr_abort("`id` must be a non-empty string.")
-  context_window <- as.integer(context_window)
-  max_output <- as.integer(max_output)
-  if (is.na(context_window) || context_window <= 0L) {
-    gr_abort("`context_window` must be a positive integer.")
-  }
-  if (is.na(max_output) || max_output < 0L) gr_abort("`max_output` must be >= 0.")
-  # Half a price is refused here, where the omission is made, rather than
-  # discovered later as a cost that cannot be computed. Pricing the missing
-  # half as free is what this used to do: output_usd left out costed a run's
-  # replies at $0 and a max_cost_usd limit never tripped.
-  if (kind == "chat" && xor(is.na(as_num1(input_usd)), is.na(as_num1(output_usd)))) {
-    gr_abort(sprintf(paste0("Model '%s' has %s but no %s. Give both prices (USD per 1M tokens), ",
-                            "or neither to register it unpriced, in which case harnessr reports ",
-                            "the cost as unknown rather than guessing."),
-                     id, if (is.na(as_num1(input_usd))) "`output_usd`" else "`input_usd`",
-                     if (is.na(as_num1(input_usd))) "`input_usd`" else "`output_usd`"),
-             class = "gr_bad_setting")
-  }
-  if (max_output >= context_window && kind == "chat") {
-    gr_abort(sprintf(paste0("`max_output` (%d) must be smaller than `context_window` (%d): a model ",
-                            "cannot emit its entire context. This exact inversion is what made the ",
-                            "previous implementation compute negative input budgets."),
-                     max_output, context_window))
-  }
-  # Every field below becomes a column in hr_models(). NULL or a zero-length
-  # value here does not store "unknown": modifyList() deletes the key and
-  # data.frame() drops the column, so one such registration made hr_models()
-  # fail for the whole session. Coerce to a scalar, or to NA.
-  registry_set("models", id, list(
-    id = id, context_window = context_window, max_output = max_output,
-    input_usd = as_num1(input_usd), output_usd = as_num1(output_usd),
-    reasoning = isTRUE(reasoning),
-    supports_temperature = isTRUE(supports_temperature), kind = kind,
-    dimensions = as_int1(dimensions), certain = TRUE, as_of = format(Sys.Date(), "%Y-%m"),
-    cached_input_usd = as_num1(cached_input_usd)
-  ), state = hr_state)
+  # Only the arguments the caller gave: what is left out is either a default
+  # (a full registration) or kept from the current entry (a change to one).
+  args <- c("context_window", "max_output", "input_usd", "output_usd", "reasoning",
+            "supports_temperature", "kind", "dimensions", "cached_input_usd")
+  supplied <- intersect(args, names(as.list(match.call())[-1]))
+  env <- environment()
+  given <- stats::setNames(lapply(supplied, function(nm) get(nm, envir = env, inherits = FALSE)),
+                           supplied)
+  # The error names this call, not the helper that found the problem.
+  here <- sys.call()
+  entry <- tryCatch(model_entry(id, given), gr_error = function(e) {
+    e$call <- here
+    stop(e)
+  })
+  registry_set("models", id, entry, state = hr_state)
   invisible(id)
 }
 
@@ -288,10 +261,12 @@ hr_model_limits <- function(model = NULL) {
 
 #' List every known model
 #' @return A data frame with `id`, `kind`, `context_window`, `max_output`,
-#'   `reasoning`, `input_usd_per_1m`, `output_usd_per_1m`, `as_of` (the month
-#'   the entry was recorded; a stale date is a prompt to verify) and
-#'   `cached_input_usd_per_1m`.
-#' @seealso [hr_model_info()], [hr_register_model()]
+#'   `reasoning`, `input_usd_per_1m`, `output_usd_per_1m`, `as_of` and
+#'   `cached_input_usd_per_1m`. Built-in models have no prices, so their
+#'   price columns are `NA` until you set them. `as_of` is the month a
+#'   built-in model's limits were last checked, or the month a registered
+#'   entry was recorded; a stale date is a prompt to verify.
+#' @seealso [hr_model_info()], [hr_register_model()], [hr_load_models()]
 #' @family cost and token functions
 #' @export
 #' @examples
@@ -326,9 +301,9 @@ hr_models <- function() {
 #' @return A single numeric USD figure, or `NA_real_` when the model has no
 #'   pricing in the registry, or no output price and `output_tokens` above zero
 #'   (an embedding model's missing output price counts as zero, since it
-#'   produces no output tokens). Pricing is seeded from the registry's `as_of`
-#'   snapshot. Treat it as an estimate, and use [hr_register_model()] to
-#'   correct it.
+#'   produces no output tokens). harnessr ships no prices: set them with
+#'   [hr_register_model()] or [hr_load_models()]. Treat the figure as an
+#'   estimate.
 #' @seealso [hr_model_info()], [hr_register_model()], [hr_trace_summary()]
 #' @family cost and token functions
 #' @export
