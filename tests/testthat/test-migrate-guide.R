@@ -84,7 +84,7 @@ test_that("the guide has its three tables, each with old, new and what to change
     expect_identical(header, "| Old | New | What to change |", info = nm)
   }
   expect_identical(nrow(tabs$core), 27L)
-  expect_identical(nrow(tabs$other), 6L)
+  expect_identical(nrow(tabs$other), 5L)
   expect_identical(nrow(tabs$v1), 6L)
 })
 
@@ -108,7 +108,7 @@ test_that("no old function in the guide is exported", {
 test_that("every new function in the guide is exported, and every new option is read", {
   tabs <- do.call(rbind, migrate_tables())
   funs <- unique(unlist(lapply(tabs[, 2], cell_functions)))
-  expect_gte(length(funs), 27L + 6L)
+  expect_gte(length(funs), 27L + 5L)
   missing <- setdiff(funs, getNamespaceExports("harnessr"))
   expect(length(missing) == 0,
          sprintf("New in vignettes/migrate.Rmd but not exported: %s.",

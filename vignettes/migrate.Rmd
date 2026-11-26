@@ -107,7 +107,6 @@ move the response cache to the key `harnessr-cache-v3` and replay to
 | `readgpt_example()` | `gr_example()` | Rename the call. It returns the same path to the bundled example document. |
 | `options(readgpt.api_key =)` | `options(harnessr.api_key =)` | Rename the option. harnessr ignores the old one, so a key set only there is not found. |
 | `options(readgpt.allow_local_urls =)` | `options(harnessr.allow_local_urls =)` | Rename the option. harnessr ignores the old one. |
-| `gr_calibrate()`'s `$kappa_legacy` | `gr_calibrate()`'s `$kappa` | Read `$kappa`. `$decisions` holds the 3x2 counts the old figure came from. |
 | the `gr_deprecated` warning class | none | Drop handlers for it. Nothing warns about an old name now. |
 
 ## From readgpt 0.6.0: models carry no prices

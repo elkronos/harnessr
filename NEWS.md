@@ -18,9 +18,8 @@ documentation.
   `remotes::install_github("elkronos/harnessr")` installs it and the old
   `elkronos/readgpt` still works. The website moves to
   <https://elkronos.github.io/harnessr/>. The core functions that began
-  with `gr_` now begin with `hr_` (see "Renamed core functions"), and
-  `readgpt_example()` is now `gr_example()`. Classes, arguments and prompts
-  keep their names.
+  with `gr_` now begin with `hr_` (see "Renamed core functions"). Classes,
+  arguments and prompts keep their names.
 
 * **`readgpt_example()` is now `gr_example()`**, which returns the same path to
   the bundled example document. The old name is removed (see "Removed").
@@ -93,9 +92,12 @@ the rest of the core layer. Document-layer functions such as `gr_read()` and
 
 ## Removed
 
-The deprecated names are removed. Each one warned and pointed to its
-replacement; calling a removed function is now an error, and a removed option
-is ignored. Caches, recordings and stores written before the rename still
+The v1 functions (`answer_question()`, `parse_text()` and the `gpt_read_*()`
+family) are removed. Each one warned in 0.6.0 and pointed to its replacement;
+calling one now is an error. `readgpt_example()` and the options
+`readgpt.api_key` and `readgpt.allow_local_urls` go with the rename and had no
+deprecation period: the old function no longer exists, and harnessr ignores
+the old options. Caches, recordings and stores written before the rename still
 read: the `readgpt-cache-v2` and `readgpt-replay-v1` keys and the cache
 directory `tools::R_user_dir("readgpt", "cache")` are still looked up, and the
 corpus store key is computed as before.
@@ -111,7 +113,6 @@ corpus store key is computed as before.
 | `readgpt_example()` | `gr_example()` |
 | `options(readgpt.api_key =)` | `options(harnessr.api_key =)` |
 | `options(readgpt.allow_local_urls =)` | `options(harnessr.allow_local_urls =)` |
-| `gr_calibrate()`'s `$kappa_legacy` | `$kappa`; `$decisions` holds the 3x2 counts the old figure came from |
 | the `gr_deprecated` warning class | none: nothing warns about an old name now |
 
 ## Built-in models carry limits and no prices
@@ -353,6 +354,17 @@ move.
   option. It used to read the list as a set of options to restore, which only
   an unnamed list should be.
 
+* **An `effort` map that names no declared call is an error.** A name in
+  `gr_read_spec(effort =)` (and the `effort` of `gr_claims()`, `gr_outline()`
+  and `gr_synthesise()`) must be a declared stem, a part of one up to a dot
+  (`"synthesise"`, `"segment"`), or a label under one (`"reduce.level1"`).
+  Anything else stops with an error of class `hr_unknown_effort_key` that
+  lists the stems. readgpt 0.6.0 accepted such a name and matched no call, so a
+  misspelt `c(extrac = "low")` sent every extraction call at the provider's
+  default with nothing said. An effort map that names the calls of a reader
+  or segmenter of your own needs that module registered first, with its
+  labels in `calls`.
+
 ## Limits checked before every request
 
 * **`max_calls` and `max_cost_usd` now hold exactly.** Every request is
@@ -463,8 +475,8 @@ move.
 * **Cached input can be priced at its own rate.** `hr_register_model()` takes
   `cached_input_usd`, `hr_estimate_cost()` takes `cached_input_tokens`, and
   `hr_models()` shows `cached_input_usd_per_1m`. A model with no cached rate
-  prices cached input as other input, so every built-in model costs what it
-  did.
+  prices cached input as other input, so a model you priced without one
+  costs what it did before.
 
 * **Runs record who they are for.** `hr_trace()` takes `system`, `owner`,
   `run_by`, `purpose` and `approved_by`, and the new option
@@ -754,17 +766,6 @@ says what it trades off and how to test it with `hr_sweep()`.
   them in a new `calls` column. A reader or segmenter registered without
   `calls` declares its own name, which covers labels such as
   `"longest.answer"` for a reader called `"longest"`.
-
-* **An `effort` map that names no declared call is an error.** A name in
-  `gr_read_spec(effort =)` (and the `effort` of `gr_claims()`, `gr_outline()`
-  and `gr_synthesise()`) must be a declared stem, a part of one up to a dot
-  (`"synthesise"`, `"segment"`), or a label under one (`"reduce.level1"`).
-  Anything else stops with an error of class `hr_unknown_effort_key` that
-  lists the stems. Such a name used to be accepted and matched no call, so a
-  misspelt `c(extrac = "low")` sent every extraction call at the provider's
-  default with nothing said. An effort map that names the calls of a reader
-  or segmenter of your own needs that module registered first, with its
-  labels in `calls`.
 
 * **A reader states its cost as a function.** `gr_register_reader()` takes a
   new `cost` argument, a function of `(input_stats, params)` returning the
@@ -2262,8 +2263,8 @@ shows a mode in use.
 * **A settings reference.** `vignette("settings")` prints every setting of
   every stage from `gr_settings_table()` when it is built, each important one
   linked to its walkthrough, and the extractors, cleaners and presets,
-  segmenters, readers, embedders and recipes from their registries. The README
-  and `vignette("harnessr")` gain a "What you can change" section: one row per
+  segmenters, readers, embedders and recipes from their registries.
+  `vignette("harnessr")` gains a "What you can change" section: one row per
   stage with its count of settings, the most used, and links to the
   walkthroughs; Get started also gives the basic settings of each stage with
   when to change each.
