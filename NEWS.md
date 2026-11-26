@@ -1591,10 +1591,18 @@ says where its default came from; almost none has a measurement behind it.
   order is allowed for grading only. With more than two candidates,
   `orders` above 2 shows cyclic rotations. Requests go through the same
   path as `hr_call()`, so the governor, a cache keyed with `draw_index` and
-  the trace all apply, under the labels `judge.<mode>.o<k>`. They are
-  recorded in the judge's own trace and their cost in `$judge_cost`, never
-  in the trace of the run being judged, which gets a local note pointing at
-  the judge's trace; the judge is held to what that run's governor has left.
+  the trace all apply, under the labels `judge.<mode>.o<k>`. Given a
+  `trace`, the judge is a step of the run that trace records: its requests
+  count against the trace's governor, go out at the trace's draw index and
+  draw scope unless `draw_index` names another, and are folded into the
+  trace when the judgement ends, each naming the judge in its `judge`
+  field. The note it adds records no tokens, so cost summaries count the
+  judge once. A `governor` given with a `trace` is applied with the
+  trace's, the lower of each limit, so a judge inside a benchmark run
+  cannot take the run past the benchmark's `max_calls`. `self_judged` in
+  `hr_benchmark()` leaves the judge's requests out. `$trace` and
+  `$judge_cost` hold the judge's requests alone. A judge called without a
+  trace, and `hr_scorer_judge()`, keep their calls apart.
 
 * **New `hr_judge_config()`** holds what decides a judge's answers (model,
   mode, rubric, the package's instructions for the mode, reply schema,
@@ -1615,8 +1623,8 @@ says where its default came from; almost none has a measurement behind it.
   beside `"pass"`/`"fail"` labels) is refused with `gr_bad_setting` rather
   than counted as all negative. The optional columns `consistent`,
   `outcome` and `config_hash` are read by exact name, so an extra column
-  such as `consistently_long` is ignored. The record is keyed by the configuration
-  hash; `hr_judge_valid()` is `FALSE`, naming what changed, when the model,
+  such as `consistently_long` is ignored. The record is keyed by the
+  configuration hash; `hr_judge_valid()` is `FALSE`, naming what changed, when the model,
   rubric, prompt, schema, orders, aggregation or positive grade differ, or
   when the record was edited.
 
@@ -1633,30 +1641,6 @@ says where its default came from; almost none has a measurement behind it.
   vary. It also reports the uncorrected judge mean. Its normal interval
   needs enough labelled items in every inclusion stratum; with few labels
   at small inclusion probabilities it is too narrow.
-
-* `hr_judge()` given a `trace` is now a step of the run that trace records.
-  It recorded its requests on a trace of its own with a copy of the run's
-  governor and never folded it in, so its calls and dollars were missing
-  from the run's cost, from `usd` in `hr_benchmark()` and from the count
-  the benchmark's governor checks, and its requests went
-  out at draw index 0: under a `hr_cache()` every run was handed run 1's
-  verdict. Its requests now count against the trace's governor, are folded
-  into the trace when the judgement ends, and are sent at the trace's draw
-  index and draw scope unless `draw_index` names another. A `governor`
-  given with a `trace` no longer replaces the trace's: the judge is held to
-  both, the lower of each limit, so a judge inside a benchmark run cannot
-  take the run past the benchmark's `max_calls`. Each request folded in
-  names the judge in its `judge` field, and `self_judged` in
-  `hr_benchmark()` leaves those requests out: an arm that answers on one
-  model and judges on another inside its run is not marked as judged on its
-  own model by an `hr_scorer_judge()` on the judge's model. The note it adds
-  to the trace records no tokens, so cost summaries count the judge once.
-  Its own result is unchanged: `$trace` and `$judge_cost` still hold the
-  judge's requests alone, and the order swap works as before. A judge
-  called without a trace, and `hr_scorer_judge()`, still keep their calls
-  apart. A recording made before this change holds no judge requests in a
-  benchmark's trace, so a replay of an arm that judged inside its runs
-  stops at the judge, as it did before.
 
 ### Baselines without a model
 
@@ -1782,17 +1766,13 @@ says where its default came from; almost none has a measurement behind it.
   methods.
 
   The ECE and the Brier decomposition use the same bins, and items with the
-  same `p` always share one, so the ECE does not depend on row order. A
-  signal with two values on 200 documents of 10 items, calibrated within
-  each value, had an ECE of 0.044 that fell to 0 when its rows were
-  shuffled; it is now 0 either way. `bins` is the number of bins formed: 2
-  for a logical signal, which therefore stays advisory under the 5-bin rule
-  (it reported 10). A graded set with a `split` column is calibrated on its
-  `calibration` rows alone, with the rows left out counted in `notes` and a
-  message (before, dev, exploratory and test rows were fitted and scored
-  too), and one with no calibration row stops with `hr_bad_calibration`.
-  Columns are read by exact name, so a `cluster_size` column is no longer
-  taken for `cluster` (40 documents of 10 items collapsed to 1 cluster).
+  same `p` always share one, so the ECE does not depend on row order.
+  `bins` is the number of bins formed: 2 for a logical signal, which
+  therefore stays advisory under the 5-bin rule. A graded set with a `split`
+  column is calibrated on its `calibration` rows alone, with the rows left
+  out counted in `notes` and a message, and one with no calibration row
+  stops with `hr_bad_calibration`. Columns are read by exact name, so a
+  `cluster_size` column is not taken for `cluster`.
 
 * **New `hr_calibration_valid()`** is `FALSE` when any key field of a record
   differs from the run's, and names the fields.
@@ -1804,11 +1784,11 @@ says where its default came from; almost none has a measurement behind it.
   The bound is taken on an effective sample, `n / deff` items with
   `k / deff` errors, where the design effect `deff` is the cluster variance
   of the error rate over the variance with each item its own cluster, never
-  below 1. Taken at face value, items from one document are not
-  independent: with 30 documents of 20 items, a true error rate of 0.12 and
-  an intraclass correlation of 0.3, a gate at `alpha = 0.10` and
-  `delta = 0.05` passed in 8.7 percent of draws; it now passes in 2.4
-  percent. Unclustered items give `deff = 1` and the exact Clopper-Pearson
+  below 1. Items from one document are not independent: with 30 documents
+  of 20 items, a true error rate of 0.12 and an intraclass correlation of
+  0.3, a gate at `alpha = 0.10` and `delta = 0.05` that took the items at
+  face value passed in 8.7 percent of draws, and with the design effect it
+  passes in 2.4 percent. Unclustered items give `deff = 1` and the exact Clopper-Pearson
   bound. `$gate` reports `deff` and `n_eff`, and `$gate$path` the `deff` of
   every threshold.
   It starts where enough items are acted on for the bound to reach `alpha`,
@@ -1837,10 +1817,9 @@ says where its default came from; almost none has a measurement behind it.
   split beside the target shares, and warns with `hr_empty_split` when a
   split given a share receives nothing. A whole-number cluster id is hashed
   written in full, so document 300000 gets the same split stored as a
-  double or as an integer (as a double it was hashed as `"3e+05"` and went
-  to test instead of calibration with seed 7). Columns are matched by exact
-  name: a frame with no `item_id`, `id` or `cluster` column no longer takes
-  `ideal_answer` for its ids or `cluster_size` for its clusters.
+  double or as an integer. Columns are matched by exact name: a frame with
+  no `item_id`, `id` or `cluster` column does not take `ideal_answer` for
+  its ids or `cluster_size` for its clusters.
 
 * **New `gr_label_sheet()`** writes a CSV for people to label, with an
   instructions file beside it, for five kinds of set: QA answers, a
@@ -1850,10 +1829,9 @@ says where its default came from; almost none has a measurement behind it.
   judge the item, so no model output or sampling detail reaches it. With
   several reviewers each gets a sheet of their own. The help page gives the
   number of items each set needs for the package's own evaluation. Ids come
-  from a column named exactly `item_id` or `id`: a frame whose only such
-  column was `ideal_answer` used to put the reference answers in the
-  `item_id` column of a blind sheet; it now gets `qa-0001`, `qa-0002`, and
-  so on.
+  from a column named exactly `item_id` or `id`; a frame with neither gets
+  `qa-0001`, `qa-0002` and so on, so a column such as `ideal_answer` never
+  reaches the `item_id` column of a blind sheet.
 
 * **New `gr_read_labels()`** reads filled sheets back, checks every value
   and id, and stops with `gr_bad_labels` naming the sheet, row and item of
@@ -1867,22 +1845,10 @@ says where its default came from; almost none has a measurement behind it.
   reference answers, and the model's answers are scored against them to make
   `correct`. A `blind = FALSE` calibration sheet read back without `items`
   turns its `model_score` column back into the number `score`, so it is a
-  graded set either way (before, only the read with `items` was). A blind
-  screening sheet carries the reference's frame as an
-  opaque key, so it reads back as a usable reference without `items`.
+  graded set either way. A blind screening sheet carries the reference's
+  frame as an opaque key, so it reads back as a usable reference without
+  `items`.
 
-* **`gr_seg_pk()`** and **`gr_seg_windowdiff()`** measure how far a
-  segmentation's boundaries fall from a reference's (Beeferman, Berger and
-  Lafferty 1999; Pevzner and Hearst 2002), with NLTK's windows and default
-  `k`, so values match NLTK's on the same strings. **`gr_seg_boundaries()`**
-  turns chunks, or a reference segmentation given as text, into the
-  sentence-by-sentence boundaries they compare. It locates segments and
-  sentences in the document, so a sentence the document repeats, such as
-  "See note 3." at the start of two sections, stays in the section it
-  occurs in. **`gr_seg_recall()`** ranks
-  each segmentation's chunks for each question as the `retrieve` reader does
-  and reports recall at k per segmenter, with no model call under the
-  lexical embedder.
 * **`gr_label_sheet("pairwise")`** writes two texts per row as `text_1` and
   `text_2`, in an order drawn for each row from a SHA-256 digest of its id
   and texts, with the order kept in an opaque `order_key` tied to the row.
@@ -1891,12 +1857,25 @@ says where its default came from; almost none has a measurement behind it.
   where a tie counts as negative. A key edited or moved to another row is an
   error of class `gr_bad_labels`.
 
+### Segmentation metrics
+
+* **New `gr_seg_pk()` and `gr_seg_windowdiff()`** measure how far a
+  segmentation's boundaries fall from a reference's (Beeferman, Berger and
+  Lafferty 1999; Pevzner and Hearst 2002), with NLTK's windows and default
+  `k`, so values match NLTK's on the same strings. **`gr_seg_boundaries()`**
+  turns chunks, or a reference segmentation given as text, into the
+  sentence-by-sentence boundaries they compare. It locates segments and
+  sentences in the document, so a sentence the document repeats, such as
+  "See note 3." at the start of two sections, stays in the section it
+  occurs in. **`gr_seg_recall()`** ranks each segmentation's chunks for
+  each question as the `retrieve` reader does and reports recall at k per
+  segmenter, with no model call under the lexical embedder.
+
 ## Steps and chains
 
-Nothing here changes a default or adds a setting: `gr_step()` and
-`gr_step_retrieve()` take the arguments they took, and a step built with them
-sends the requests it sent before, with the same cache keys.
-`vignette("compose")` shows the new functions at work.
+Steps and chains are opt-in and add no setting, so a default run sends the
+requests it sent before, with the same cache keys. `vignette("compose")`
+shows them at work.
 
 * `hr_step(name, fn)` builds a step: a function of `(input, ctx)` with the
   settings it was built with recorded beside it. With a `schema`, its
@@ -1905,8 +1884,8 @@ sends the requests it sent before, with the same cache keys.
   fails there. `input` and `output` declare what the step takes and returns.
 * `hr_chain(..., name)` runs steps in order as one `hr_arm()`, which
   `hr_benchmark()` takes as it takes any arm, and `hr_sweep()` sweeps by
-  path (see `hr_set()` below). Inside a chain each step gets `ctx$step` and `ctx$step_params`, and `ctx$params` is
-  the arm's. `hr_chain(old, judge = NULL, name = "nojudge")` derives a chain
+  path (see `hr_set()` below). Inside a chain each step gets `ctx$step` and
+  `ctx$step_params`, and `ctx$params` is the arm's. `hr_chain(old, judge = NULL, name = "nojudge")` derives a chain
   without one step; `x = step` replaces a step and a new name adds one. The
   arm records each step's settings as `"step.setting"`, and its
   configuration is a hash of the steps' code, the values it reads and their
@@ -1932,18 +1911,14 @@ sends the requests it sent before, with the same cache keys.
   sweep a chain by path, as in
   `hr_sweep(chain, data.frame(retrieve.top_k = c(2, 8)))`, which gives
   `param.retrieve.top_k` columns in the benchmark.
-* `gr_step()` and `gr_step_retrieve()` now return `hr_step` objects (class
-  `c("gr_step", "hr_step", "function")`) checked against the ingest, segment
-  or read schema, with their input and output declared.
-
 * New `gr_step()` builds one stage of a run (`"ingest"`, `"segment"` or
-  `"read"`) as a step, a function of `(input, ctx)`, with its settings
-  checked when the step is built, and `gr_step_retrieve()` returns the
-  chunks `retrieve` would send, ranked and scored, without the answer
-  request. Inside an `hr_arm()` run function they use the run's
-  `ctx$client` and `ctx$trace`, so a benchmark counts and limits their
-  requests; they are composed by hand for now, and carry the attributes a
-  later `hr_chain()` will read.
+  `"read"`) as an `hr_step` (class `c("gr_step", "hr_step", "function")`),
+  with its settings checked against the ingest, segment or read schema when
+  the step is built and its input and output declared, and
+  `gr_step_retrieve()` returns the chunks `retrieve` would send, ranked and
+  scored, without the answer request. Inside an `hr_arm()` run function or
+  an `hr_chain()` they use the run's `ctx$client` and `ctx$trace`, so a
+  benchmark counts and limits their requests.
 
 ## Command steps
 
@@ -2003,7 +1978,7 @@ it, as the "Skills" section of `vignette("compose")` does with
   instructions, the references and every byte of the scripts. The package
   never looks for skills and never lets a model choose one, and a skill's
   text goes into the prompt as it is, so it can carry prompt injection.
-* `hr_step(skill = )` now takes a skill. Inside `hr_chain()` the step's
+* `hr_step(skill = )` takes a skill. Inside `hr_chain()` the step's
   `ctx$call()` and `ctx$call_json()` send the instructions and references as
   a system message before the step's messages, and `ctx$skill` holds the
   skill. The hash is a fixed setting of the step and part of its
@@ -2013,28 +1988,46 @@ it, as the "Skills" section of `vignette("compose")` does with
   `gr_step()` and `gr_step_retrieve()` refuse a skill with class
   `hr_bad_skill`, since their requests are not sent through `ctx$call()`.
 
-## Registering modules
+## Registering modules and the module contract
 
-Nothing here changes a default or adds a setting: each `gr_register_*()`
-function keeps its arguments and checks, each `gr_*()` listing keeps its
-existing columns (contract 0.2 appends `version` and `contract`; see "Module
-contract 0.2" below), and the built-in cleaners and extractors keep their
-registration stamps, so ingest cache keys do not change. The "Registering any kind with
-hr_register()" section of `vignette("extending")` shows both functions.
+Nothing here changes a default or adds a setting, and no request or cache
+key changes: each `gr_register_*()` function keeps its arguments and checks,
+and the built-in cleaners and extractors keep their registration stamps, so
+ingest cache keys do not change. Each `gr_*()` listing keeps its columns and
+adds `version` and `contract` at the end, so code that picks a column by
+name, or by its position counted from the first column, reads what it read
+before. The module contract is version 0.2, and CONTRACT.md lists its
+fields. The "Registering any kind with hr_register()" section of
+`vignette("extending")` shows the new functions.
 
 * `hr_register(kind, name, fn, ..., description = "", calls = NULL,
   version = NULL)` registers a module of any kind through that kind's own
   function, so it runs the same checks: `hr_register("reader", ...)`
   refuses what `gr_register_reader()` refuses. The kinds are
   `"extractor"`, `"cleaner"`, `"segmenter"`, `"reader"`, `"embedder"`,
-  `"protocol"` and `"step"` (see "Module contract 0.2" for the last two);
-  any other is an error of class `hr_unknown_kind`, and
-  `calls` for a kind that declares no calls is an error of class
-  `gr_bad_setting`.
+  `"protocol"` and `"step"`; any other is an error of class
+  `hr_unknown_kind`, and `calls` for a kind that declares no calls is an
+  error of class `gr_bad_setting`. A module you register with
+  `hr_register()` records the `version` you give and contract 0.2 in its
+  entry. An entry registered with a `gr_register_*()` function has neither
+  field, and each listing shows `NA` for it.
+* `hr_register("protocol", name, fn = protocol)` registers a protocol from
+  `gr_protocol()` through `gr_register_protocol()`. `hr_register("step",
+  name, fn)` registers a step from `hr_step()`, or builds one from a
+  function of `(input, ctx)` and the arguments you pass. It refuses call
+  stems that are blank or contain whitespace, with class `gr_bad_setting`,
+  and keeps each stem once, as the reader and segmenter kinds do. The
+  package registers no step at load. Parallel workers receive the steps you
+  registered, so `hr_modules("step")` on a worker lists them.
 * `hr_modules(kind = NULL)` lists the modules of every kind in one table:
   `kind`, `name`, `description` and `calls`, a list column of the call
-  stems each module declares. With `kind`, it adds that kind's own columns,
-  such as a reader's `signature` or an extractor's `extensions`.
+  stems each module declares, then `version` and `contract`. With `kind`,
+  it adds that kind's own columns, such as a reader's `signature` or an
+  extractor's `extensions`.
+* `gr_readers()`, `gr_segmenters()`, `gr_cleaners()`, `gr_extractors()`,
+  `gr_embedders()` and `gr_protocols()` end with the columns `version` and
+  `contract`. The built-in segmenters register through `hr_register()`, so
+  they show contract 0.2.
 * `hr_register("segmenter", ...)` also takes `effort_label`, a function of
   the segment spec that returns the label the segmenter's requests carry.
   The built-in segmenters register this way, so a run's `effort` map
@@ -2043,46 +2036,16 @@ hr_register()" section of `vignette("extending")` shows both functions.
   gets the whole map.
 * Reads that look up a module by name, such as running a reader, choosing
   a segmenter's effort or picking an embedder, go through the kind's
-  accessor, and `hr_embed()` looks embedders up the same way. The listings
-  and the worker snapshot still read the document layer's slots. The core
+  accessor, and `hr_embed()` looks embedders up the same way. The core
   calls no document layer function.
 * When an embeddings request fails, `hr_embed()` falls back on the embedder
   registered as `"lexical"`, so if you replace `"lexical"` with
   `gr_register_embedder()` your function also serves as the fallback. If
   your function fails there, `hr_embed()` warns with its error and uses the
   built-in hashed lexical vectors.
-
-## Module contract 0.2
-
-Nothing here changes a default or adds a setting, and no request or cache
-key changes. The new columns come last in each listing, so code that picks
-a column by name, or by its position counted from the first column, reads
-what it read before. CONTRACT.md lists
-every field that changed.
-
-* The module contract moves to 0.2. A conformance report's `contract`
-  attribute now says 0.2.
-* `"protocol"` and `"step"` are kinds. `hr_register("protocol", name, fn =
-  protocol)` registers a protocol from `gr_protocol()` through
-  `gr_register_protocol()`. `hr_register("step", name, fn)` registers a
-  step from `hr_step()`, or builds one from a function of `(input, ctx)`
-  and the arguments you pass. The package registers no step at load.
-  `hr_modules()` lists both kinds.
-* `hr_register()` gains `version`. A module you register with
-  `hr_register()` records the version you give and contract 0.2 in its
-  entry. An entry registered with a `gr_register_*()` function has neither
-  field, and each listing shows `NA` for it.
-* `hr_register("step", ...)` refuses call stems that are blank or contain
-  whitespace, with class `gr_bad_setting`, and keeps each stem once, as the
-  reader and segmenter kinds do. Parallel workers receive the steps you
-  registered, so `hr_modules("step")` on a worker lists them.
-* `gr_readers()`, `gr_segmenters()`, `gr_cleaners()`, `gr_extractors()`,
-  `gr_embedders()`, `gr_protocols()` and `hr_modules()` end with the
-  columns `version` and `contract`. The built-in segmenters register
-  through `hr_register()`, so they show contract 0.2.
-* Signal calibrations keep their own contract version at 0.1. A key
-  without `contract_version` is still filled with "0.1", so a calibration
-  record you saved stays valid under `hr_calibration_valid()`.
+* Signal calibrations have a contract version of their own, 0.1, apart
+  from the module contract, so a calibration record stays valid under
+  `hr_calibration_valid()` when the module contract moves.
 
 ## Conformance checks
 
@@ -2098,14 +2061,12 @@ shows a mode in use.
   bills the cap (a failed result from the handler comes back as it is),
   and a vector of HTTP status codes such as `c(429, 500, 200)` gives call
   `i` the `i`-th status, marked retryable for the statuses the HTTP
-  transport retries. Embeddings are left
-  as they are. Pass such a client to `gr_check_reader()` or
+  transport retries. Embeddings are left as they are. Pass such a client to `gr_check_reader()` or
   `gr_check_segmenter()` to check a module against replies that fail.
-* The package's tests now check every registered module that
+* The package's own tests check every registered module that
   `hr_modules()` lists, and every protocol, against the rules for its kind.
   An extractor is checked where its packages are installed and the tests
-  have a sample file in its format.
-  Extractors are checked for blocks with text and typed columns, cleaners
+  have a sample file in its format. Extractors are checked for blocks with text and typed columns, cleaners
   for one string per block, some text left and the same result twice,
   embedders for finite unit-length rows under their own name, and
   protocols for a question, criteria, an outline and a save and read that
