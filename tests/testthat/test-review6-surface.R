@@ -503,3 +503,28 @@ test_that("the pkgdown workflow builds every Markdown page change and publishes 
     "(github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')"))
   expect_true(any(grepl("^\\s+clean: true\\s*$", body)))
 })
+
+# ---------------------------------------------------------------------------
+# The site's changelog keeps every release. pkgdown's news page drops a
+# section whose heading does not start with the package name, "version" or
+# "changes in" before the version number, so "# readgpt 0.6.0" left every
+# readgpt release off the site.
+# ---------------------------------------------------------------------------
+
+test_that("every release heading in NEWS.md is one the site's changelog keeps", {
+  path <- test_path("..", "..", "NEWS.md")
+  if (!file.exists(path)) path <- system.file("NEWS.md", package = "harnessr")
+  skip_if(!nzchar(path) || !file.exists(path), "NEWS.md is not available")
+  y <- readLines(path, warn = FALSE, encoding = "UTF-8")
+  fence <- cumsum(grepl("^\\s*```", y)) %% 2L == 1L
+  heads <- sub("^#\\s+", "", y[!fence & grepl("^# ", y)])
+  expect_gt(length(heads), 1L)
+  # The pattern of pkgdown's news_version().
+  kept <- grepl("^(harnessr|version|changes in)\\s+v?\\d+[.-]\\d+", heads,
+                ignore.case = TRUE, perl = TRUE)
+  expect_true(all(kept), info = paste(heads[!kept], collapse = "; "))
+  expect_match(heads[1], "^harnessr ")
+  # A pair of unescaped dollar signs in prose becomes TeX math on the page.
+  prose <- gsub("`[^`]*`", "", y[!fence])
+  expect_false(any(grepl("(^|[^\\\\])\\$[0-9]", prose)))
+})
