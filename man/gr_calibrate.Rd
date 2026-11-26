@@ -81,7 +81,10 @@ in an \code{"excluded"} or \code{"kept"} one.}
 \item{\code{adequacy}}{How that was judged: \code{rule} (\code{"positives"},
 \code{"interval"} or \code{"whole frame"}), \code{bar}, \code{width}, and \code{note}, a
 sentence saying why the sample fell short (\code{NA} when it did not).}
-\item{\code{frame}}{Which rows the sample was drawn from, and how many.}
+\item{\code{frame}}{Which rows the sample was drawn from, and how many: \code{of},
+\code{frame_n} (records in that frame) and \code{screened_n}. \code{frame_n} is \code{NA}
+when the reference does not record it, except for \code{of = "all"}, where
+the frame is every screened record.}
 \item{\code{recall}}{Recall: \code{estimate}, \code{lower} and \code{upper} (two-sided at
 \code{conf}), \code{bound} (the one-sided lower bound), \code{method}, \code{conf}, \code{n}
 (eligible records in the sample) and \code{note}. \code{NA} where the frame

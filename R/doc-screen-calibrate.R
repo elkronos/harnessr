@@ -547,7 +547,10 @@ as_screening_table <- function(screening) {
 #'     \item{`adequacy`}{How that was judged: `rule` (`"positives"`,
 #'       `"interval"` or `"whole frame"`), `bar`, `width`, and `note`, a
 #'       sentence saying why the sample fell short (`NA` when it did not).}
-#'     \item{`frame`}{Which rows the sample was drawn from, and how many.}
+#'     \item{`frame`}{Which rows the sample was drawn from, and how many: `of`,
+#'       `frame_n` (records in that frame) and `screened_n`. `frame_n` is `NA`
+#'       when the reference does not record it, except for `of = "all"`, where
+#'       the frame is every screened record.}
 #'     \item{`recall`}{Recall: `estimate`, `lower` and `upper` (two-sided at
 #'       `conf`), `bound` (the one-sided lower bound), `method`, `conf`, `n`
 #'       (eligible records in the sample) and `note`. `NA` where the frame
@@ -748,6 +751,14 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
     }
   }
   of <- as_chr1(of %||% recorded %||% "unknown", "unknown")
+  # An "all" frame is every record the screener decided: gr_reference() draws
+  # it from the decided rows and records their count as both frame_n and
+  # screened_n, and screening_recall() counts the same rows. So its size is
+  # known when the reference does not record it (a plain data frame, or a file
+  # whose own frame `of` overrode), and print() said "NA of 8 screened".
+  if (identical(of, "all") && is.na(frame_n)) {
+    frame_n <- as.integer(attr(ref, "screened_n") %||% sum(!is.na(tab$decision)))
+  }
   if (identical(of, "mixed")) {
     # Two strata stacked into one file. This is not a corner case: it is what
     # following this package's own advice produces (judge everything kept AND
@@ -940,7 +951,11 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
     min_positives = min_pos,
     frame = list(of = of,
                  frame_n = if (identical(of, "stacked")) sum(rec$strata$N) else frame_n,
-                 screened_n = attr(ref, "screened_n") %||% nrow(tab)),
+                 # The decided rows, as gr_reference() records it. nrow(tab)
+                 # also counted rows the screener never decided, so a plain
+                 # data frame printed an "all" frame smaller than its
+                 # screened count.
+                 screened_n = attr(ref, "screened_n") %||% sum(!is.na(tab$decision))),
     # What the rate implies for the part of the frame nobody checked. The whole
     # reason to sample exclusions is to find out how much was lost, and a rate
     # without that multiplication leaves the reader to do it.
@@ -1283,8 +1298,7 @@ read_reference_csv <- function(path, na.strings = c("", "NA"), ...) {
 #' @export
 print.gr_calibration <- function(x, ...) {
   cat(sprintf("<gr_calibration> %d hand-screened row(s), %d eligible\n", x$n, x$n_positives))
-  cat(sprintf("  sampled from: %s (%s of %s screened)\n", x$frame$of,
-              format(x$frame$frame_n), format(x$frame$screened_n)))
+  cat(sprintf("  sampled from: %s (%s)\n", x$frame$of, calibration_frame_size(x$frame)))
   for (i in seq_len(nrow(x$metrics))) {
     m <- x$metrics[i, ]
     cat(sprintf("  %-30s %s  [%s, %s]  n=%d\n", m$metric,
@@ -1343,6 +1357,23 @@ print.gr_calibration <- function(x, ...) {
                 else sprintf("those %d observations", x$n_positives)))
   }
   invisible(x)
+}
+
+#' The size part of a calibration's "sampled from" line: "30 of 100
+#' screened", or the screened count alone when the reference did not record
+#' how large its frame was. format(NA) printed "NA of 8 screened".
+#' @noRd
+calibration_frame_size <- function(frame) {
+  count <- function(v) {
+    v <- suppressWarnings(as.numeric(v %||% NA_real_))[1]
+    if (is.na(v)) NA_character_ else format(v, scientific = FALSE)
+  }
+  fn <- count(frame$frame_n)
+  sn <- count(frame$screened_n)
+  if (!is.na(fn) && !is.na(sn)) sprintf("%s of %s screened", fn, sn)
+  else if (!is.na(sn)) sprintf("%s screened; frame size not recorded", sn)
+  else if (!is.na(fn)) sprintf("%s in the frame; screened count not recorded", fn)
+  else "frame size not recorded"
 }
 
 #' The recall part of a calibration's print: recall with its interval and

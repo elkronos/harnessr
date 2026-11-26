@@ -245,7 +245,11 @@ test_that("an `of` that contradicts the file is said out loud, and not projected
   ex$human_decision <- "exclude"
   expect_warning(cal <- gr_calibrate(scr, ex, of = "all"), class = "gr_frame_override")
   expect_identical(cal$frame$of, "all")
-  expect_true(is.na(cal$frame$frame_n))
+  # The file's frame size (90 exclusions) is not used. An "all" frame is every
+  # screened record, so its size is the run's screened count. Was NA, printed
+  # as "NA of 100 screened".
+  expect_identical(cal$frame$frame_n, 100L)
+  expect_null(cal$projected)
   # Agreeing with the file is not an override.
   expect_no_warning(gr_calibrate(scr, ex, of = "excluded"))
   # A reference drawn from everything, claimed as exclusions, is not

@@ -29,4 +29,8 @@ test_that("the gr_calibrate() example says which rows its sheet covers", {
   env <- expect_no_warning(run_help_example("gr_calibrate"))
   expect_s3_class(env$.value, "gr_calibration")
   expect_identical(env$.value$frame$of, "all")
+  # It printed "sampled from: all (NA of 8 screened)".
+  out <- utils::capture.output(print(env$.value))
+  expect_false(any(grepl("\\bNA\\b", out)))
+  expect_true(any(grepl("sampled from: all (8 of 8 screened)", out, fixed = TRUE)))
 })
