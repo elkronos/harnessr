@@ -43,8 +43,12 @@
 #'   differ in what they captured.
 #' @param model,embedding_model Model ids reported to the rest of the package.
 #'   If `model` is not in the model registry you will get the usual unknown-model
-#'   warning and a conservative context window; [hr_register_model()] fixes that,
-#'   and getting it right matters because it is what sizes your chunks.
+#'   warning and a conservative context window. Under the default spending limit
+#'   (`hr_options(max_cost_usd =)`), a call to a `model` with no registered price
+#'   is also refused and not sent. Register the model with [hr_register_model()],
+#'   giving `input_usd` and `output_usd` as well as its limits, or set
+#'   `hr_options(allow_unpriced = TRUE)`. The context window you register is what
+#'   sizes your chunks.
 #' @param max_retries,timeout Recorded on the client for completeness. Retrying
 #'   is the backend's business: this package does not retry a handler, because
 #'   it cannot know whether the failure was transient.
