@@ -81,6 +81,11 @@ returns \code{""} is treated as an empty completion, which this package reports 
 }
 
 \examples{
+# Register the model first: its limits size the calls, and a price (zero
+# here) lets the default spending limit count them instead of refusing.
+hr_register_model("my-backend", context_window = 8000, max_output = 1000,
+                  input_usd = 0, output_usd = 0)
+
 # Any function will do. This one is deterministic so the example is too.
 cl <- hr_backend_client(function(messages, params) {
   user <- Filter(function(m) m$role == "user", messages)
