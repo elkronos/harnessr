@@ -62,7 +62,7 @@ You rarely call `gr_segment()` yourself. `answer_document()` calls it with the
 `segment` part of a recipe:
 
 ```{r}
-gr_recipe("survey")$segment[c("method", "max_tokens", "overlap_tokens")]
+gr_recipes("survey")$segment[c("method", "max_tokens", "overlap_tokens")]
 ```
 
 To change it, build your own recipe with `gr_recipe(segment = list(...))`.
