@@ -219,7 +219,7 @@ Each option below is off by default, so a default run sends the requests it
 sent before, keeps its store, cache and replay keys, and returns the tables
 it returned. Each is declared with its evidence (`untested` unless a source
 is named), is listed by `gr_settings_table()`, and has a walkthrough that
-says how to test it with `hr_sweep()`. The settings come to 219 in all.
+says how to test it with `hr_sweep()`. The settings come to 227 in all.
 
 * `gr_extract()` gains `resolve = "vote"`, which keeps the value most of a
   document's chunks gave, for no extra request; a tie goes to the earliest
