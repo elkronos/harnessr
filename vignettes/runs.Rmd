@@ -804,7 +804,7 @@ because sampling parameters belong to the ellmer object. Embeddings come from a
 function you pass as `embed =`. Without one, `retrieve` and the `semantic`
 segmenter fall back to lexical vectors and warn.
 
-### When prices go stale
+### When prices go stale {#set-price-age}
 
 The prices you set go out of date too. A cost computed from prices older than
 `hr_options("price_max_age_days")`, 120 days by default, warns with class

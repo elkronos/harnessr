@@ -224,6 +224,8 @@ test_that("price_max_age_days is an option with evidence, kept out of a trace at
   row <- o[o$name == "price_max_age_days", ]
   expect_identical(row$default, "120")
   expect_identical(row$status, "untested")
+  # Linked to the runs guide's section on stale prices.
+  expect_identical(row$guide, "runs#set-price-age")
   expect_identical(o$default[o$name == "allow_unpriced"], "TRUE")
   expect_identical(o$status[o$name == "allow_unpriced"], "untested")
   local_registries()
