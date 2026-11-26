@@ -348,7 +348,7 @@ stage, the next stage is sent at a raised effort.
 
 ```{r}
 pol <- hr_effort_escalate(base = "low", to = "high",
-                          replies = c(not_in_document = "NOT_IN_DOCUMENT"))
+                          replies = c(not_in_document = "NOT FOUND"))
 pol
 ```
 
@@ -390,8 +390,8 @@ The core sees three triggers for itself:
 - `"schema_failure"`: such a reply that does not fit its schema.
 
 `replies` turns a reply into a trigger. With
-`c(not_in_document = "NOT_IN_DOCUMENT")`, the trigger fires when every request
-of a stage replied with text that starts with `NOT_IN_DOCUMENT`. The other
+`c(not_in_document = "NOT FOUND")`, the trigger fires when every request
+of a stage replied with text that starts with `NOT FOUND`. The other
 default triggers, `"verify_failed"`, `"unclear"` and `"disagreement"`, and any
 name of your own, fire when your code reports them with `hr_effort_event()`.
 
@@ -403,7 +403,7 @@ and answers at any other effort:
 ```{r}
 finder <- hr_mock_client(function(messages, params) {
   if (startsWith(messages[[1]]$content, "Find") && identical(params$effort, "low")) {
-    return("NOT_IN_DOCUMENT")
+    return("NOT FOUND")
   }
   paste("answered at", params$effort)
 })
@@ -419,7 +419,7 @@ as.data.frame(tr)[, c("step", "stage", "effort", "reply")]
 ```
 
 Stage `find.part1` went out low, and its only request replied
-`NOT_IN_DOCUMENT`. When `find.part2` started, the policy saw the trigger and
+`NOT FOUND`. When `find.part2` started, the policy saw the trigger and
 sent that stage high, where it found the figure. With one raise allowed and
 used, `check` and `answer` went back to low. The step numbers skip 2 and 4:
 those are the policy's own steps.
@@ -529,7 +529,7 @@ task <- function(item, ctx) {
   hr_call(ctx$client, paste("answer", item), model = "reasoner", trace = ctx$trace,
           label = "task.answer", effort = e)$text
 }
-esc <- hr_effort_escalate(replies = c(not_in_document = "NOT_IN_DOCUMENT"))
+esc <- hr_effort_escalate(replies = c(not_in_document = "NOT FOUND"))
 arms <- list(hr_arm("low", task, params = list(effort = "low")),
              hr_arm("high", task, params = list(effort = "high")),
              hr_arm("escalate", task, params = list(effort = esc)))
@@ -538,7 +538,7 @@ reasoning_at <- c(low = 100L, high = 1500L)
 provider <- hr_backend_client(function(messages, params) {
   q <- messages[[1]]$content
   hard <- grepl("q00[1-5]", q) && identical(params$effort, "low")
-  text <- if (!hard) "yes" else if (startsWith(q, "find")) "NOT_IN_DOCUMENT" else "no"
+  text <- if (!hard) "yes" else if (startsWith(q, "find")) "NOT FOUND" else "no"
   r <- reasoning_at[[params$effort]]
   structure(list(ok = TRUE, text = text,
                  usage = list(input = 50L, output = r + 2L, reasoning = r,
