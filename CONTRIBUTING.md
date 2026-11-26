@@ -19,8 +19,9 @@ bash run-tests.sh --help     # the other options
 
 The suite needs `testthat` and `withr`. Install `future` and
 `future.apply` too: without them, the tests of a parallel run's call and
-cost counts are skipped. Every test uses an offline mock client, so no key
-is needed and no request leaves your machine. The parallel tests start worker processes, and each
+cost counts are skipped. Every test runs offline: model calls go to a mock
+client, an R function or a local fake of the HTTP request, so no key is
+needed and no request leaves your machine. The parallel tests start worker processes, and each
 worker loads the installed harnessr, not your source tree. `run-tests.sh`
 installs the package first; when you run a test file yourself, reinstall
 with `R CMD INSTALL .` before it, or the workers run the old code. The tests
