@@ -842,8 +842,8 @@ harnessr::hr_load_models("prices.csv")
 ```
 
 Loading a file again replaces the prices of the models it names and leaves the
-others as they are. The commit history of the file then records which prices
-each run used.
+others as they are. The file's commit history records when each price changed,
+and the `as_of` column of a cost report says which month's prices the cost used.
 
 ### Token counts
 
