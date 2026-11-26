@@ -430,7 +430,10 @@ These replies are never cached, so running again asks again:
 - failures: a rate limit or a refusal belongs to the moment, and storing one
   would make a blip permanent;
 - a reply cut off at its output cap;
-- a structured reply that does not fit its schema.
+- a structured reply that does not fit its schema, when the readers or
+  `ctx$call_json()` in a benchmark arm make the request. `hr_call()` does not
+  parse a reply, so it caches a reply to a schema call like any other (see
+  `vignette("core")`).
 
 The default directory is under `tempdir()`, so a cache costs nothing and
 vanishes with the session. For a long run, point it at a lasting directory to
