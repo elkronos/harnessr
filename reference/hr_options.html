@@ -13,7 +13,7 @@ on.exit()."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">harnessr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -247,6 +247,74 @@ refused with a condition of that class. Untested: harnessr ships no
 prices, so off would refuse every built-in model until you set its
 prices with <code><a href="hr_register_model.html">hr_register_model()</a></code> or <code><a href="hr_load_models.html">hr_load_models()</a></code>.</p></dd>
 
+<dt><code>reserve_calls</code> (0)</dt>
+<dd><p>Calls held back from <code>max_calls</code> for a
+run's closing requests, such as a reader's final answer. An ordinary
+request is refused once it would reach into them; a request sent with
+<code>hr_call(closing = TRUE)</code> may use them (see <code><a href="hr_governor.html">hr_governor()</a></code>). 0 holds
+none back. A value above <code>max_calls</code> is refused with class
+<code>hr_bad_reserve</code>, both here and in <code><a href="hr_governor.html">hr_governor()</a></code>. Untested: a
+choice, not a tuned value.</p></dd>
+
+<dt><code>reserve_usd</code> (0)</dt>
+<dd><p>Dollars held back from <code>max_cost_usd</code> for a
+run's closing requests, in the same way. 0 holds none back. A value
+above <code>max_cost_usd</code> is refused with class <code>hr_bad_reserve</code>.
+Untested: a choice, not a tuned value.</p></dd>
+
+<dt><code>on_overflow</code> ("error")</dt>
+<dd><p>What a request does when the provider
+refuses its prompt as longer than the model's context window (an
+error of class <code>hr_context_overflow</code>; see <code><a href="hr_call.html">hr_call()</a></code>). <code>"error"</code>
+returns the failed result. A function of <code>(messages, info)</code> is called
+with the messages sent and a list of <code>label</code>, <code>model</code>,
+<code>estimate_tokens</code> (the local count of the prompt), <code>context_window</code>
+and <code>error</code>, and returns smaller messages, which are sent once more as
+a new request: the governor checks it, the trace records it as a step
+with <code>overflow_retry = TRUE</code>, and it is not retried again. Return
+<code>NULL</code> to send nothing more. Write the function yourself, and keep it
+deterministic, such as one that cuts the longest message with
+<code><a href="hr_truncate.html">hr_truncate()</a></code>; harnessr never asks a model to shorten a prompt.
+Untested: a choice, not a tuned value.</p></dd>
+
+<dt><code>command_hide_env</code> (none)</dt>
+<dd><p>More variables to hide from the
+programs <code><a href="hr_step_command.html">hr_step_command()</a></code> runs: a character vector of regular
+expressions matched against variable names, without regard to case,
+such as <code>"^MY_GATEWAY$"</code>. Added to the built-in list, which hides names
+ending in <code>_API_KEY</code>, <code>_TOKEN</code>, <code>_SECRET</code>, <code>_PASSWORD</code>, <code>_PAT</code> or
+<code>_SECRET_ACCESS_KEY</code>, the common provider variables, and variables
+whose value is one of the <code>api_headers</code> values, or the key set with
+<code>options(harnessr.api_key =)</code>, of 8 characters or more (see
+"Credentials" in
+<code><a href="hr_step_command.html">hr_step_command()</a></code>). Untested: a choice.</p></dd>
+
+<dt><code>command_temp_home</code> (FALSE)</dt>
+<dd><p>Whether <code><a href="hr_step_command.html">hr_step_command()</a></code> runs its
+program with <code>HOME</code> (and <code>USERPROFILE</code> on Windows) set to an empty
+folder made for the call, so it does not read your configuration files
+and stored logins. Untested: a choice.</p></dd>
+
+<dt><code>mask_secrets</code> (FALSE)</dt>
+<dd><p>Whether key-shaped strings are replaced
+with <code>&lt;masked&gt;</code> in the copies harnessr stores or shows: the output a
+command step keeps, the file <code><a href="hr_trace_save.html">hr_trace_save()</a></code> writes, and a printed
+trace. Turn it on before you share a trace or a step's output, since
+an HTTP error body or a program's output can echo a key. The shapes
+masked are OpenAI and Anthropic keys (<code>sk-...</code>), GitHub tokens
+(<code>ghp_...</code>, <code>github_pat_...</code>), AWS access key ids (<code>AKIA...</code>), Google
+API keys (<code>AIza...</code>), Slack tokens (<code>xox...</code>), Hugging Face tokens
+(<code>hf_...</code>), JSON web tokens and the token after <code>Bearer </code>. In a
+command step's output the values of the variables the step hides are
+masked too; in a saved or printed trace only the shapes are. The trace
+records how many were masked: <code>masked</code> in a command step's note and at
+the top of a saved trace, and a <code>masked:</code> line in the print. The trace
+in your session, the cache and every cache and replay key keep the
+text as it was. A command step passes its masked output on in
+<code>$check</code>, so a later step that builds a prompt from it sends the
+masked text, under another cache key. Off, nothing is masked and
+every copy is byte for byte what it was. Untested: a choice.</p></dd>
+
 <dt><code>price_max_age_days</code> (120)</dt>
 <dd><p>How old a price may be, in days, before
 a cost computed from it warns with class <code>hr_stale_price</code>. A price's age
@@ -321,12 +389,16 @@ than the default joins the store key of <code><a href="gr_read_many.html">gr_rea
 
 <p>The settings listed last above were constants in the code until they were
 options; each keeps the constant's value. A trace records them, and
-<code>price_max_age_days</code>, (in its options snapshot) only when one is not its
-default, so a trace made at the defaults reads as it did before they
-existed. Each tuning setting's entry above (<code>temperature</code>, <code>max_retries</code>,
-<code>retry_pause_base</code>, <code>request_timeout</code>, <code>safety_margin</code>,
-<code>min_output_tokens</code>, <code>workers</code>, <code>price_max_age_days</code> and the settings
-listed last) says where its default came from, as does <code>allow_unpriced</code>'s;
+<code>price_max_age_days</code>, <code>reserve_calls</code>, <code>reserve_usd</code>, <code>on_overflow</code>,
+<code>command_hide_env</code>, <code>command_temp_home</code> and <code>mask_secrets</code>, (in its
+options snapshot) only when one is not its default, so a trace
+made at the defaults reads as it did before they existed. A function given
+as <code>on_overflow</code> is recorded as <code>"&lt;function&gt;"</code>. Each tuning setting's entry
+above (<code>temperature</code>, <code>max_retries</code>, <code>retry_pause_base</code>,
+<code>request_timeout</code>, <code>safety_margin</code>, <code>min_output_tokens</code>, <code>workers</code>,
+<code>price_max_age_days</code> and the settings listed last) says where its default
+came from, as do those of <code>allow_unpriced</code>, the reserves, <code>on_overflow</code>
+and the three credential settings;
 "untested" means no measurement backs the value. The other entries are
 switches, limits and names, which are choices rather than tuned values.</p>
     </div>
@@ -342,7 +414,12 @@ more (one or more for <code>max_output_tokens</code>), with an error of class
 <code>gr_bad_option</code>: a limit that cannot be compared is not a limit, and
 ignoring it spends money. <code>NULL</code> and <code>Inf</code> both mean "no limit".
 <code>allowed_models</code> must be <code>NULL</code> or a character
-vector of ids, and <code>allow_unpriced</code> <code>TRUE</code> or <code>FALSE</code>.</p>
+vector of ids, and <code>allow_unpriced</code> <code>TRUE</code> or <code>FALSE</code>. The reserves,
+<code>reserve_calls</code> and <code>reserve_usd</code>, must be a single finite number of 0 or
+more, and are refused otherwise with the same class; <code>reserve_calls</code> is
+rounded down. A reserve larger than its limit, as the two stand once every
+setting of the call is in, is refused with classes <code>hr_bad_reserve</code> and
+<code>gr_bad_option</code>, and the call changes nothing.</p>
 <p>The tuning settings (<code>safety_margin</code> [0, 0.5], <code>min_output_tokens</code>
 [0, 1e6], <code>max_retries</code> [0, 10], <code>retry_pause_base</code> [0, 60],
 <code>request_timeout</code> [1, 3600], <code>workers</code> [1, 32], <code>temperature</code>

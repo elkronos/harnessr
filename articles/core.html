@@ -19,7 +19,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">harnessr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -621,12 +621,13 @@ names what the call was for:</p>
 <span><span class="va">b</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">cl</span>, <span class="st">"Check the draft against the report."</span>, model <span class="op">=</span> <span class="st">"priced-mock"</span>,</span>
 <span>             trace <span class="op">=</span> <span class="va">tr</span>, label <span class="op">=</span> <span class="st">"check"</span><span class="op">)</span></span>
 <span><span class="va">tr</span></span>
-<span><span class="co">#&gt; &lt;gr_trace run_20261127012234.601_fcb7de&gt;  2 steps, 2 model calls, 23 in / 26 out tokens, 0 error(s)</span></span>
+<span><span class="co">#&gt; &lt;gr_trace run_20261127060621.996_9a8fff&gt;  2 steps, 2 model calls, 23 in / 26 out tokens, 0 error(s)</span></span>
 <span><span class="co">#&gt;   steps: check x1, draft x1 </span></span>
 <span><span class="co">#&gt;   cost: $0.0003 across priced-mock, prices as of 2026-11</span></span>
+<span><span class="co">#&gt;   time: 0.01 s (requests 29%, local 0%, overhead 71%)</span></span>
 <span><span class="co">#&gt;   usage: estimated locally for 100% of requests (the provider reported none)</span></span>
 <span><span class="co">#&gt;   actor: purpose = core guide </span></span>
-<span><span class="co">#&gt;   started: 2026-11-27T01:22:34.601Z</span></span></code></pre></div>
+<span><span class="co">#&gt;   started: 2026-11-27T06:06:21.997Z</span></span></code></pre></div>
 <p>The trace is an environment, so every call that is passed it records
 into the same object, and you need not collect it from each result.
 Printing it gives the number of steps and calls, the tokens, the errors,
@@ -681,6 +682,27 @@ by. <code><a href="../reference/hr_trace.html">?hr_trace</a></code> describes ev
 mock reports no token counts, so every count here was estimated, and
 <code>usage_estimated</code> is 1. A provider’s own counts are marked
 <code>"reported"</code>.</p>
+<p>The summary also says how long the run took and where the time
+went:</p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_trace_summary.html">hr_trace_summary</a></span><span class="op">(</span><span class="va">tr</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"elapsed_s"</span>, <span class="st">"request_s"</span>, <span class="st">"local_s"</span>, <span class="st">"overhead_s"</span>,</span>
+<span>                         <span class="st">"request_share"</span>, <span class="st">"overhead_share"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;   elapsed_s request_s local_s overhead_s request_share overhead_share</span></span>
+<span><span class="co">#&gt; 1      0.01         0       0          0        0.2925         0.7075</span></span></code></pre></div>
+<p><code>elapsed_s</code> runs from the trace’s start to the end of its
+last step, read from the steps, so a summary taken tomorrow, or of a
+trace saved with <code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code> and read back in another time
+zone, gives the same figure. A local step’s time has no offset, so the
+trace places it by the offset its requests show, or by the
+<code>utc_offset</code> that <code><a href="../reference/hr_trace.html">hr_trace()</a></code> recorded. An empty
+trace gives 0. <code>request_s</code> is the seconds the requests took,
+<code>local_s</code> the seconds that local steps timed (a command step
+times itself), and <code>overhead_s</code> the rest: R code between
+requests, and local steps that record no time. The shares add to 1.
+Requests sent in parallel overlap, so <code>request_s</code> can pass
+<code>elapsed_s</code>; the overhead is then 0. The print shows the same
+split on its <code>time:</code> line, followed by the share of input
+tokens the provider served from its cache when it served any.</p>
 <p><code><a href="../reference/hr_trace_save.html">hr_trace_save()</a></code> writes the trace as JSON, the form
 <code><a href="../reference/as_json.html">as_json()</a></code> returns, and <code><a href="../reference/hr_replay_client.html">hr_replay_client()</a></code>
 reads that file. The file holds every prompt and reply, so treat it as
@@ -694,7 +716,7 @@ you would the documents the run read.</p>
 <code><a href="../reference/hr_trace.html">hr_trace()</a></code>, or set them once for every trace with
 <code>hr_options(actor =)</code>; a field set in neither place is
 <code>NA</code>:</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tr2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span>owner <span class="op">=</span> <span class="st">"finance team"</span>, run_by <span class="op">=</span> <span class="st">"ana"</span>, purpose <span class="op">=</span> <span class="st">"Q3 check"</span><span class="op">)</span></span>
 <span><span class="va">tr2</span><span class="op">$</span><span class="va">actor</span></span>
 <span><span class="co">#&gt; $system</span></span>
@@ -723,7 +745,7 @@ By default a run may spend $5 and make 400 calls
 (<code>hr_options(max_cost_usd =, max_calls =)</code>), and a trace
 built with <code><a href="../reference/hr_governor.html">hr_governor()</a></code> holds its own. A request that
 would pass a limit is not sent:</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">small</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span>governor <span class="op">=</span> <span class="fu"><a href="../reference/hr_governor.html">hr_governor</a></span><span class="op">(</span>max_calls <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">one</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">cl</span>, <span class="st">"What was revenue in 2024?"</span>, trace <span class="op">=</span> <span class="va">small</span><span class="op">)</span></span>
 <span><span class="va">two</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">cl</span>, <span class="st">"What was profit in 2024?"</span>, trace <span class="op">=</span> <span class="va">small</span><span class="op">)</span></span>
@@ -747,7 +769,7 @@ passed. <code><a href="../articles/runs.html">vignette("runs")</a></code> covers
 Schema written as an R list, and <code>schema_name</code>.
 <code><a href="../reference/hr_client.html">hr_client()</a></code> sends it as the provider’s structured output
 setting, and a handler finds it in <code>params$schema</code>:</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">revenue_schema</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  type <span class="op">=</span> <span class="st">"object"</span>,</span>
 <span>  properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>revenue_musd <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"number"</span><span class="op">)</span>,</span>
@@ -772,7 +794,7 @@ check it against the schema, so parse it yourself and handle a reply
 that does not parse. Providers can send one, and
 <code>mode = "bad_json"</code> makes the mock send JSON cut off part
 way:</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">broken</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"unused"</span>, mode <span class="op">=</span> <span class="st">"bad_json"</span><span class="op">)</span></span>
 <span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">broken</span>, <span class="st">"What was revenue?"</span>, schema <span class="op">=</span> <span class="va">revenue_schema</span><span class="op">)</span></span>
 <span><span class="va">res</span><span class="op">$</span><span class="va">ok</span></span>
@@ -797,7 +819,7 @@ and <code>hr_validate()</code><a class="anchor" aria-label="anchor" href="#check
 <code><a href="../reference/hr_param.html">hr_param()</a></code> declares one setting, <code><a href="../reference/hr_schema.html">hr_schema()</a></code>
 collects them, and <code><a href="../reference/hr_validate.html">hr_validate()</a></code> checks a list of values
 against them. Use it for the settings of your own steps and modules:</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">reply_settings</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_schema.html">hr_schema</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/hr_param.html">hr_param</a></span><span class="op">(</span><span class="st">"max_words"</span>, <span class="st">"integer"</span>, default <span class="op">=</span> <span class="fl">50L</span>, min <span class="op">=</span> <span class="fl">1</span>, max <span class="op">=</span> <span class="fl">500</span>,</span>
 <span>           help <span class="op">=</span> <span class="st">"Longest reply, in words."</span><span class="op">)</span>,</span>
@@ -819,7 +841,7 @@ settings in an interface), the status of the evidence for its default
 nearest bound with a <code>gr_clamped</code> warning, and a name the
 schema does not have is an error of class
 <code>hr_unknown_param</code>:</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_validate.html">hr_validate</a></span><span class="op">(</span><span class="va">reply_settings</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>max_word <span class="op">=</span> <span class="fl">10</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>         hr_unknown_param <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "'max_word' not a parameter of this schema. Parameters: max_words, style."</span></span></code></pre></div>
@@ -830,7 +852,7 @@ built the same way. A bound can depend on another setting.
 <code><a href="../reference/hr_validate.html">hr_validate()</a></code> resolves the parameters in schema order, so a
 parameter whose bound depends on another, such as
 <code>overlap_tokens</code> below, comes after it:</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">chunk_settings</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_schema.html">hr_schema</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/hr_param.html">hr_param</a></span><span class="op">(</span><span class="st">"max_tokens"</span>, <span class="st">"integer"</span>, default <span class="op">=</span> <span class="fl">1200L</span>, min <span class="op">=</span> <span class="fl">32</span>, max <span class="op">=</span> <span class="fl">1e6</span>,</span>
 <span>           help <span class="op">=</span> <span class="st">"Largest chunk, in tokens."</span><span class="op">)</span>,</span>
@@ -848,7 +870,7 @@ parameter whose bound depends on another, such as
 <code>hr_param_clamped</code>. An <code>enum</code> is matched as
 <code><a href="https://rdrr.io/r/base/match.arg.html" class="external-link">match.arg()</a></code> matches, so an unambiguous abbreviation is
 accepted:</p>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">withCallingHandlers</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_validate.html">hr_validate</a></span><span class="op">(</span><span class="va">chunk_settings</span>,</span>
 <span>                  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>max_tokens <span class="op">=</span> <span class="fl">100</span>, overlap_tokens <span class="op">=</span> <span class="fl">500</span>, order <span class="op">=</span> <span class="st">"doc"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -902,7 +924,7 @@ wrote, <code><a href="../reference/hr_step_command.html">hr_step_command()</a></
 you name and reads its result as <code>"passed"</code> or
 <code>"failed"</code>. Here a model writes R code, and the step runs it
 with <code>Rscript</code>:</p>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">coder</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="st">"total &lt;- sum(c(12.1, 15.3, 17.8))\nstopifnot(abs(total - 45.2) &lt; 1e-9)"</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
@@ -926,7 +948,7 @@ here, the context can be an empty list. The step returns its input with
 the result added as <code>check</code>. Code that fails its own check
 exits with an error, so the step reads it as <code>"failed"</code> and
 keeps what the program printed:</p>
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">wrong</span> <span class="op">&lt;-</span> <span class="fu">run_code</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>code <span class="op">=</span> <span class="st">"stopifnot(sum(c(12.1, 15.3)) == 45.2)"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">wrong</span><span class="op">$</span><span class="va">check</span><span class="op">$</span><span class="va">status</span></span>
 <span><span class="co">#&gt; [1] "failed"</span></span>
@@ -945,6 +967,54 @@ code of 0. No summary line, or no failures with a non-zero exit, gives
 <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code> covers those settings and how a
 benchmark counts the results, and <code><a href="../articles/compose.html">vignette("compose")</a></code> puts
 the step in a chain.</p>
+<div class="section level3">
+<h3 id="set-credentials">Credentials and the program<a class="anchor" aria-label="anchor" href="#set-credentials"></a>
+</h3>
+<p>The program inherits your environment variables, less the ones that
+look like credentials: names ending in <code>_API_KEY</code>,
+<code>_TOKEN</code>, <code>_SECRET</code>, <code>_PASSWORD</code>,
+<code>_PAT</code> or <code>_SECRET_ACCESS_KEY</code>, the common
+provider variables, and any variable whose value is one of your
+<code>api_headers</code> values, or the key you set with
+<code>options(harnessr.api_key =)</code>, of 8 characters or more. They
+are unset for the call and put back after it, and a program that prints
+one finds nothing:</p>
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>DEMO_SERVICE_TOKEN <span class="op">=</span> <span class="st">"tok-123456789"</span>, DEMO_REGION <span class="op">=</span> <span class="st">"eu"</span><span class="op">)</span></span>
+<span><span class="va">show_env</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_step_command.html">hr_step_command</a></span><span class="op">(</span><span class="st">"env"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">rscript</span>, <span class="st">"-e"</span>,</span>
+<span>  <span class="st">"cat(Sys.getenv('DEMO_SERVICE_TOKEN'), Sys.getenv('DEMO_REGION'), sep = '|')"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">show_env</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">check</span><span class="op">$</span><span class="va">stdout</span></span>
+<span><span class="co">#&gt; [1] "|eu"</span></span></code></pre></div>
+<p><code>hr_options(command_hide_env =)</code> adds patterns of your
+own, such as <code>"^DEMO_REGION$"</code>, and
+<code>command_temp_home = TRUE</code> gives the program an empty
+<code>HOME</code> for the call, so it does not read your configuration
+files or stored logins. A command step’s note in the trace counts the
+variables hidden as <code>hidden_env</code>, and never names them.</p>
+<p>Output can still echo a key that a program read from a file, and an
+HTTP error body can echo the key that was sent.
+<code>hr_options(mask_secrets = TRUE)</code> replaces key-shaped strings
+with <code>&lt;masked&gt;</code> in the output a command step keeps, in
+the file <code><a href="../reference/hr_trace_save.html">hr_trace_save()</a></code> writes and in a printed trace, and
+counts what it replaced. In a command step’s output it also masks the
+values of the variables the step hid. The trace in your session, the
+cache and every key keep the text as it was. A later step that reads the
+command’s <code>$check</code> gets the masked output, so a prompt built
+from it changes with the setting:</p>
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">prev</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>mask_secrets <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">leaky</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_step_command.html">hr_step_command</a></span><span class="op">(</span><span class="st">"leak"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">rscript</span>, <span class="st">"-e"</span>,</span>
+<span>  <span class="st">"cat('key: sk-proj-abcdefghijklmnopqrstuvwx and a plain sentence')"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">leaky</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">check</span><span class="op">$</span><span class="va">stdout</span></span>
+<span><span class="co">#&gt; [1] "key: &lt;masked&gt; and a plain sentence"</span></span>
+<span><span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span><span class="va">prev</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.unsetenv</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"DEMO_SERVICE_TOKEN"</span>, <span class="st">"DEMO_REGION"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Neither setting confines the program: it still runs with your
+permissions. Masking is off by default so that traces and output stay
+byte for byte what they were; turn it on before you share a trace file
+or a step’s output. <code><a href="../reference/hr_options.html">?hr_options</a></code> lists the shapes
+masked.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="signals">Signals<a class="anchor" aria-label="anchor" href="#signals"></a>
@@ -953,7 +1023,7 @@ the step in a chain.</p>
 code a model wrote ran, how sure a reply sounded, how long it was.
 <code><a href="../reference/hr_signal.html">hr_signal()</a></code> writes one into a trace, and
 <code><a href="../reference/hr_signal.html">hr_signals()</a></code> reads them all back as a table:</p>
-<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tr3</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">code</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">coder</span>, <span class="st">"Write the code."</span>, trace <span class="op">=</span> <span class="va">tr3</span><span class="op">)</span></span>
 <span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu">run_code</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>code <span class="op">=</span> <span class="va">code</span><span class="op">$</span><span class="va">text</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
@@ -981,7 +1051,7 @@ runs of a benchmark.</p>
 <p>Every error and warning the core raises has a class, so you can catch
 the one you expect and let the others through. Errors inherit from
 <code>gr_error</code> and warnings from <code>gr_warning</code>:</p>
-<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">cl</span>, <span class="st">"What was revenue?"</span>, draw_index <span class="op">=</span> <span class="op">-</span><span class="fl">1</span><span class="op">)</span>,</span>
 <span>         gr_bad_setting <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "gr_bad_setting" "gr_error"       "error"          "condition"</span></span></code></pre></div>
@@ -1084,7 +1154,16 @@ signalled for each request the limits stop, with
 <code>hr_model_not_allowed</code> added when the model is not in
 <code>allowed_models</code>, and <code>hr_budget_stopped</code>, the
 warning a benchmark gives when its limits stopped runs.
-<code><a href="../articles/runs.html">vignette("runs")</a></code> lists the document layer’s classes.</p>
+<code>hr_context_overflow</code> is signalled when a provider refuses a
+prompt as longer than the model’s window; the failed result carries the
+same name in <code>$error_class</code>, and its <code>$overflow</code>
+holds the local count of the prompt and the window.
+<code><a href="../articles/context.html">vignette("context")</a></code> shows it, and the
+<code>on_overflow</code> option that retries such a request once with a
+smaller prompt you make. A warning of class
+<code>hr_overflow_refit_failed</code> says that function failed or gave
+nothing <code><a href="../reference/hr_call.html">hr_call()</a></code> can send. <code><a href="../articles/runs.html">vignette("runs")</a></code>
+lists the document layer’s classes.</p>
 </div>
 <div class="section level2">
 <h2 id="api-keys-and-options">API keys and options<a class="anchor" aria-label="anchor" href="#api-keys-and-options"></a>
@@ -1096,7 +1175,7 @@ then the <code>OPENAI_API_KEY</code> environment variable.
 <code>gr_auth_error</code> that says how to set one when it finds none.
 Given a key, it returns it with spaces and line breaks around it
 dropped:</p>
-<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_api_key.html">hr_api_key</a></span><span class="op">(</span><span class="st">"  sk-example\n"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "sk-example"</span></span></code></pre></div>
 <p>Called with no argument, it returns your real key, so do not print it
@@ -1106,7 +1185,7 @@ where to keep a key and how to reach a company gateway.</p>
 <p><code><a href="../reference/hr_options.html">hr_options()</a></code> reads and sets the session’s options. With
 one name it returns that option, with named values it sets them and
 returns the old ones, and with no argument it returns them all:</p>
-<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span><span class="st">"model"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "gpt-5.6-terra"</span></span>
 <span><span class="va">prev</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>request_timeout <span class="op">=</span> <span class="fl">60</span><span class="op">)</span></span>
@@ -1140,7 +1219,7 @@ the address requests go to, and <code>api_headers</code> extra HTTP
 headers. A call that names a <code>model</code> overrides the client’s.
 The model also decides the limits a call is held to, from the model
 registry:</p>
-<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_model_info.html">hr_model_info</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span><span class="st">"model"</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"context_window"</span>, <span class="st">"max_output"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt; context_window     max_output </span></span>
 <span><span class="co">#&gt;        1050000         128000</span></span></code></pre></div>
@@ -1163,7 +1242,7 @@ them.</p>
 values, so you can compare them on the same prompts. A benchmark does
 this with replicates and intervals (<code><a href="../articles/evaluate.html">vignette("evaluate")</a></code>).
 Before any spend, check what each model takes:</p>
-<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">models</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"gpt-5.6-terra"</span>, <span class="st">"my-backend"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">models</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_model_info.html">hr_model_info</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"context_window"</span>, <span class="st">"max_output"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
@@ -1175,7 +1254,7 @@ Before any spend, check what each model takes:</p>
 send before it sends it. Here the options set a larger embedding model
 and a team header, and a client built with a placeholder key shows
 them:</p>
-<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb43"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">prev</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>embedding_model <span class="op">=</span> <span class="st">"text-embedding-3-large"</span>,</span>
 <span>                   api_headers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"X-Team"</span> <span class="op">=</span> <span class="st">"finance"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/hr_client.html">hr_client</a></span><span class="op">(</span>api_key <span class="op">=</span> <span class="st">"sk-example"</span><span class="op">)</span></span>
@@ -1192,7 +1271,7 @@ for that client alone.</p>
 <p><code><a href="../reference/hr_embed.html">hr_embed()</a></code> turns texts into vectors, one row per text,
 through the client’s embeddings endpoint or the embed function it was
 built with. A mock takes one as <code>embed_handler</code>:</p>
-<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">embedding_mock</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span>embed_handler <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">texts</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nchar</a></span><span class="op">(</span><span class="va">texts</span><span class="op">)</span>, <span class="fl">1</span><span class="op">)</span></span>
 <span>  <span class="va">m</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">rowSums</a></span><span class="op">(</span><span class="va">m</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
@@ -1207,7 +1286,7 @@ made the rows: <code>"api"</code> for the client’s own, which here is
 the handler. A client with no way to embed falls back to vectors of word
 overlap, with a warning of class <code>gr_backend_no_embeddings</code>,
 and the attribute says so:</p>
-<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb45"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">plain</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_backend_client.html">hr_backend_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"unused"</span><span class="op">)</span></span>
 <span><span class="va">e2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">withCallingHandlers</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/hr_embed.html">hr_embed</a></span><span class="op">(</span><span class="va">plain</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Revenue rose."</span>, <span class="st">"Costs fell sharply."</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -1253,7 +1332,7 @@ waiting on a provider. Each step of a trace records its
 <code>attempts</code>, so the trace of a real run shows how often a
 retry was needed. The mock never retries, so each of its steps shows
 one:</p>
-<div class="sourceCode" id="cb43"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb46"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">flaky</span><span class="op">$</span><span class="fu">reset</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">tr4</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">flaky</span>, <span class="st">"What was revenue?"</span>, trace <span class="op">=</span> <span class="va">tr4</span><span class="op">)</span><span class="op">)</span></span>
@@ -1286,7 +1365,7 @@ leaves the choice to the model;
 draws, with <code>draw_index</code> 1 to N, and compare the replies.
 Each draw is its own cache entry and its own replay entry, so the
 comparison can be run again for nothing:</p>
-<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb47"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">k</span> <span class="op">&lt;-</span> <span class="fl">0</span></span>
 <span><span class="va">sampler</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">k</span> <span class="op">&lt;&lt;-</span> <span class="va">k</span> <span class="op">+</span> <span class="fl">1</span></span>
@@ -1319,7 +1398,7 @@ run.</p>
 records only the fields you set.</p>
 <p><strong>How to test it.</strong> Set it once and check a new
 trace:</p>
-<div class="sourceCode" id="cb45"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb48"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">prev</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>actor <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>system <span class="op">=</span> <span class="st">"core guide"</span>, owner <span class="op">=</span> <span class="st">"finance team"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="va">actor</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"system"</span>, <span class="st">"owner"</span>, <span class="st">"run_by"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; $system</span></span>

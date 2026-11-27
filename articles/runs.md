@@ -171,7 +171,7 @@ str(step[c("label", "attempts", "started_utc", "tokens")])
 #> List of 4
 #>  $ label      : chr "reduce"
 #>  $ attempts   : int 1
-#>  $ started_utc: chr "2026-11-27T01:23:56.818Z"
+#>  $ started_utc: chr "2026-11-27T06:08:52.629Z"
 #>  $ tokens     :List of 3
 #>   ..$ input     : int 296
 #>   ..$ output    : int 13
@@ -258,10 +258,10 @@ out the values of `api_headers`, since they can hold credentials.
 
 tr <- hr_trace(owner = "finance team", run_by = "ana", purpose = "Q3 check")
 tr
-#> <gr_trace run_20261127012357.114_ab3fd3>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
+#> <gr_trace run_20261127060853.217_e6937c>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
 #>   cost: no cost recorded
 #>   actor: owner = finance team, run_by = ana, purpose = Q3 check 
-#>   started: 2026-11-27T01:23:57.114Z
+#>   started: 2026-11-27T06:08:53.218Z
 names(tr$config)
 #> [1] "options"   "r_version"
 ```
@@ -468,6 +468,34 @@ already spent and the tokens it has used. `max_calls` stays a limit per
 document and per stage.
 [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 holds the whole comparison to `max_cost_usd` and `max_tokens_total`.
+
+### A reserve for the closing request
+
+A reader that works in rounds answers in one last request. When the
+rounds use up the limit, that request is refused, and the rounds already
+paid for end with no answer. `reserve_calls` and `reserve_usd` hold part
+of `max_calls` and `max_cost_usd` back for such a request. An ordinary
+request is refused once it would reach into the reserve; a request sent
+with `hr_call(closing = TRUE)` may spend it. The readers mark their
+final request this way, such as the `iterative` reader’s final answer
+and the `map_reduce` reader’s last merge.
+
+``` r
+
+tr <- hr_trace(governor = hr_governor(max_calls = 3, reserve_calls = 1))
+rounds <- vapply(1:3, function(i) hr_call(cl, "Read on.", trace = tr)$ok, logical(1))
+answer <- hr_call(cl, "Answer now.", trace = tr, closing = TRUE)
+c(rounds = rounds, answer = answer$ok)
+#> rounds1 rounds2 rounds3  answer 
+#>    TRUE    TRUE   FALSE    TRUE
+tr$refusals[[1]]$message
+#> [1] "call cap reached: the run has made 2 of the 3 calls it may make, with 1 kept for closing requests, so the 'call' request was not sent; raise hr_options(max_calls =) or lower reserve_calls"
+```
+
+The third round was refused, so the answer had its call. Both reserves
+default to 0, which holds nothing back and leaves every request as it
+was. A reserve larger than its limit is refused with class
+`hr_bad_reserve`.
 
 ### Models with no price
 
@@ -775,10 +803,12 @@ lists every option with its default.
 
 **What they control.** `max_cost_usd` and `max_calls` hold every run,
 and `max_tokens_total`, `max_output_tokens`, `allowed_models` and
-`allow_unpriced` hold it further when set (see “Limits” above). A limit
-set too low ends runs early, with partial answers. One set too high lets
-a mistake run up its full cost, such as a reader that sends every chunk
-of a long document at a small chunk size.
+`allow_unpriced` hold it further when set (see “Limits” above).
+`reserve_calls` and `reserve_usd` keep part of the first two for a run’s
+closing request (see “A reserve for the closing request”). A limit set
+too low ends runs early, with partial answers. One set too high lets a
+mistake run up its full cost, such as a reader that sends every chunk of
+a long document at a small chunk size.
 
 **Signs they need changing.** Any of these means a limit stopped the
 run:
@@ -805,7 +835,10 @@ read, chosen so a mistake costs little. No measurement backs them, and
 limits are off by default. `allow_unpriced` is `TRUE` because harnessr
 ships no prices: `FALSE` would refuse every request to a built-in model
 until you set its prices. Set it to `FALSE` when every request must
-count against the spending limit.
+count against the spending limit. The reserves are 0, so nothing is held
+back unless you ask; untested, a choice rather than a tuned value. Set
+`reserve_calls = 1` when a run that works in rounds ends with no answer
+and `stop_reason` set.
 
 **How to test them.** A limit belongs to the run, not to an arm, so a
 sweep can only test which settings fit under it. A reader’s output caps

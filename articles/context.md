@@ -715,10 +715,11 @@ trace leaves them out, since it lists requests only:
 ``` r
 
 tr
-#> <gr_trace run_20261127012231.404_f0078b>  1 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
+#> <gr_trace run_20261127060617.050_0dcb9e>  1 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
 #>   steps: truncate x1 
 #>   cost: no cost recorded
-#>   started: 2026-11-27T01:22:31.405Z
+#>   time: 0.01 s (requests 0%, local 0%, overhead 100%)
+#>   started: 2026-11-27T06:06:17.051Z
 ```
 
 Two other parts of the core read or write these steps.
@@ -768,13 +769,79 @@ compare answers with and without the step, as
 [`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md)
 shows for chains of steps.
 
+## When the provider says the prompt is too long
+
+The local count can come in under the provider’s, and the provider then
+refuses the request. Most providers answer with a 400 whose body names
+the problem: OpenAI’s code `context_length_exceeded`, Anthropic’s
+“prompt is too long”, Gemini’s “exceeds the maximum number of tokens”.
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
+reads those phrasings and marks the failure with the class
+`hr_context_overflow`. It does the same for a refusal that
+[`hr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/hr_ellmer_client.md)
+or
+[`hr_backend_client()`](https://elkronos.github.io/harnessr/reference/hr_backend_client.md)
+raises as an error, when the message carries httr2’s “HTTP 400” or “HTTP
+413” beside one of the phrasings. The error text stays as the provider
+sent it, and the result and the trace step keep the local count of the
+prompt beside the window registered for the model, so you can see how
+far apart the two counts were. A 400 for any other reason is left as it
+was.
+
+`hr_mock_client(mode = "overflow")` refuses its first request that way:
+
+``` r
+
+tr <- hr_trace()
+over <- hr_mock_client(function(messages, params) "Revenue was 45.2 million.",
+                       mode = "overflow")
+res <- hr_call(over, "What was revenue?", trace = tr)
+c(ok = res$ok, class = res$error_class)
+#>                    ok                 class 
+#>               "FALSE" "hr_context_overflow"
+str(tr$steps[[1]]$overflow)
+#> List of 3
+#>  $ estimate_tokens: num 7
+#>  $ context_window : num 128000
+#>  $ status         : int 400
+```
+
+harnessr does not shorten the prompt for you. If you want one more try,
+give `on_overflow` a function of your own that returns a smaller prompt.
+It is called with the messages sent and what the refusal said, and its
+messages go out once as a new request, which the governor checks and the
+trace records:
+
+``` r
+
+shorter <- function(messages, info) {
+  last <- length(messages)
+  messages[[last]]$content <- hr_truncate(messages[[last]]$content, 50)
+  messages
+}
+prev <- hr_options(on_overflow = shorter)
+over$reset()
+tr <- hr_trace()
+res <- hr_call(over, "What was revenue?", trace = tr)
+c(ok = res$ok, steps = length(tr$steps),
+  retry = isTRUE(tr$steps[[2]]$overflow_retry))
+#>    ok steps retry 
+#>     1     2     1
+hr_options(prev)
+```
+
+The first step is the refusal and the second the retry. A retry that is
+refused again is returned as it is, with no third try. A replay of the
+trace retries a refusal only where the recorded run did, so set the same
+`on_overflow` before you replay a run that retried.
+
 ## Choosing the settings
 
-Three options decide how much room
+Four options decide how much room
 [`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md)
-leaves for a prompt. Each walkthrough says what the option controls, the
-signs that point to changing it, where its default came from, and how to
-test a change.
+leaves for a prompt and what happens when a provider refuses one. Each
+walkthrough says what the option controls, the signs that point to
+changing it, where its default came from, and how to test a change.
 
 ### The margin: `safety_margin`
 
@@ -857,6 +924,30 @@ hr_options(prev)
 
 Then run your prompts at the share you pick and check `finish_reason`
 and the reply’s token counts in the trace.
+
+### A refused long prompt: `on_overflow`
+
+**What it controls.** What
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
+does after a provider refuses a prompt as longer than the window (see
+[When the provider says the prompt is too long](#overflow)). `"error"`,
+the default, returns the failed result. A function of `(messages, info)`
+returns a smaller prompt, which is sent once more.
+
+**Signs it needs changing.** Steps whose `overflow` field is set, or
+results with `error_class` `"hr_context_overflow"`. Before you add a
+retry, compare `estimate_tokens` with `context_window` in those steps:
+an estimate well under the window means the local count is off, and a
+larger `safety_margin` or a matching tokenizer fixes the cause where a
+retry only treats it.
+
+**Where the default came from.** A retry is an extra paid request, so it
+is yours to ask for. `gr_settings_table("options")` lists the setting as
+untested.
+
+**How to test it.** Run the requests that overflowed with your function
+set, and check the retried steps’ replies against the ones you expect,
+as in the example above.
 
 ## Where the document layer builds on this
 

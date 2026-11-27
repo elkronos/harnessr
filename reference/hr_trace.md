@@ -68,7 +68,7 @@ the same trace to several calls and they all record into it. Fields:
 `run_id`, `started`, `meta`, `actor`, `config`, `steps`, `calls`,
 `cached`, `tokens_in`, `tokens_out`, `embed_tokens`, `errors`,
 `budget_stop`, `stop_reason`, `spent_usd`, `replayed_usd`, `refusals`,
-`governor`.
+`governor`, `utc_offset`.
 
 `actor` holds the five fields above. `config` is a snapshot of the
 options in force when the trace was made
@@ -76,8 +76,12 @@ options in force when the trace was made
 with the values of `api_headers` left out, since they can hold
 credentials) and the R version, so a saved trace says what it ran under.
 [`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md)
-writes `started` in UTC, as ISO 8601 with a trailing `Z`. `cached`
-counts the calls answered from an
+writes `started` in UTC, as ISO 8601 with a trailing `Z`. `utc_offset`
+is the recording session's offset from UTC in seconds, which places a
+local step's `at` (see
+[`hr_trace_summary()`](https://elkronos.github.io/harnessr/reference/hr_trace_summary.md));
+[`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md)
+leaves it out. `cached` counts the calls answered from an
 [`hr_cache()`](https://elkronos.github.io/harnessr/reference/hr_cache.md)
 or a
 [`hr_replay_client()`](https://elkronos.github.io/harnessr/reference/hr_replay_client.md)
@@ -194,6 +198,15 @@ and the model it asked for (`model`), a step records:
   When the request started and ended, ISO 8601 in UTC with a trailing
   `Z`.
 
+- `overflow`, `overflow_retry`:
+
+  Only on a request the provider refused as longer than the model's
+  context window: `overflow` holds `estimate_tokens`, the local count of
+  the prompt, `context_window`, the window registered for the model, and
+  the HTTP `status`, which a replay of the step reads. On the retry that
+  `hr_options(on_overflow =)` sent, `overflow_retry` is `TRUE` (see
+  [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)).
+
 ## One row per request
 
 `as.data.frame(trace)` has one row for each request the run made, in the
@@ -292,20 +305,21 @@ ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 150))
 invisible(gr_read(ch, "What was revenue?", cl, "map_reduce", trace = tr))
 #> Reading with 'map_reduce' (all|N+logN|tree) over 5 chunk(s).
 print(tr)
-#> <gr_trace run_20261127012046.833_434d10>  7 steps, 6 model calls, 1118 in / 36 out tokens, 0 error(s)
+#> <gr_trace run_20261127060255.710_f39dca>  7 steps, 6 model calls, 1118 in / 36 out tokens, 0 error(s)
 #>   steps: map.answer x5, preflight x1, reduce x1 
 #>   cost: $0.0000 across mock-model, prices as of 2026-11
+#>   time: 0.07 s (requests 9%, local 0%, overhead 91%)
 #>   usage: estimated locally for 100% of requests (the provider reported none)
-#>   started: 2026-11-27T01:20:46.833Z 
+#>   started: 2026-11-27T06:02:55.710Z 
 
 # One row per request, with what each cost and how long it took.
 reqs <- as.data.frame(tr)
 reqs[, c("step", "stage", "tokens_in", "tokens_out", "usd", "seconds")]
 #>   step      stage tokens_in tokens_out usd seconds
-#> 1    2 map.answer       201          6   0       0
-#> 2    3 map.answer       210          6   0       0
-#> 3    4 map.answer       187          6   0       0
-#> 4    5 map.answer       193          6   0       0
-#> 5    6 map.answer       163          6   0       0
-#> 6    7     reduce       164          6   0       0
+#> 1    2 map.answer       201          6   0   0.001
+#> 2    3 map.answer       210          6   0   0.001
+#> 3    4 map.answer       187          6   0   0.001
+#> 4    5 map.answer       193          6   0   0.001
+#> 5    6 map.answer       163          6   0   0.001
+#> 6    7     reduce       164          6   0   0.001
 ```

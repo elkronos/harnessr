@@ -209,6 +209,87 @@ changing an option mid-session affects subsequent runs.
   or
   [`hr_load_models()`](https://elkronos.github.io/harnessr/reference/hr_load_models.md).
 
+- `reserve_calls` (0):
+
+  Calls held back from `max_calls` for a run's closing requests, such as
+  a reader's final answer. An ordinary request is refused once it would
+  reach into them; a request sent with `hr_call(closing = TRUE)` may use
+  them (see
+  [`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md)).
+  0 holds none back. A value above `max_calls` is refused with class
+  `hr_bad_reserve`, both here and in
+  [`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md).
+  Untested: a choice, not a tuned value.
+
+- `reserve_usd` (0):
+
+  Dollars held back from `max_cost_usd` for a run's closing requests, in
+  the same way. 0 holds none back. A value above `max_cost_usd` is
+  refused with class `hr_bad_reserve`. Untested: a choice, not a tuned
+  value.
+
+- `on_overflow` ("error"):
+
+  What a request does when the provider refuses its prompt as longer
+  than the model's context window (an error of class
+  `hr_context_overflow`; see
+  [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)).
+  `"error"` returns the failed result. A function of `(messages, info)`
+  is called with the messages sent and a list of `label`, `model`,
+  `estimate_tokens` (the local count of the prompt), `context_window`
+  and `error`, and returns smaller messages, which are sent once more as
+  a new request: the governor checks it, the trace records it as a step
+  with `overflow_retry = TRUE`, and it is not retried again. Return
+  `NULL` to send nothing more. Write the function yourself, and keep it
+  deterministic, such as one that cuts the longest message with
+  [`hr_truncate()`](https://elkronos.github.io/harnessr/reference/hr_truncate.md);
+  harnessr never asks a model to shorten a prompt. Untested: a choice,
+  not a tuned value.
+
+- `command_hide_env` (none):
+
+  More variables to hide from the programs
+  [`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md)
+  runs: a character vector of regular expressions matched against
+  variable names, without regard to case, such as `"^MY_GATEWAY$"`.
+  Added to the built-in list, which hides names ending in `_API_KEY`,
+  `_TOKEN`, `_SECRET`, `_PASSWORD`, `_PAT` or `_SECRET_ACCESS_KEY`, the
+  common provider variables, and variables whose value is one of the
+  `api_headers` values, or the key set with
+  `options(harnessr.api_key =)`, of 8 characters or more (see
+  "Credentials" in
+  [`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md)).
+  Untested: a choice.
+
+- `command_temp_home` (FALSE):
+
+  Whether
+  [`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md)
+  runs its program with `HOME` (and `USERPROFILE` on Windows) set to an
+  empty folder made for the call, so it does not read your configuration
+  files and stored logins. Untested: a choice.
+
+- `mask_secrets` (FALSE):
+
+  Whether key-shaped strings are replaced with `<masked>` in the copies
+  harnessr stores or shows: the output a command step keeps, the file
+  [`hr_trace_save()`](https://elkronos.github.io/harnessr/reference/hr_trace_save.md)
+  writes, and a printed trace. Turn it on before you share a trace or a
+  step's output, since an HTTP error body or a program's output can echo
+  a key. The shapes masked are OpenAI and Anthropic keys (`sk-...`),
+  GitHub tokens (`ghp_...`, `github_pat_...`), AWS access key ids
+  (`AKIA...`), Google API keys (`AIza...`), Slack tokens (`xox...`),
+  Hugging Face tokens (`hf_...`), JSON web tokens and the token after
+  `Bearer `. In a command step's output the values of the variables the
+  step hides are masked too; in a saved or printed trace only the shapes
+  are. The trace records how many were masked: `masked` in a command
+  step's note and at the top of a saved trace, and a `masked:` line in
+  the print. The trace in your session, the cache and every cache and
+  replay key keep the text as it was. A command step passes its masked
+  output on in `$check`, so a later step that builds a prompt from it
+  sends the masked text, under another cache key. Off, nothing is masked
+  and every copy is byte for byte what it was. Untested: a choice.
+
 - `price_max_age_days` (120):
 
   How old a price may be, in days, before a cost computed from it warns
@@ -294,15 +375,18 @@ changing an option mid-session affects subsequent runs.
 
 The settings listed last above were constants in the code until they
 were options; each keeps the constant's value. A trace records them, and
-`price_max_age_days`, (in its options snapshot) only when one is not its
-default, so a trace made at the defaults reads as it did before they
-existed. Each tuning setting's entry above (`temperature`,
-`max_retries`, `retry_pause_base`, `request_timeout`, `safety_margin`,
-`min_output_tokens`, `workers`, `price_max_age_days` and the settings
-listed last) says where its default came from, as does
-`allow_unpriced`'s; "untested" means no measurement backs the value. The
-other entries are switches, limits and names, which are choices rather
-than tuned values.
+`price_max_age_days`, `reserve_calls`, `reserve_usd`, `on_overflow`,
+`command_hide_env`, `command_temp_home` and `mask_secrets`, (in its
+options snapshot) only when one is not its default, so a trace made at
+the defaults reads as it did before they existed. A function given as
+`on_overflow` is recorded as `"<function>"`. Each tuning setting's entry
+above (`temperature`, `max_retries`, `retry_pause_base`,
+`request_timeout`, `safety_margin`, `min_output_tokens`, `workers`,
+`price_max_age_days` and the settings listed last) says where its
+default came from, as do those of `allow_unpriced`, the reserves,
+`on_overflow` and the three credential settings; "untested" means no
+measurement backs the value. The other entries are switches, limits and
+names, which are choices rather than tuned values.
 
 ## Checked values
 
@@ -315,7 +399,12 @@ or more (one or more for `max_output_tokens`), with an error of class
 `gr_bad_option`: a limit that cannot be compared is not a limit, and
 ignoring it spends money. `NULL` and `Inf` both mean "no limit".
 `allowed_models` must be `NULL` or a character vector of ids, and
-`allow_unpriced` `TRUE` or `FALSE`.
+`allow_unpriced` `TRUE` or `FALSE`. The reserves, `reserve_calls` and
+`reserve_usd`, must be a single finite number of 0 or more, and are
+refused otherwise with the same class; `reserve_calls` is rounded down.
+A reserve larger than its limit, as the two stand once every setting of
+the call is in, is refused with classes `hr_bad_reserve` and
+`gr_bad_option`, and the call changes nothing.
 
 The tuning settings (`safety_margin` \[0, 0.5\], `min_output_tokens`
 \[0, 1e6\], `max_retries` \[0, 10\], `retry_pause_base` \[0, 60\],

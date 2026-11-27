@@ -77,11 +77,11 @@ cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 ans <- gr_read(ch, "What was revenue?", cl, gr_read_spec("retrieve", top_k = 3))
 #> Reading with 'retrieve' (topk|1|none) over 5 chunk(s).
 gr_methods_text(ans)
-#> The run was made with harnessr 0.7.0. It read once with the 'retrieve'
-#> reader with these settings changed from their defaults: top_k = 3. It
-#> made 1 model request(s), which asked for 'mock-model'. The provider did
-#> not report which model answered them. They sent 478 prompt token(s) and
-#> received 13 reply token(s). Their system prompts, by stage, have the
-#> hashes retrieve.answer cdd84211f69d. This paragraph restates the run's
-#> record and makes no claim beyond it.
+#> The run was made with harnessr 0.7.0.9000. It read once with the
+#> 'retrieve' reader with these settings changed from their defaults:
+#> top_k = 3. It made 1 model request(s), which asked for 'mock-model'.
+#> The provider did not report which model answered them. They sent 478
+#> prompt token(s) and received 13 reply token(s). Their system prompts,
+#> by stage, have the hashes retrieve.answer cdd84211f69d. This paragraph
+#> restates the run's record and makes no claim beyond it.
 ```

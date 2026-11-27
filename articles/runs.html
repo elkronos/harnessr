@@ -19,7 +19,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">harnessr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -239,7 +239,7 @@ are kept as <code>tokens$reasoning</code> and
 <span><span class="co">#&gt; List of 4</span></span>
 <span><span class="co">#&gt;  $ label      : chr "reduce"</span></span>
 <span><span class="co">#&gt;  $ attempts   : int 1</span></span>
-<span><span class="co">#&gt;  $ started_utc: chr "2026-11-27T01:23:56.818Z"</span></span>
+<span><span class="co">#&gt;  $ started_utc: chr "2026-11-27T06:08:52.629Z"</span></span>
 <span><span class="co">#&gt;  $ tokens     :List of 3</span></span>
 <span><span class="co">#&gt;   ..$ input     : int 296</span></span>
 <span><span class="co">#&gt;   ..$ output    : int 13</span></span>
@@ -319,10 +319,10 @@ values of <code>api_headers</code>, since they can hold credentials.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span>owner <span class="op">=</span> <span class="st">"finance team"</span>, run_by <span class="op">=</span> <span class="st">"ana"</span>, purpose <span class="op">=</span> <span class="st">"Q3 check"</span><span class="op">)</span></span>
 <span><span class="va">tr</span></span>
-<span><span class="co">#&gt; &lt;gr_trace run_20261127012357.114_ab3fd3&gt;  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)</span></span>
+<span><span class="co">#&gt; &lt;gr_trace run_20261127060853.217_e6937c&gt;  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)</span></span>
 <span><span class="co">#&gt;   cost: no cost recorded</span></span>
 <span><span class="co">#&gt;   actor: owner = finance team, run_by = ana, purpose = Q3 check </span></span>
-<span><span class="co">#&gt;   started: 2026-11-27T01:23:57.114Z</span></span>
+<span><span class="co">#&gt;   started: 2026-11-27T06:08:53.218Z</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">tr</span><span class="op">$</span><span class="va">config</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "options"   "r_version"</span></span></code></pre></div>
 <p><code>as_json(ans)</code> writes the answer with every prompt and
@@ -551,6 +551,33 @@ comparison to <code>max_cost_usd</code> and
 <code>max_tokens_total</code>.</p>
 </div>
 <div class="section level3">
+<h3 id="a-reserve-for-the-closing-request">A reserve for the closing request<a class="anchor" aria-label="anchor" href="#a-reserve-for-the-closing-request"></a>
+</h3>
+<p>A reader that works in rounds answers in one last request. When the
+rounds use up the limit, that request is refused, and the rounds already
+paid for end with no answer. <code>reserve_calls</code> and
+<code>reserve_usd</code> hold part of <code>max_calls</code> and
+<code>max_cost_usd</code> back for such a request. An ordinary request
+is refused once it would reach into the reserve; a request sent with
+<code>hr_call(closing = TRUE)</code> may spend it. The readers mark
+their final request this way, such as the <code>iterative</code>
+reader’s final answer and the <code>map_reduce</code> reader’s last
+merge.</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span>governor <span class="op">=</span> <span class="fu"><a href="../reference/hr_governor.html">hr_governor</a></span><span class="op">(</span>max_calls <span class="op">=</span> <span class="fl">3</span>, reserve_calls <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">rounds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">cl</span>, <span class="st">"Read on."</span>, trace <span class="op">=</span> <span class="va">tr</span><span class="op">)</span><span class="op">$</span><span class="va">ok</span>, <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">logical</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">answer</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">cl</span>, <span class="st">"Answer now."</span>, trace <span class="op">=</span> <span class="va">tr</span>, closing <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>rounds <span class="op">=</span> <span class="va">rounds</span>, answer <span class="op">=</span> <span class="va">answer</span><span class="op">$</span><span class="va">ok</span><span class="op">)</span></span>
+<span><span class="co">#&gt; rounds1 rounds2 rounds3  answer </span></span>
+<span><span class="co">#&gt;    TRUE    TRUE   FALSE    TRUE</span></span>
+<span><span class="va">tr</span><span class="op">$</span><span class="va">refusals</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">message</span></span>
+<span><span class="co">#&gt; [1] "call cap reached: the run has made 2 of the 3 calls it may make, with 1 kept for closing requests, so the 'call' request was not sent; raise hr_options(max_calls =) or lower reserve_calls"</span></span></code></pre></div>
+<p>The third round was refused, so the answer had its call. Both
+reserves default to 0, which holds nothing back and leaves every request
+as it was. A reserve larger than its limit is refused with class
+<code>hr_bad_reserve</code>.</p>
+</div>
+<div class="section level3">
 <h3 id="models-with-no-price">Models with no price<a class="anchor" aria-label="anchor" href="#models-with-no-price"></a>
 </h3>
 <p>harnessr ships no prices, so a model has none until you set it. A
@@ -592,7 +619,7 @@ stopped.</li>
 </h2>
 <p><code><a href="../reference/hr_cache.html">hr_cache()</a></code> stores each successful response, keyed on the
 exact request. A repeat is free and identical:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cache</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_cache.html">hr_cache</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"harnessr-runs-cache"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">cached</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_cache_client.html">hr_cache_client</a></span><span class="op">(</span><span class="va">cl</span>, <span class="va">cache</span><span class="op">)</span></span>
 <span></span>
@@ -635,7 +662,7 @@ costs nothing and vanishes with the session. For a long run, point it at
 a lasting directory to make the run resumable. After a crash, a restart
 gets every completed call from the cache instead of paying for it
 again:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>cache_dir <span class="op">=</span> <span class="fu">tools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/tools/userdir.html" class="external-link">R_user_dir</a></span><span class="op">(</span><span class="st">"harnessr"</span>, <span class="st">"cache"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><code><a href="../reference/hr_cache_stats.html">hr_cache_stats()</a></code> reports entries, bytes, hits, misses
 and writes, and <code><a href="../reference/hr_cache_clear.html">hr_cache_clear()</a></code> empties a cache. Set
@@ -651,7 +678,7 @@ compares them sees perfect agreement. To keep N draws, give each call
 its own <code>draw_index</code>. An index above 0 is part of the key, so
 draws 1 to N are N entries, and a rerun gets the same N replies back in
 the same order:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">0</span></span>
 <span><span class="va">sampler</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span> <span class="va">n</span> <span class="op">&lt;&lt;-</span> <span class="va">n</span> <span class="op">+</span> <span class="fl">1</span>; <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"draw"</span>, <span class="va">n</span><span class="op">)</span> <span class="op">}</span><span class="op">)</span></span>
 <span><span class="va">sampler</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_cache_client.html">hr_cache_client</a></span><span class="op">(</span><span class="va">sampler</span>, <span class="fu"><a href="../reference/hr_cache.html">hr_cache</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"harnessr-runs-draws"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
@@ -688,7 +715,7 @@ after it.</p>
 complete transcript of the only non-deterministic part of the pipeline.
 A trace plus the source document reproduces a run exactly, with no key
 and no spend:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"run.json"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/hr_trace_save.html">hr_trace_save</a></span><span class="op">(</span><span class="va">first</span><span class="op">$</span><span class="va">trace</span>, <span class="va">f</span><span class="op">)</span></span>
 <span></span>
@@ -718,7 +745,7 @@ temperature, cap or schema next to the ones asked for. Pass
 <p>Asking a replay for more replies than were recorded is an error too,
 of class <code>hr_replay_exhausted</code>. Draw k of a request gets the
 reply recorded for that draw:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">0</span></span>
 <span><span class="va">sampler</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span> <span class="va">n</span> <span class="op">&lt;&lt;-</span> <span class="va">n</span> <span class="op">+</span> <span class="fl">1</span>; <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"draw"</span>, <span class="va">n</span><span class="op">)</span> <span class="op">}</span><span class="op">)</span></span>
@@ -759,7 +786,7 @@ cause.</p>
 <code>hr_options(embedder = "lexical")</code>, as this guide does, or
 with your own embedder registered as
 <code>deterministic = TRUE</code>:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">run</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="st">"needle"</span>,</span>
 <span>                       client <span class="op">=</span> <span class="va">cl</span>, model <span class="op">=</span> <span class="st">"priced-mock"</span><span class="op">)</span></span>
 <span><span class="va">again</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="st">"needle"</span>,</span>
@@ -808,7 +835,7 @@ requests whose token counts were estimated locally.</li>
 <p>Pass <code>correct</code>, either strings a right answer contains or
 a function of each answer, and the summary gains <code>correct</code>
 and <code>usd_per_correct</code>, the cost of a right answer:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_compare.html">gr_compare</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"fast"</span>, <span class="st">"precise"</span>, <span class="st">"thorough"</span><span class="op">)</span>,</span>
 <span>                  client <span class="op">=</span> <span class="va">cl</span>, model <span class="op">=</span> <span class="st">"priced-mock"</span>, correct <span class="op">=</span> <span class="st">"45.2 million"</span><span class="op">)</span></span>
 <span><span class="va">cmp</span><span class="op">$</span><span class="va">summary</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"recipe"</span>, <span class="st">"reader"</span>, <span class="st">"calls"</span>, <span class="st">"usd"</span>, <span class="st">"usd_estimated"</span>,</span>
@@ -843,10 +870,12 @@ every option with its default.</p>
 <code>max_calls</code> hold every run, and
 <code>max_tokens_total</code>, <code>max_output_tokens</code>,
 <code>allowed_models</code> and <code>allow_unpriced</code> hold it
-further when set (see “Limits” above). A limit set too low ends runs
-early, with partial answers. One set too high lets a mistake run up its
-full cost, such as a reader that sends every chunk of a long document at
-a small chunk size.</p>
+further when set (see “Limits” above). <code>reserve_calls</code> and
+<code>reserve_usd</code> keep part of the first two for a run’s closing
+request (see “A reserve for the closing request”). A limit set too low
+ends runs early, with partial answers. One set too high lets a mistake
+run up its full cost, such as a reader that sends every chunk of a long
+document at a small chunk size.</p>
 <p><strong>Signs they need changing.</strong> Any of these means a limit
 stopped the run:</p>
 <ul>
@@ -872,12 +901,15 @@ evidence for them. The other limits are off by default.
 <code>allow_unpriced</code> is <code>TRUE</code> because harnessr ships
 no prices: <code>FALSE</code> would refuse every request to a built-in
 model until you set its prices. Set it to <code>FALSE</code> when every
-request must count against the spending limit.</p>
+request must count against the spending limit. The reserves are 0, so
+nothing is held back unless you ask; untested, a choice rather than a
+tuned value. Set <code>reserve_calls = 1</code> when a run that works in
+rounds ends with no answer and <code>stop_reason</code> set.</p>
 <p><strong>How to test them.</strong> A limit belongs to the run, not to
 an arm, so a sweep can only test which settings fit under it. A reader’s
 output caps decide how much of the limit each request reserves, so sweep
 the merge’s cap and hold each arm’s five runs to the same $0.02:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">qa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_qa_reference.html">gr_qa_reference</a></span><span class="op">(</span>questions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>revenue <span class="op">=</span> <span class="st">"What was revenue in 2024?"</span><span class="op">)</span>,</span>
 <span>                      documents <span class="op">=</span> <span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, answers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"45.2 million"</span><span class="op">)</span>,</span>
 <span>                      split <span class="op">=</span> <span class="st">"dev"</span><span class="op">)</span></span>
@@ -923,7 +955,7 @@ runs needs several thousand. Size the governor for the benchmark: arms x
 items x runs x requests per run.</p>
 <p><strong>How to test it.</strong> Count the requests one run makes,
 multiply, and check how much of the governor was used:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">per_run</span> <span class="op">&lt;-</span> <span class="fl">6</span>  <span class="co"># map_reduce over five chunks: five chunk requests and a merge</span></span>
 <span><span class="va">needed</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">arms</span><span class="op">)</span> <span class="op">*</span> <span class="fl">1</span> <span class="op">*</span> <span class="fl">5</span> <span class="op">*</span> <span class="va">per_run</span></span>
 <span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">arms</span>, <span class="va">qa</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">cl</span>, split <span class="op">=</span> <span class="st">"dev"</span>,</span>

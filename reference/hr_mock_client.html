@@ -13,7 +13,7 @@ strategies are actually different."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">harnessr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -94,8 +94,8 @@ with one row per input.</p></dd>
 
 <dt id="arg-mode">mode<a class="anchor" aria-label="anchor" href="#arg-mode"></a></dt>
 <dd><p><code>NULL</code> (the default) for replies as the handler gives them, or
-one of <code>"bad_json"</code>, <code>"refuse"</code> and <code>"at_cap"</code>, or a vector of HTTP
-status codes such as <code>c(429, 500, 200)</code>. See Details.</p></dd>
+one of <code>"bad_json"</code>, <code>"refuse"</code>, <code>"at_cap"</code> and <code>"overflow"</code>, or a
+vector of HTTP status codes such as <code>c(429, 500, 200)</code>. See Details.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -131,6 +131,14 @@ a provider.</p></dd>
 <dd><p>Every reply is the handler's, marked as cut off at the
 output cap (<code>finish_reason = "length"</code>) and billed at the full cap. A
 failed <a href="gr_result.html">gr_result</a> from the handler comes back as it is.</p></dd>
+
+<dt><code>"overflow"</code></dt>
+<dd><p>The first request fails with status 400 and the body
+OpenAI sends for a prompt longer than the model's context window, which
+<code><a href="hr_call.html">hr_call()</a></code> reports with class <code>hr_context_overflow</code>. Every request
+after it gets the handler's reply, so a retry with a smaller prompt
+(see <code>on_overflow</code> in <code><a href="hr_options.html">hr_options()</a></code>) succeeds. <code>$reset()</code> makes the
+next request fail again.</p></dd>
 
 <dt>A vector of HTTP status codes</dt>
 <dd><p>Call <code>i</code> gets the <code>i</code>-th status, and

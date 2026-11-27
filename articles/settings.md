@@ -22,7 +22,7 @@ stages <- c(intersect(core, stages), setdiff(stages, core))
 table(settings$stage, settings$tier)[stages, ]
 #>             
 #>              advanced basic
-#>   options          30     5
+#>   options          36     5
 #>   evaluate         20    10
 #>   ingest           18     3
 #>   segment          17     3
@@ -151,6 +151,12 @@ and the limits in
 | [`max_output_tokens`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | advanced |  | The largest output cap one request may be sent with. |
 | [`allowed_models`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | advanced |  | Character vector of the model ids a run may call, chat and embedding models alike. |
 | [`allow_unpriced`](https://elkronos.github.io/harnessr/articles/models.html#set-unpriced) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `TRUE` | advanced | untested | Whether a chat model with no registered price may be called while max_cost_usd is set. |
+| [`reserve_calls`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `0` | advanced | untested | Calls held back from max_calls for a run’s closing requests, such as a reader’s final answer. |
+| [`reserve_usd`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `0` | advanced | untested | Dollars held back from max_cost_usd for a run’s closing requests, in the same way. |
+| [`on_overflow`](https://elkronos.github.io/harnessr/articles/context.html#set-overflow) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `error` | advanced | untested | What a request does when the provider refuses its prompt as longer than the model’s context window (an error of class hr_context_overflow; see hr_call()). |
+| [`command_hide_env`](https://elkronos.github.io/harnessr/articles/core.html#set-credentials) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `character(0)` | advanced | untested | More variables to hide from the programs hr_step_command() runs: a character vector of regular expressions matched against variable names, without regard to case, such as “^MY_GATEWAY\$”. |
+| [`command_temp_home`](https://elkronos.github.io/harnessr/articles/core.html#set-credentials) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `FALSE` | advanced | untested | Whether hr_step_command() runs its program with HOME (and USERPROFILE on Windows) set to an empty folder made for the call, so it does not read your configuration files and stored logins. |
+| [`mask_secrets`](https://elkronos.github.io/harnessr/articles/core.html#set-credentials) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `FALSE` | advanced | untested | Whether key-shaped strings are replaced with \<masked\> in the copies harnessr stores or shows: the output a command step keeps, the file hr_trace_save() writes, and a printed trace. |
 | [`price_max_age_days`](https://elkronos.github.io/harnessr/articles/models.html#set-price-age) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `120` | advanced | untested | How old a price may be, in days, before a cost computed from it warns with class hr_stale_price. |
 | [`unknown_model_action`](https://elkronos.github.io/harnessr/articles/models.html#set-unknown-model) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `warn` | advanced |  | “warn” or “error” when a model id is not in the registry. |
 | [`actor`](https://elkronos.github.io/harnessr/articles/core.html#set-actor) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | [`list()`](https://rdrr.io/r/base/list.html) | advanced |  | A named list (or character vector) of the actor fields every hr_trace() records: system, owner, run_by, purpose and approved_by, each one string. |

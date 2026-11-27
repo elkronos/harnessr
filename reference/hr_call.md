@@ -17,7 +17,8 @@ hr_call(
   label = "call",
   ...,
   effort = NULL,
-  draw_index = 0L
+  draw_index = 0L,
+  closing = FALSE
 )
 ```
 
@@ -113,6 +114,17 @@ hr_call(
   the step's `params`; at 0 neither carries it, so an unsampled call is
   unchanged. Must be named in full, since it follows `...`.
 
+- closing:
+
+  `TRUE` for a run's closing request, such as the final answer after
+  rounds of reading, which may spend the calls and dollars a governor
+  holds back with `reserve_calls` and `reserve_usd` (see
+  [`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md)).
+  `FALSE` (the default) for any other request, which is refused once it
+  would reach into them. It changes nothing else: not the request, the
+  trace, or a cache or replay key. Must be named in full, since it
+  follows `...`.
+
 ## Value
 
 A
@@ -142,6 +154,26 @@ is not sent: it comes back with `ok = FALSE`, `$refused = TRUE`, an
 `$error` naming the limit and the condition in `$refusal`, after a
 condition of class `hr_budget_refused` is signalled. It is not recorded
 as a step of the trace.
+
+A request the provider refuses because its prompt is longer than the
+model's context window (a 400 or 413 whose error body says so in one of
+the phrasings providers use, such as `context_length_exceeded`, "maximum
+context length" or "prompt is too long") comes back as a failed result
+with the same error text and `$error_class = "hr_context_overflow"`, and
+`$overflow` holds `estimate_tokens`, the local count of the prompt,
+`context_window`, the window registered for the model, and the HTTP
+`status`. The trace step records the same in its `overflow` field, and a
+condition of class `hr_context_overflow` is signalled. A refusal that
+reaches `hr_call()` as an error raised through
+[`hr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/hr_ellmer_client.md)
+or
+[`hr_backend_client()`](https://elkronos.github.io/harnessr/reference/hr_backend_client.md)
+is named the same way when its message carries httr2's "HTTP 400" or
+"HTTP 413" and one of those phrasings. A 400 with any other body is left
+as it was. `hr_options(on_overflow =)` can retry such a request once
+with a smaller prompt your own function makes; see
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md).
+A replay retries a recorded refusal only where the recorded run did.
 
 ## See also
 

@@ -19,7 +19,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">harnessr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -738,10 +738,11 @@ among its steps, and <code><a href="https://rdrr.io/r/base/as.data.frame.html" c
 out, since it lists requests only:</p>
 <div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tr</span></span>
-<span><span class="co">#&gt; &lt;gr_trace run_20261127012231.404_f0078b&gt;  1 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)</span></span>
+<span><span class="co">#&gt; &lt;gr_trace run_20261127060617.050_0dcb9e&gt;  1 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)</span></span>
 <span><span class="co">#&gt;   steps: truncate x1 </span></span>
 <span><span class="co">#&gt;   cost: no cost recorded</span></span>
-<span><span class="co">#&gt;   started: 2026-11-27T01:22:31.405Z</span></span></code></pre></div>
+<span><span class="co">#&gt;   time: 0.01 s (requests 0%, local 0%, overhead 100%)</span></span>
+<span><span class="co">#&gt;   started: 2026-11-27T06:06:17.051Z</span></span></code></pre></div>
 <p>Two other parts of the core read or write these steps.
 <code><a href="../reference/hr_embed.html">hr_embed()</a></code> cuts a text longer than the embedding model’s
 window and writes the cut as a <code>"truncate"</code> step whose
@@ -781,12 +782,68 @@ compare answers with and without the step, as
 <code><a href="../articles/compose.html">vignette("compose")</a></code> shows for chains of steps.</p>
 </div>
 <div class="section level2">
+<h2 id="overflow">When the provider says the prompt is too long<a class="anchor" aria-label="anchor" href="#overflow"></a>
+</h2>
+<p>The local count can come in under the provider’s, and the provider
+then refuses the request. Most providers answer with a 400 whose body
+names the problem: OpenAI’s code <code>context_length_exceeded</code>,
+Anthropic’s “prompt is too long”, Gemini’s “exceeds the maximum number
+of tokens”. <code><a href="../reference/hr_call.html">hr_call()</a></code> reads those phrasings and marks the
+failure with the class <code>hr_context_overflow</code>. It does the
+same for a refusal that <code><a href="../reference/hr_ellmer_client.html">hr_ellmer_client()</a></code> or
+<code><a href="../reference/hr_backend_client.html">hr_backend_client()</a></code> raises as an error, when the message
+carries httr2’s “HTTP 400” or “HTTP 413” beside one of the phrasings.
+The error text stays as the provider sent it, and the result and the
+trace step keep the local count of the prompt beside the window
+registered for the model, so you can see how far apart the two counts
+were. A 400 for any other reason is left as it was.</p>
+<p><code>hr_mock_client(mode = "overflow")</code> refuses its first
+request that way:</p>
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">over</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million."</span>,</span>
+<span>                       mode <span class="op">=</span> <span class="st">"overflow"</span><span class="op">)</span></span>
+<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">over</span>, <span class="st">"What was revenue?"</span>, trace <span class="op">=</span> <span class="va">tr</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>ok <span class="op">=</span> <span class="va">res</span><span class="op">$</span><span class="va">ok</span>, class <span class="op">=</span> <span class="va">res</span><span class="op">$</span><span class="va">error_class</span><span class="op">)</span></span>
+<span><span class="co">#&gt;                    ok                 class </span></span>
+<span><span class="co">#&gt;               "FALSE" "hr_context_overflow"</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">tr</span><span class="op">$</span><span class="va">steps</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">overflow</span><span class="op">)</span></span>
+<span><span class="co">#&gt; List of 3</span></span>
+<span><span class="co">#&gt;  $ estimate_tokens: num 7</span></span>
+<span><span class="co">#&gt;  $ context_window : num 128000</span></span>
+<span><span class="co">#&gt;  $ status         : int 400</span></span></code></pre></div>
+<p>harnessr does not shorten the prompt for you. If you want one more
+try, give <code>on_overflow</code> a function of your own that returns a
+smaller prompt. It is called with the messages sent and what the refusal
+said, and its messages go out once as a new request, which the governor
+checks and the trace records:</p>
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">shorter</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">info</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">last</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">messages</span><span class="op">)</span></span>
+<span>  <span class="va">messages</span><span class="op">[[</span><span class="va">last</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_truncate.html">hr_truncate</a></span><span class="op">(</span><span class="va">messages</span><span class="op">[[</span><span class="va">last</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span>, <span class="fl">50</span><span class="op">)</span></span>
+<span>  <span class="va">messages</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">prev</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>on_overflow <span class="op">=</span> <span class="va">shorter</span><span class="op">)</span></span>
+<span><span class="va">over</span><span class="op">$</span><span class="fu">reset</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">over</span>, <span class="st">"What was revenue?"</span>, trace <span class="op">=</span> <span class="va">tr</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>ok <span class="op">=</span> <span class="va">res</span><span class="op">$</span><span class="va">ok</span>, steps <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">tr</span><span class="op">$</span><span class="va">steps</span><span class="op">)</span>,</span>
+<span>  retry <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Logic.html" class="external-link">isTRUE</a></span><span class="op">(</span><span class="va">tr</span><span class="op">$</span><span class="va">steps</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">overflow_retry</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    ok steps retry </span></span>
+<span><span class="co">#&gt;     1     2     1</span></span>
+<span><span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span><span class="va">prev</span><span class="op">)</span></span></code></pre></div>
+<p>The first step is the refusal and the second the retry. A retry that
+is refused again is returned as it is, with no third try. A replay of
+the trace retries a refusal only where the recorded run did, so set the
+same <code>on_overflow</code> before you replay a run that retried.</p>
+</div>
+<div class="section level2">
 <h2 id="choosing-the-settings">Choosing the settings<a class="anchor" aria-label="anchor" href="#choosing-the-settings"></a>
 </h2>
-<p>Three options decide how much room <code><a href="../reference/hr_budget.html">hr_budget()</a></code> leaves
-for a prompt. Each walkthrough says what the option controls, the signs
-that point to changing it, where its default came from, and how to test
-a change.</p>
+<p>Four options decide how much room <code><a href="../reference/hr_budget.html">hr_budget()</a></code> leaves for
+a prompt and what happens when a provider refuses one. Each walkthrough
+says what the option controls, the signs that point to changing it,
+where its default came from, and how to test a change.</p>
 <div class="section level3">
 <h3 id="set-safety-margin">The margin: <code>safety_margin</code><a class="anchor" aria-label="anchor" href="#set-safety-margin"></a>
 </h3>
@@ -809,7 +866,7 @@ as untested.</p>
 <p><strong>How to test it.</strong> Compare the input room at each
 margin you consider, and the local count of your prompts with the prompt
 tokens your provider reports:</p>
-<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.05</span>, <span class="fl">0.10</span>, <span class="fl">0.20</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="fu"><a href="../reference/hr_budget.html">hr_budget</a></span><span class="op">(</span><span class="st">"gpt-4o"</span>, safety_margin <span class="op">=</span> <span class="va">m</span><span class="op">)</span><span class="op">$</span><span class="va">input</span>,</span>
 <span>       <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 111616 105216  98816  86016</span></span></code></pre></div>
@@ -845,7 +902,7 @@ not measured. <code>gr_settings_table("options")</code> lists both as
 untested.</p>
 <p><strong>How to test them.</strong> See how the input room moves with
 the share, on the model you use:</p>
-<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">prev</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"output_reserve_share"</span>, <span class="st">"min_output_tokens"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="va">room</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.10</span>, <span class="fl">0.25</span>, <span class="fl">0.40</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>output_reserve_share <span class="op">=</span> <span class="va">s</span><span class="op">)</span></span>
@@ -860,6 +917,30 @@ the share, on the model you use:</p>
 <p>Then run your prompts at the share you pick and check
 <code>finish_reason</code> and the reply’s token counts in the
 trace.</p>
+</div>
+<div class="section level3">
+<h3 id="set-overflow">A refused long prompt: <code>on_overflow</code><a class="anchor" aria-label="anchor" href="#set-overflow"></a>
+</h3>
+<p><strong>What it controls.</strong> What <code><a href="../reference/hr_call.html">hr_call()</a></code> does
+after a provider refuses a prompt as longer than the window (see <a href="#overflow">When the provider says the prompt is too long</a>).
+<code>"error"</code>, the default, returns the failed result. A function
+of <code>(messages, info)</code> returns a smaller prompt, which is sent
+once more.</p>
+<p><strong>Signs it needs changing.</strong> Steps whose
+<code>overflow</code> field is set, or results with
+<code>error_class</code> <code>"hr_context_overflow"</code>. Before you
+add a retry, compare <code>estimate_tokens</code> with
+<code>context_window</code> in those steps: an estimate well under the
+window means the local count is off, and a larger
+<code>safety_margin</code> or a matching tokenizer fixes the cause where
+a retry only treats it.</p>
+<p><strong>Where the default came from.</strong> A retry is an extra
+paid request, so it is yours to ask for.
+<code>gr_settings_table("options")</code> lists the setting as
+untested.</p>
+<p><strong>How to test it.</strong> Run the requests that overflowed
+with your function set, and check the retried steps’ replies against the
+ones you expect, as in the example above.</p>
 </div>
 </div>
 <div class="section level2">

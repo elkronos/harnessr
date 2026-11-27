@@ -26,8 +26,8 @@ hr_mock_client(handler = NULL, embed_handler = NULL, mode = NULL)
 - mode:
 
   `NULL` (the default) for replies as the handler gives them, or one of
-  `"bad_json"`, `"refuse"` and `"at_cap"`, or a vector of HTTP status
-  codes such as `c(429, 500, 200)`. See Details.
+  `"bad_json"`, `"refuse"`, `"at_cap"` and `"overflow"`, or a vector of
+  HTTP status codes such as `c(429, 500, 200)`. See Details.
 
 ## Value
 
@@ -75,6 +75,17 @@ are left as they are.
   (`finish_reason = "length"`) and billed at the full cap. A failed
   [gr_result](https://elkronos.github.io/harnessr/reference/gr_result.md)
   from the handler comes back as it is.
+
+- `"overflow"`:
+
+  The first request fails with status 400 and the body OpenAI sends for
+  a prompt longer than the model's context window, which
+  [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
+  reports with class `hr_context_overflow`. Every request after it gets
+  the handler's reply, so a retry with a smaller prompt (see
+  `on_overflow` in
+  [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md))
+  succeeds. `$reset()` makes the next request fail again.
 
 - A vector of HTTP status codes:
 

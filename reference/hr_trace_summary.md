@@ -18,7 +18,9 @@ hr_trace_summary(trace)
 
 A one-row data frame: `run_id`, `calls`, `cached`, `steps`, `tokens_in`,
 `tokens_out`, `errors`, `elapsed_s`, `embed_calls`, `embed_tokens`,
-`tokens_reasoning`, `tokens_cached_in`, `usage_estimated`.
+`tokens_reasoning`, `tokens_cached_in`, `usage_estimated`, `request_s`,
+`local_s`, `overhead_s`, `request_share`, `local_share`,
+`overhead_share`.
 
 `calls` counts every request, including the `embed_calls` of them made
 to an embeddings endpoint. `tokens_in` and `tokens_out` are the size of
@@ -53,7 +55,32 @@ additions to them. `usage_estimated` is the share of requests whose
 token counts were estimated locally because the provider reported none
 (see `tokens` under "Steps" in
 [`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md)),
-from 0 to 1, or `NA` when no request says.
+from 0 to 1, or `NA` when no request says. The share of input tokens the
+provider served from its cache is `tokens_cached_in / tokens_in`; the
+trace's print shows it when it is above 0.
+
+`elapsed_s` is the time from the run's start (`trace$started`) to the
+end of its last step: a request's `ended_utc`, or the `at` time of a
+local step. `at` is local time with no offset, so it is placed using the
+offset the trace's requests show (their `at` beside their `ended_utc`),
+or the `utc_offset` the trace recorded when it holds no request. It is
+read from the steps, so a summary taken an hour after the run, or of a
+trace saved with [`saveRDS()`](https://rdrr.io/r/base/readRDS.html) and
+read back in another time zone, gives the same figure. A trace with
+local steps, no request and no `utc_offset` (one made by harnessr 0.7.0)
+cannot place them: its `elapsed_s` is then `request_s + local_s`. A
+trace with no steps gives 0.
+
+The last six columns split that time. `request_s` is the seconds the
+requests took (model calls and embeddings requests, retries included),
+`local_s` the seconds local steps recorded (a command step from
+[`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md)
+records its run time; segmentation, truncation and other local steps
+record none, so their time falls into the overhead), and `overhead_s`
+the rest of `elapsed_s`. Requests sent in parallel overlap, so
+`request_s` can pass `elapsed_s`, and `overhead_s` is then 0. The three
+shares are each part over the three together, so they add to 1, or `NA`
+when no time was measured.
 
 ## See also
 
@@ -73,11 +100,13 @@ ans <- answer_document(gr_example(), "What was revenue?", "thorough", client = c
 #> Reading with 'map_reduce' (all|N+logN|tree) over 1 chunk(s).
 hr_trace_summary(ans$trace)
 #>                          run_id calls cached steps tokens_in tokens_out errors
-#> 1 run_20261127012047.526_0950b4     1      0     4       607         10      0
+#> 1 run_20261127060256.939_9b6999     1      0     4       607         10      0
 #>   elapsed_s embed_calls embed_tokens tokens_reasoning tokens_cached_in
-#> 1      0.02           0            0                0                0
-#>   usage_estimated
-#> 1               1
+#> 1      0.03           0            0                0                0
+#>   usage_estimated request_s local_s overhead_s request_share local_share
+#> 1               1         0       0       0.03        0.0344           0
+#>   overhead_share
+#> 1         0.9656
 
 # What the run cost, each request priced at its own model (nothing, for a
 # mock), and what its model calls would cost at another model's prices.

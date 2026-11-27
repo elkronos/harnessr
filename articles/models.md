@@ -434,7 +434,7 @@ bad <- file.path(tempdir(), "models-guide-bad.csv")
 writeLines(c("id,input_usd,output_usd", "gpt-4.1,2,8", "gpt-4.1-mini,two,1.6"), bad)
 err <- tryCatch(hr_load_models(bad), hr_bad_models_file = function(e) e)
 conditionMessage(err)
-#> [1] "Models file '/tmp/RtmpcYNwE1/models-guide-bad.csv', row 2, column 'input_usd': 'two' is not a price; give USD per 1M tokens as a number of 0 or more, such as 2.5."
+#> [1] "Models file '/tmp/Rtmp50YVnh/models-guide-bad.csv', row 2, column 'input_usd': 'two' is not a price; give USD per 1M tokens as a number of 0 or more, such as 2.5."
 c(row = err$row, column = err$column)
 #>         row      column 
 #>         "2" "input_usd"

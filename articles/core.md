@@ -544,12 +544,13 @@ a <- hr_call(cl, "What was revenue in 2024?", model = "priced-mock",
 b <- hr_call(cl, "Check the draft against the report.", model = "priced-mock",
              trace = tr, label = "check")
 tr
-#> <gr_trace run_20261127012234.601_fcb7de>  2 steps, 2 model calls, 23 in / 26 out tokens, 0 error(s)
+#> <gr_trace run_20261127060621.996_9a8fff>  2 steps, 2 model calls, 23 in / 26 out tokens, 0 error(s)
 #>   steps: check x1, draft x1 
 #>   cost: $0.0003 across priced-mock, prices as of 2026-11
+#>   time: 0.01 s (requests 29%, local 0%, overhead 71%)
 #>   usage: estimated locally for 100% of requests (the provider reported none)
 #>   actor: purpose = core guide 
-#>   started: 2026-11-27T01:22:34.601Z
+#>   started: 2026-11-27T06:06:21.997Z
 ```
 
 The trace is an environment, so every call that is passed it records
@@ -622,6 +623,32 @@ hr_trace_cost(tr)[, c("model", "calls", "paid_calls", "usd", "priced", "as_of")]
 The prices above are illustrative, so the dollar figures are too. A mock
 reports no token counts, so every count here was estimated, and
 `usage_estimated` is 1. A provider’s own counts are marked `"reported"`.
+
+The summary also says how long the run took and where the time went:
+
+``` r
+
+hr_trace_summary(tr)[, c("elapsed_s", "request_s", "local_s", "overhead_s",
+                         "request_share", "overhead_share")]
+#>   elapsed_s request_s local_s overhead_s request_share overhead_share
+#> 1      0.01         0       0          0        0.2925         0.7075
+```
+
+`elapsed_s` runs from the trace’s start to the end of its last step,
+read from the steps, so a summary taken tomorrow, or of a trace saved
+with [`saveRDS()`](https://rdrr.io/r/base/readRDS.html) and read back in
+another time zone, gives the same figure. A local step’s time has no
+offset, so the trace places it by the offset its requests show, or by
+the `utc_offset` that
+[`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md)
+recorded. An empty trace gives 0. `request_s` is the seconds the
+requests took, `local_s` the seconds that local steps timed (a command
+step times itself), and `overhead_s` the rest: R code between requests,
+and local steps that record no time. The shares add to 1. Requests sent
+in parallel overlap, so `request_s` can pass `elapsed_s`; the overhead
+is then 0. The print shows the same split on its `time:` line, followed
+by the share of input tokens the provider served from its cache when it
+served any.
 
 [`hr_trace_save()`](https://elkronos.github.io/harnessr/reference/hr_trace_save.md)
 writes the trace as JSON, the form
@@ -926,6 +953,60 @@ covers those settings and how a benchmark counts the results, and
 [`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md)
 puts the step in a chain.
 
+### Credentials and the program
+
+The program inherits your environment variables, less the ones that look
+like credentials: names ending in `_API_KEY`, `_TOKEN`, `_SECRET`,
+`_PASSWORD`, `_PAT` or `_SECRET_ACCESS_KEY`, the common provider
+variables, and any variable whose value is one of your `api_headers`
+values, or the key you set with `options(harnessr.api_key =)`, of 8
+characters or more. They are unset for the call and put back after it,
+and a program that prints one finds nothing:
+
+``` r
+
+Sys.setenv(DEMO_SERVICE_TOKEN = "tok-123456789", DEMO_REGION = "eu")
+show_env <- hr_step_command("env", c(rscript, "-e",
+  "cat(Sys.getenv('DEMO_SERVICE_TOKEN'), Sys.getenv('DEMO_REGION'), sep = '|')"))
+show_env(list(), list())$check$stdout
+#> [1] "|eu"
+```
+
+`hr_options(command_hide_env =)` adds patterns of your own, such as
+`"^DEMO_REGION$"`, and `command_temp_home = TRUE` gives the program an
+empty `HOME` for the call, so it does not read your configuration files
+or stored logins. A command step’s note in the trace counts the
+variables hidden as `hidden_env`, and never names them.
+
+Output can still echo a key that a program read from a file, and an HTTP
+error body can echo the key that was sent.
+`hr_options(mask_secrets = TRUE)` replaces key-shaped strings with
+`<masked>` in the output a command step keeps, in the file
+[`hr_trace_save()`](https://elkronos.github.io/harnessr/reference/hr_trace_save.md)
+writes and in a printed trace, and counts what it replaced. In a command
+step’s output it also masks the values of the variables the step hid.
+The trace in your session, the cache and every key keep the text as it
+was. A later step that reads the command’s `$check` gets the masked
+output, so a prompt built from it changes with the setting:
+
+``` r
+
+prev <- hr_options(mask_secrets = TRUE)
+leaky <- hr_step_command("leak", c(rscript, "-e",
+  "cat('key: sk-proj-abcdefghijklmnopqrstuvwx and a plain sentence')"))
+leaky(list(), list())$check$stdout
+#> [1] "key: <masked> and a plain sentence"
+hr_options(prev)
+Sys.unsetenv(c("DEMO_SERVICE_TOKEN", "DEMO_REGION"))
+```
+
+Neither setting confines the program: it still runs with your
+permissions. Masking is off by default so that traces and output stay
+byte for byte what they were; turn it on before you share a trace file
+or a step’s output.
+[`?hr_options`](https://elkronos.github.io/harnessr/reference/hr_options.md)
+lists the shapes masked.
+
 ## Signals
 
 A signal is a value your code records about its own work: whether the
@@ -1049,7 +1130,16 @@ Warnings:
 Conditions that are neither: `hr_budget_refused`, signalled for each
 request the limits stop, with `hr_model_not_allowed` added when the
 model is not in `allowed_models`, and `hr_budget_stopped`, the warning a
-benchmark gives when its limits stopped runs.
+benchmark gives when its limits stopped runs. `hr_context_overflow` is
+signalled when a provider refuses a prompt as longer than the model’s
+window; the failed result carries the same name in `$error_class`, and
+its `$overflow` holds the local count of the prompt and the window.
+[`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md)
+shows it, and the `on_overflow` option that retries such a request once
+with a smaller prompt you make. A warning of class
+`hr_overflow_refit_failed` says that function failed or gave nothing
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
+can send.
 [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
 lists the document layer’s classes.
 

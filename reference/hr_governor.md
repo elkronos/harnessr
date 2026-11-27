@@ -18,7 +18,9 @@ hr_governor(
   max_tokens_total = hr_options("max_tokens_total"),
   max_output_tokens = hr_options("max_output_tokens"),
   allowed_models = hr_options("allowed_models"),
-  allow_unpriced = hr_options("allow_unpriced")
+  allow_unpriced = hr_options("allow_unpriced"),
+  reserve_calls = hr_options("reserve_calls"),
+  reserve_usd = hr_options("reserve_usd")
 )
 ```
 
@@ -54,9 +56,20 @@ hr_governor(
   spending limit, with a warning once per model per session; `FALSE` to
   refuse them.
 
+- reserve_calls:
+
+  Calls held back from `max_calls` for closing requests, a whole number
+  of 0 or more, at most `max_calls`. 0 holds none back.
+
+- reserve_usd:
+
+  Dollars held back from `max_cost_usd` for closing requests, 0 or more,
+  at most `max_cost_usd`. 0 holds none back.
+
 ## Value
 
-An object of class `hr_governor`: a list of the six limits.
+An object of class `hr_governor`: a list of the six limits, plus
+`reserve_calls` and `reserve_usd` when either is above 0.
 
 ## Details
 
@@ -149,6 +162,41 @@ the package makes for itself, reads the limits from
 each time it checks, so changing an option affects runs that are already
 going, as it always has.
 
+## A reserve for the closing call
+
+A reader that works in rounds (the `iterative` reader's steps, the
+`map_reduce` reader's chunks) makes its answer in one last request. When
+the rounds use up `max_calls` or `max_cost_usd`, that request is
+refused, and the rounds already paid for end as not found.
+`reserve_calls` and `reserve_usd` hold part of each limit back for such
+a request. An ordinary request is refused once it would reach into the
+reserve: with `max_calls = 10` and `reserve_calls = 1`, ordinary
+requests stop at 9 calls. A request marked as closing may spend the
+reserve, up to the limit itself.
+
+A request is marked closing by the code that sends it, with
+`hr_call(closing = TRUE)`. The readers mark their final request: the
+`iterative` reader's final answer (`iterative.final`), the `map_reduce`
+reader's last merge (`reduce`), the answer request of the
+`hierarchical`, `skim`, `preview` and `rerank` readers and of the
+`refine` reader under `refine_state = "ledger"`, and the `ensemble`
+reader's adjudication. The `stuff` and `retrieve` readers make one model
+call each, and the `refine` reader's last revision is its answer
+otherwise; they mark none. In an ensemble each member's closing request
+may spend the reserve too, so hold back one call per member and one for
+the adjudication. You set the reserve; nothing a model returns changes
+it or marks a request.
+
+Both reserves default to 0, which holds nothing back: requests, refusals
+and cache keys are then what they were before the reserve existed. A
+reserve larger than its limit is refused with an error of class
+`hr_bad_reserve`. A reserve with no limit to hold back from (`max_calls`
+or `max_cost_usd` `NULL`) has no effect. The requests of a parallel
+batch are ordinary: each worker's share is taken from what is left
+outside the reserve. Two governors combined (a judge's own and the
+run's) hold an ordinary request to the lower of the two limits less
+their reserves, and a closing request to the lower of the two limits.
+
 ## See also
 
 [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
@@ -180,4 +228,13 @@ res$refused
 #> [1] TRUE
 res$error
 #> [1] "spending limit reached: the 'call' request could cost up to $0.04 (up to 13 prompt tokens, and 4096 reply tokens at its cap), and the run has spent $0 of its $0.001 limit, so it was not sent; raise hr_options(max_cost_usd =) or ask for a smaller max_output"
+
+# A reserve keeps one call for the closing request.
+tr <- hr_trace(governor = hr_governor(max_calls = 3, reserve_calls = 1))
+vapply(1:3, function(i) hr_call(cl, "hi", trace = tr)$ok, logical(1))
+#> [1]  TRUE  TRUE FALSE
+hr_call(cl, "answer", trace = tr, closing = TRUE)$ok
+#> [1] TRUE
+tr$calls
+#> [1] 3
 ```

@@ -11,7 +11,7 @@ session it happened in."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">harnessr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -90,6 +90,15 @@ session it happened in.</p>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p><code>path</code>, invisibly.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>With <code>hr_options(mask_secrets = TRUE)</code> key-shaped strings in the file
+(an API key echoed in an error, a token in a prompt) are replaced with
+<code>&lt;masked&gt;</code>, and a top-level field <code>masked</code> says how many. The trace in
+your session is left as it was, and each step's <code>replay_key</code> was taken
+from the prompt as it was sent, so a replay of the file still finds its
+replies. <code><a href="hr_options.html">hr_options()</a></code> lists the shapes masked.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

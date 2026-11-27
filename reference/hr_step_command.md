@@ -72,12 +72,11 @@ the shell, never split on spaces, so a `;` or a `$` in an argument
 reaches the program as it is written. There is no default command, and a
 command is never taken from a model's reply or a skill's text: write
 `argv` yourself. Nothing isolates the program: it can read and write
-what you can. The child process inherits the session's environment
-variables, except `OPENAI_API_KEY`, which is unset for the call and put
-back after it; R options never reach it. A program stopped at its time
-limit is ended, but processes it started in the background (or that
-ignore the signal) can keep running, on any platform; on Windows, any
-process it started can.
+what you can. It inherits the session's environment variables except the
+ones that look like credentials (see "Credentials" below); R options
+never reach it. A program stopped at its time limit is ended, but
+processes it started in the background (or that ignore the signal) can
+keep running, on any platform; on Windows, any process it started can.
 
 The result is read by `parse`:
 
@@ -119,7 +118,41 @@ refuses a step that is not held after one that is, with class
 
 In a benchmark the step notes the run in the trace as a local step,
 `"step.command"`, with hashes of `argv` and of the output, never the
-output itself. It sends no request, so it costs nothing.
+output itself, and `hidden_env`, the number of variables hidden from the
+program (never their names or values). It sends no request, so it costs
+nothing.
+
+## Credentials
+
+The child process inherits the session's environment variables except
+the ones that look like credentials, which are unset for the call and
+put back after it. A variable is hidden when its name ends in
+`_API_KEY`, `_TOKEN`, `_SECRET`, `_PASSWORD`, `_PAT` or
+`_SECRET_ACCESS_KEY` (in any case), when it is one of the provider
+variables `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`,
+`GEMINI_API_KEY`, `AZURE_OPENAI_API_KEY`, `GITHUB_PAT`, `GITHUB_TOKEN`,
+`AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` and `HF_TOKEN`, when its
+name matches a regular expression in `hr_options(command_hide_env =)`,
+or when its value is 8 characters or longer and is one of the values of
+`hr_options(api_headers =)` or the key set with
+`options(harnessr.api_key =)`, such as a gateway key read with
+[`Sys.getenv()`](https://rdrr.io/r/base/Sys.getenv.html); a shorter
+value, such as `"true"`, is no credential and hides nothing. A program
+that needs one of these variables cannot read it; pass what it needs
+another way. `hr_options(command_temp_home = TRUE)` also runs the
+program with `HOME` (and `USERPROFILE` on Windows) set to an empty
+folder made for the call and removed after it, so it does not read your
+configuration files and stored logins.
+
+With `hr_options(mask_secrets = TRUE)` the `stdout` and `stderr` kept in
+the result have key-shaped strings replaced with `<masked>`, and the
+step records how many in the trace as `masked`. The values of the hidden
+variables are masked as well. The hash of the output is taken before
+masking. The masked output is what the step passes on in `$check`, so a
+later step that builds a prompt from it sends the masked text.
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
+lists the shapes masked. Neither setting confines the program: it still
+runs with your permissions and can read your files.
 
 ## See also
 

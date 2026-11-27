@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">harnessr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -78,7 +78,8 @@
 <span>  label <span class="op">=</span> <span class="st">"call"</span>,</span>
 <span>  <span class="va">...</span>,</span>
 <span>  effort <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  draw_index <span class="op">=</span> <span class="fl">0L</span></span>
+<span>  draw_index <span class="op">=</span> <span class="fl">0L</span>,</span>
+<span>  closing <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -160,6 +161,16 @@ it in <code>params$draw_index</code>, and the trace records it in the step's
 <code>params</code>; at 0 neither carries it, so an unsampled call is unchanged.
 Must be named in full, since it follows <code>...</code>.</p></dd>
 
+
+<dt id="arg-closing">closing<a class="anchor" aria-label="anchor" href="#arg-closing"></a></dt>
+<dd><p><code>TRUE</code> for a run's closing request, such as the final
+answer after rounds of reading, which may spend the calls and dollars a
+governor holds back with <code>reserve_calls</code> and <code>reserve_usd</code> (see
+<code><a href="hr_governor.html">hr_governor()</a></code>). <code>FALSE</code> (the default) for any other request, which is
+refused once it would reach into them. It changes nothing else: not the
+request, the trace, or a cache or replay key. Must be named in full,
+since it follows <code>...</code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -182,6 +193,22 @@ is not sent: it comes back with <code>ok = FALSE</code>, <code>$refused = TRUE</
 <code>$error</code> naming the limit and the condition in <code>$refusal</code>, after a
 condition of class <code>hr_budget_refused</code> is signalled. It is not recorded
 as a step of the trace.</p>
+<p>A request the provider refuses because its prompt is longer than the
+model's context window (a 400 or 413 whose error body says so in one of
+the phrasings providers use, such as <code>context_length_exceeded</code>, "maximum
+context length" or "prompt is too long") comes back as a failed result
+with the same error text and <code>$error_class = "hr_context_overflow"</code>, and
+<code>$overflow</code> holds <code>estimate_tokens</code>, the local count of the prompt,
+<code>context_window</code>, the window registered for the model, and the HTTP
+<code>status</code>. The trace step
+records the same in its <code>overflow</code> field, and a condition of class
+<code>hr_context_overflow</code> is signalled. A refusal that reaches <code>hr_call()</code> as
+an error raised through <code><a href="hr_ellmer_client.html">hr_ellmer_client()</a></code> or <code><a href="hr_backend_client.html">hr_backend_client()</a></code> is
+named the same way when its message carries httr2's "HTTP 400" or "HTTP
+413" and one of those phrasings. A 400 with any other body is left as
+it was. <code>hr_options(on_overflow =)</code> can retry such a request once with a
+smaller prompt your own function makes; see <code><a href="hr_options.html">hr_options()</a></code>. A replay
+retries a recorded refusal only where the recorded run did.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

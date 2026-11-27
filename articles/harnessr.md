@@ -723,7 +723,7 @@ table(factor(settings$stage, unique(settings$stage)))
 #>     ingest    segment       read     screen    extract synthesise   evaluate 
 #>         21         20         50         33         10         29         30 
 #>    options 
-#>         35
+#>         41
 ```
 
 | stage | settings | where you set it | guide |
@@ -735,7 +735,7 @@ table(factor(settings$stage, unique(settings$stage)))
 | extract | 10 | the arguments of [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md) | [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md) |
 | synthesise | 29 | the arguments of [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) and the functions beside it | [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md) |
 | evaluate | 30 | the arguments of [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md), [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) and [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | [`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md), [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md) |
-| options | 35 | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md), for the whole session | [`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md), [`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md), [`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md), [`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md), [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md) |
+| options | 41 | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md), for the whole session | [`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md), [`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md), [`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md), [`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md), [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md) |
 
 Most runs change a few of them, and
 [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
@@ -768,7 +768,7 @@ defaults and when to change each:
 | options | `cache_dir` (a temporary directory) | a long run should be paid for once and survive the session |
 
 [`vignette("settings")`](https://elkronos.github.io/harnessr/articles/settings.md)
-lists all 228 with their defaults and where each default came from, and
+lists all 234 with their defaults and where each default came from, and
 [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
 returns them in R. The settings page links each important one to a
 walkthrough at the end of one of ten guides. Each walkthrough says what

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">harnessr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -82,7 +82,8 @@
     <p>A one-row data frame: <code>run_id</code>, <code>calls</code>, <code>cached</code>, <code>steps</code>,
 <code>tokens_in</code>, <code>tokens_out</code>, <code>errors</code>, <code>elapsed_s</code>, <code>embed_calls</code>,
 <code>embed_tokens</code>, <code>tokens_reasoning</code>, <code>tokens_cached_in</code>,
-<code>usage_estimated</code>.</p>
+<code>usage_estimated</code>, <code>request_s</code>, <code>local_s</code>, <code>overhead_s</code>,
+<code>request_share</code>, <code>local_share</code>, <code>overhead_share</code>.</p>
 <p><code>calls</code> counts every request, including the <code>embed_calls</code> of them made to
 an embeddings endpoint. <code>tokens_in</code> and <code>tokens_out</code> are the size of the
 model calls' prompts and replies; the text sent to be embedded is counted
@@ -105,7 +106,28 @@ reported none. They are parts of <code>tokens_out</code> and <code>tokens_in</co
 additions to them. <code>usage_estimated</code> is the share of requests whose token
 counts were estimated locally because the provider reported none (see
 <code>tokens</code> under "Steps" in <code><a href="hr_trace.html">hr_trace()</a></code>), from 0 to 1, or <code>NA</code> when no
-request says.</p>
+request says. The share of input tokens the provider served from its
+cache is <code>tokens_cached_in / tokens_in</code>; the trace's print shows it when
+it is above 0.</p>
+<p><code>elapsed_s</code> is the time from the run's start (<code>trace$started</code>) to the end
+of its last step: a request's <code>ended_utc</code>, or the <code>at</code> time of a local
+step. <code>at</code> is local time with no offset, so it is placed using the offset
+the trace's requests show (their <code>at</code> beside their <code>ended_utc</code>), or the
+<code>utc_offset</code> the trace recorded when it holds no request. It is read from
+the steps, so a summary taken an hour after the run, or of a trace saved
+with <code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code> and read back in another time zone, gives the same
+figure. A trace with local steps, no request and no <code>utc_offset</code> (one
+made by harnessr 0.7.0) cannot place them: its <code>elapsed_s</code> is then
+<code>request_s + local_s</code>. A trace with no steps gives 0.</p>
+<p>The last six columns split that time. <code>request_s</code> is the seconds the
+requests took (model calls and embeddings requests, retries included),
+<code>local_s</code> the seconds local steps recorded (a command step from
+<code><a href="hr_step_command.html">hr_step_command()</a></code> records its run time; segmentation, truncation and
+other local steps record none, so their time falls into the overhead),
+and <code>overhead_s</code> the rest of <code>elapsed_s</code>. Requests sent in parallel
+overlap, so <code>request_s</code> can pass <code>elapsed_s</code>, and <code>overhead_s</code> is then 0.
+The three shares are each part over the three together, so they add to
+1, or <code>NA</code> when no time was measured.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -122,11 +144,13 @@ request says.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'map_reduce' (all|N+logN|tree) over 1 chunk(s).</span>
 <span class="r-in"><span><span class="fu">hr_trace_summary</span><span class="op">(</span><span class="va">ans</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                          run_id calls cached steps tokens_in tokens_out errors</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 run_20261127012047.526_0950b4     1      0     4       607         10      0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 run_20261127060256.939_9b6999     1      0     4       607         10      0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   elapsed_s embed_calls embed_tokens tokens_reasoning tokens_cached_in</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      0.02           0            0                0                0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   usage_estimated</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1               1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      0.03           0            0                0                0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   usage_estimated request_s local_s overhead_s request_share local_share</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1               1         0       0       0.03        0.0344           0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   overhead_share</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1         0.9656</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># What the run cost, each request priced at its own model (nothing, for a</span></span></span>
 <span class="r-in"><span><span class="co"># mock), and what its model calls would cost at another model's prices.</span></span></span>

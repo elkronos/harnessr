@@ -19,7 +19,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">harnessr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -106,7 +106,7 @@ change.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">stage</span>, <span class="va">settings</span><span class="op">$</span><span class="va">tier</span><span class="op">)</span><span class="op">[</span><span class="va">stages</span>, <span class="op">]</span></span>
 <span><span class="co">#&gt;             </span></span>
 <span><span class="co">#&gt;              advanced basic</span></span>
-<span><span class="co">#&gt;   options          30     5</span></span>
+<span><span class="co">#&gt;   options          36     5</span></span>
 <span><span class="co">#&gt;   evaluate         20    10</span></span>
 <span><span class="co">#&gt;   ingest           18     3</span></span>
 <span><span class="co">#&gt;   segment          17     3</span></span>
@@ -419,6 +419,66 @@ and embedding models alike.</td>
 <td align="left">untested</td>
 <td align="left">Whether a chat model with no registered price may be
 called while max_cost_usd is set.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="runs.html#set-limits"><code>reserve_calls</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>0</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Calls held back from max_calls for a run’s closing
+requests, such as a reader’s final answer.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="runs.html#set-limits"><code>reserve_usd</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>0</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Dollars held back from max_cost_usd for a run’s closing
+requests, in the same way.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="context.html#set-overflow"><code>on_overflow</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>error</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">What a request does when the provider refuses its
+prompt as longer than the model’s context window (an error of class
+hr_context_overflow; see hr_call()).</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="core.html#set-credentials"><code>command_hide_env</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>character(0)</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">More variables to hide from the programs
+hr_step_command() runs: a character vector of regular expressions
+matched against variable names, without regard to case, such as
+“^MY_GATEWAY$”.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="core.html#set-credentials"><code>command_temp_home</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>FALSE</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Whether hr_step_command() runs its program with HOME
+(and USERPROFILE on Windows) set to an empty folder made for the call,
+so it does not read your configuration files and stored logins.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="core.html#set-credentials"><code>mask_secrets</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>FALSE</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Whether key-shaped strings are replaced with
+&lt;masked&gt; in the copies harnessr stores or shows: the output a
+command step keeps, the file hr_trace_save() writes, and a printed
+trace.</td>
 </tr>
 <tr class="even">
 <td align="left"><a href="models.html#set-price-age"><code>price_max_age_days</code></a></td>
