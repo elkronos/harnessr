@@ -1249,7 +1249,7 @@ points and narrower than 20, so the sample is adequate under the wider bar
 only. Widening the bar accepts a less precise figure; the sample says no more
 than before.
 
-### Screening replies: `criteria_schema`, `samples` and `sample_rule` {#set-screen-reply}
+### Screening replies: `criteria_schema`, `samples`, `sample_rule` and `sample_k` {#set-screen-reply}
 
 **What it controls.** `criteria_schema` sets what each screening reply holds.
 `"decision"` asks for a decision, a reason, the deciding criterion and a quote.
@@ -1264,8 +1264,14 @@ report a criterion) is recorded as `"unclear"`, for a person to decide.
 `sample_rule` combines them. `"include_if_any"` includes a document any draw
 included and excludes one only when every draw excluded it, so a study one draw
 would keep is not lost to the others. `"majority"` takes the decision most
-draws gave. The table then records each draw's decision (`sample_decisions`)
-and the share that included (`include_share`).
+draws gave. `"k_of_n"` includes a document when at least `sample_k` draws
+included it and, like `"include_if_any"`, excludes one only when every draw
+excluded it; the rest go to a person as `"unclear"`. At `sample_k = 1` it
+decides as `"include_if_any"` does. The table then records each draw's
+decision (`sample_decisions`) and the share that included (`include_share`),
+and the result's `sampling` field names the rule. `gr_reference()` and
+`gr_calibrate()` read the combined `decision`, so recall is measured on what
+the rule kept.
 
 **Signs it needs changing.** Exclusions whose reasons say the excerpt does
 not mention something ("the age of participants is not given") are
@@ -1279,7 +1285,8 @@ the same record is screened again (compare two runs at a temperature above
 written with; it has not been compared with `"per_criterion"`. `samples = 1`
 sends one request per document, as before, and `"include_if_any"` was chosen
 so that no study a draw would keep is lost; neither has been compared
-(`untested`).
+(`untested`). `sample_k` has no default: you choose it, and no value has been
+compared.
 
 **How to test it.** `criteria_schema` changes the request (a schema and one
 more instruction), so first test what it does to the same reply. This stand-in
@@ -1317,6 +1324,16 @@ draws <- hr_mock_client(function(messages, params) {
 })
 sampled <- gr_screen(reports, protocol, client = draws, samples = 3)
 sampled$table[, c("document", "decision", "sample_decisions", "include_share")]
+```
+
+Asking for two of the three draws to include holds the southern report back
+for a person:
+
+```{r}
+two <- gr_screen(reports, protocol, client = draws, samples = 3,
+                 sample_rule = "k_of_n", sample_k = 2)
+two$table[, c("document", "decision", "sample_decisions")]
+two$sampling
 ```
 
 On your own records, compare the two values against labels, one arm per value,

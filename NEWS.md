@@ -26,6 +26,20 @@
   1 and going on to page 2 reports `NA`.
 * Greedy packing, the default, and `runt_merge` pack as before.
 
+## Screening draws combined by k_of_n
+
+* **`gr_screen()` gains `sample_rule = "k_of_n"` and `sample_k`.** With
+  `samples` above 1, a document is included when at least `sample_k` draws
+  included it, excluded only when every draw excluded it, and otherwise
+  left `"unclear"` for a person. `sample_k = 1` decides as
+  `"include_if_any"` does. `sample_k` is required under `"k_of_n"` and
+  refused under the other rules.
+* **A sampled screening names its rule.** With `samples` above 1, the
+  result gains a `sampling` field (`samples`, `sample_rule` and, under
+  `"k_of_n"`, `sample_k`), the print says how each decision was made, and
+  each answer's notes carry `sample_k`. At `samples = 1` the request, the
+  cache key, the table and the result's fields are as before.
+
 ## Run time in the trace
 
 * **`hr_trace_summary()` reads `elapsed_s` from the steps.** It was the time
