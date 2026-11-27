@@ -111,6 +111,15 @@
   since an error body or a program's output can echo a key. Off, every copy
   is byte for byte what it was.
 
+## Documentation
+
+* **A diagram of one request.** `vignette("core")` shows the steps of an
+  `hr_call()` request in order: the count and cap, the governor before the
+  cache, the cache, the governor on a miss with the reserves, the client and
+  its retries, the trace step and a context overflow. The layers diagram on
+  the README now has one box per core guide, and the document run diagram
+  lists `reserve_calls` and `reserve_usd` with the other limits.
+
 # harnessr 0.7.0
 
 harnessr 0.7.0 is the first release under the name harnessr. It reframes

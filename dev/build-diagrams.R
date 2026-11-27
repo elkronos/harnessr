@@ -1,11 +1,12 @@
-# build-diagrams.R: write the four SVG diagrams in man/figures from the code.
+# build-diagrams.R: write the five SVG diagrams in man/figures from the code.
 #
 # Run from the repository root:
 #
 #   Rscript dev/build-diagrams.R             # writes man/figures
-#   Rscript dev/build-diagrams.R <out_dir>   # writes the four files there
+#   Rscript dev/build-diagrams.R <out_dir>   # writes the five files there
 #
-# It writes layers.svg, document-run.svg, composition.svg and registry.svg.
+# It writes layers.svg, document-run.svg, composition.svg, registry.svg and
+# request.svg.
 # The markup is written as text with base R, never through a graphics
 # device: cairo turns glyphs into paths, which a screen reader cannot read
 # and which differ between machines. A rerun gives byte-identical files.
@@ -844,10 +845,169 @@ draw_registry <- function() {
                   signal_contract, " (.hr_signal_contract)."))
 }
 
+# ---------------------------------------------------------------------------
+# 5. request.svg
+# ---------------------------------------------------------------------------
+
+# The life of one request through hr_call(), in the order model_call() takes
+# it (R/core-transport-call.R): the cap, the governor's call stage, the
+# client's dispatch, the trace step, then a context overflow and its one
+# retry. A prompt that leaves no room for a reply is recorded and not sent.
+must(calls_in_order(ns$model_call, c(
+  "call_cap(", "max_output <= 0L", "trace_record(trace", "governor_check(trace, gate, \"call\")",
+  "client_dispatch(client, req)", "governor_refuse(trace", "is_context_overflow(res)",
+  "trace_record(trace", "signalCondition(", "overflow_refit(", "model_call(client, smaller")),
+  "model_call() caps the reply, checks the governor, dispatches, records, then retries an overflow")
+must(grepl("overflow_retry = TRUE", paste(deparse(body(ns$model_call), width.cutoff = 500L),
+                                          collapse = "\n"), fixed = TRUE),
+     "an overflow is retried once, marked overflow_retry = TRUE")
+# A replay client checks the send stage and answers from its recording; it
+# has no cache (R/core-transport-call.R).
+must(calls_in_order(get("client_dispatch.gr_replay_client", envir = ns),
+                    c("req$admit()", "replay_lookup(client, req)")),
+     "a replay client checks the send stage and then looks the request up")
+# What the cache does not keep.
+dispatch_src <- paste(deparse(body(get("client_dispatch.gr_client", envir = ns)),
+                              width.cutoff = 500L), collapse = "\n")
+must(grepl("isTRUE(res$ok) && !identical(res$finish_reason, \"length\") && usable(res)",
+           dispatch_src, fixed = TRUE),
+     "the cache keeps only a usable reply that was not cut off")
+# HTTP retries (R/core-transport-http.R).
+http_src <- paste(deparse(body(ns$http_call), width.cutoff = 500L), collapse = "\n")
+must(grepl("status %in% .retryable_status && attempt <= client$max_retries", http_src,
+           fixed = TRUE) && grepl("out_of_quota(status, body_text)", http_src, fixed = TRUE),
+     "http_call() retries the retryable statuses up to max_retries, and not an account out of quota")
+retry_status <- ns$.retryable_status
+max_retries <- ns$gr_defaults$max_retries
+on_overflow_default <- ns$gr_defaults$on_overflow
+must(identical(on_overflow_default, "error"), "on_overflow is \"error\" by default")
+must(identical(ns$check_closing(TRUE), TRUE), "hr_call() takes closing = TRUE")
+# deparse() breaks a line after `if (...)`, so whitespace is made one space.
+gov_src <- gsub("\\s+", " ", paste(deparse(body(ns$governor_check), width.cutoff = 500L),
+                                   collapse = " "))
+must(grepl("hold <- if (closing) 0 else governor_hold(gov, \"reserve_calls\"", gov_src,
+           fixed = TRUE) &&
+       grepl("hold <- if (closing) 0 else governor_hold(gov, \"reserve_usd\"", gov_src,
+             fixed = TRUE),
+     "a closing request may spend reserve_calls and reserve_usd")
+must(grepl("\"hr_budget_refused\"", gov_src, fixed = TRUE), "a refusal has class hr_budget_refused")
+overflow_phrases <- ns$.hr_overflow_phrases
+must("prompt is too long" %in% overflow_phrases, "\"prompt is too long\" names an overflow")
+
+draw_request <- function() {
+  # The height is checked at the end, as for document-run.svg.
+  cv <- canvas("request", 864)
+  heading(cv, "The life of one request",
+          sprintf("%s() takes each request down these steps; a refusal, a hit or no room ends it early.",
+                  fn("hr_call", "core")))
+  mx <- 24
+  mw <- 500
+  ox <- 564
+  ow <- 312
+  box(cv, mx, 84, mw, 40, list(ln(sprintf("%s(client, messages, ..., closing = FALSE)",
+                                          fn("hr_call", "core")), 14, bold = TRUE, cls = "fn")),
+      "core")
+  limit_lines <- function(limits, cls) {
+    lapply(wrap(paste(limits, collapse = ", "), mw - 24, 13), function(s) ln(s, 13, cls = cls))
+  }
+  step <- function(title, ...) c(list(ln(title, 14, bold = TRUE, cls = "step")), list(...))
+  flat <- function(...) {
+    out <- list()
+    for (x in list(...)) out <- c(out, if (is.null(x$s)) x else list(x))
+    out
+  }
+  rows <- list(
+    list(main = step(sprintf("1. count and cap: %s()", fn("hr_count_tokens", "core")),
+                     ln("counts the prompt; max_output is held to the model's", 13),
+                     ln("output limit and to the room its context window leaves", 13)),
+         out = list(ln("no room for a reply", 14, bold = TRUE, color = pal$accent$ink),
+                    ln("a failed result with status 0;", 13),
+                    ln("a step of the trace, never sent", 13)), out_style = "accent"),
+    list(main = flat(step("2. governor, before the cache"),
+                     limit_lines(gov_limits[[1]], "limits-call"),
+                     ln("closing = TRUE may spend reserve_calls", 13, color = muted)),
+         out = list(ln("refused", 14, bold = TRUE, color = pal$accent$ink),
+                    ln("ok = FALSE, refused = TRUE;", 13),
+                    ln("class hr_budget_refused;", 13),
+                    ln("not sent and not a step", 13)), out_style = "accent"),
+    list(main = step(sprintf("3. cache: %s()", fn("hr_cache_client", "core")),
+                     ln(sprintf("an %s() answers from its recording", fn("hr_replay_client", "core")),
+                        13, cls = "fn"),
+                     ln("instead, and has no cache", 13)),
+         out = list(ln("a hit", 14, bold = TRUE),
+                    ln("returned with cached = TRUE and", 13),
+                    ln("attempts = 0; nothing is paid", 13)), out_style = "core"),
+    list(main = flat(step("4. governor, on a cache miss"),
+                     limit_lines(gov_limits[[2]], "limits-send"),
+                     ln("closing = TRUE may spend reserve_usd", 13, color = muted)),
+         out = list(ln("refused", 14, bold = TRUE, color = pal$accent$ink),
+                    ln("as at step 2: nothing is sent", 13),
+                    ln("and nothing is paid", 13)), out_style = "accent"),
+    list(main = step("5. the client sends it",
+                     ln(sprintf("%s() retries a dropped connection and HTTP",
+                                fn("hr_client", "core")), 13, cls = "fn"),
+                     ln(paste(paste(retry_status[-length(retry_status)], collapse = ", "), "and",
+                              retry_status[length(retry_status)]), 13, cls = "retry-status"),
+                     ln(sprintf("up to max_retries = %d times, pausing between tries;",
+                                max_retries), 13),
+                     ln("an account out of quota is not retried", 13)),
+         main_style = "neutral",
+         out = list(ln("the reply is cached", 14, bold = TRUE),
+                    ln("unless it failed, was cut off at", 13),
+                    ln("its cap or fails the caller's check", 13)), out_style = "core"),
+    list(main = step(sprintf("6. %s()", fn("trace_record", "core", internal = TRUE)),
+                     ln("adds one step: tokens, cost, seconds, when it started", 13),
+                     ln("and ended, and the overflow fields when there is one", 13))),
+    list(main = step("7. context overflow",
+                     ln("a 400 or 413 whose body says the prompt is too long", 13),
+                     ln("signals hr_context_overflow", 13)),
+         out = list(ln(sprintf("%s(on_overflow = fn)", fn("hr_options", "core")), 14, bold = TRUE,
+                       cls = "fn"),
+                    ln("fn makes a smaller prompt, sent", 13),
+                    ln("once, from step 1 again; the default", 13),
+                    ln(sprintf("\"%s\" returns the failure", on_overflow_default), 13)),
+         out_style = "core"))
+  need <- function(lines) ceiling(12 + sum(vapply(lines, function(l) l$size * 1.3, numeric(1))))
+  y <- 124
+  for (r in rows) {
+    arrow(cv, c(mx + mw / 2, y, mx + mw / 2, y + 20))
+    y <- y + 20
+    h <- max(56, need(r$main), if (!is.null(r$out)) need(r$out) else 0)
+    box(cv, mx, y, mw, h, r$main, r$main_style %||% "core")
+    if (!is.null(r$out)) {
+      arrow(cv, c(mx + mw, y + h / 2, ox, y + h / 2), r$out_style)
+      box(cv, ox, y, ow, h, r$out, r$out_style)
+    }
+    y <- y + h
+  }
+  arrow(cv, c(mx + mw / 2, y, mx + mw / 2, y + 20))
+  y <- y + 20
+  box(cv, mx, y, 852, 44, list(ln(
+    "the result: a gr_result with $ok, $text, $usage, $cached, $attempts and more", 14)))
+  if (y + 44 + 20 != cv$height) stop(sprintf("Set the request height to %s.", fmt(y + 44 + 20)),
+                                     call. = FALSE)
+
+  svg_file(cv, "The life of one request",
+           paste0("hr_call() takes a request through seven steps. 1: it counts the prompt and ",
+                  "caps the reply; a prompt that leaves no room is a failed step, not sent. ",
+                  "2: the governor checks ", paste(gov_limits[[1]], collapse = ", "),
+                  "; a refused request is not sent and not a step. 3: the cache of ",
+                  "hr_cache_client() returns a hit with nothing paid; a replay client answers ",
+                  "from its recording. 4: on a miss the governor checks ",
+                  paste(gov_limits[[2]], collapse = ", "), ". A closing request may spend the ",
+                  "reserves. 5: the client sends it; hr_client() retries a dropped connection and ",
+                  "HTTP ", paste(retry_status, collapse = ", "), " up to ", max_retries,
+                  " times, and the cache keeps a usable reply. 6: trace_record() adds the step. ",
+                  "7: a provider's refusal of a prompt that is too long signals ",
+                  "hr_context_overflow, and an on_overflow function can retry it once with a ",
+                  "smaller prompt. The call returns a gr_result."))
+}
+
 written <- c(
   write_svg(draw_layers(), "layers.svg"),
   write_svg(draw_document_run(), "document-run.svg"),
   write_svg(draw_composition(), "composition.svg"),
-  write_svg(draw_registry(), "registry.svg"))
+  write_svg(draw_registry(), "registry.svg"),
+  write_svg(draw_request(), "request.svg"))
 ns$hr_options(old_opts)
 cat(paste0("Wrote ", written, "\n"), sep = "")

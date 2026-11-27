@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="864" viewBox="0 0 900 864" role="img" aria-labelledby="request-title request-desc">
+<title id="request-title">The life of one request</title>
+<desc id="request-desc">hr_call() takes a request through seven steps. 1: it counts the prompt and caps the reply; a prompt that leaves no room is a failed step, not sent. 2: the governor checks allowed_models, max_output_tokens, max_calls, reserve_calls; a refused request is not sent and not a step. 3: the cache of hr_cache_client() returns a hit with nothing paid; a replay client answers from its recording. 4: on a miss the governor checks max_tokens_total, max_cost_usd, allow_unpriced, reserve_usd. A closing request may spend the reserves. 5: the client sends it; hr_client() retries a dropped connection and HTTP 408, 409, 425, 429, 500, 502, 503, 504 up to 4 times, and the cache keeps a usable reply. 6: trace_record() adds the step. 7: a provider's refusal of a prompt that is too long signals hr_context_overflow, and an on_overflow function can retry it once with a smaller prompt. The call returns a gr_result.</desc>
+<defs>
+<marker id="request-arrow-neutral" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#8c959f"/></marker>
+<marker id="request-arrow-core" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#0969da"/></marker>
+<marker id="request-arrow-doc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#1a7f37"/></marker>
+<marker id="request-arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#bc4c00"/></marker>
+</defs>
+<rect width="900" height="864" rx="14" fill="#ffffff"/>
+<g font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Liberation Sans', sans-serif" font-size="14" fill="#1f2328">
+<text x="24" y="36" font-size="20" font-weight="bold">The life of one request</text>
+<text x="24" y="60" fill="#57606a">hr_call() takes each request down these steps; a refusal, a hit or no room ends it early.</text>
+<rect x="24" y="84" width="500" height="40" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="274" y="108.6" text-anchor="middle" font-weight="bold" class="fn">hr_call(client, messages, ..., closing = FALSE)</text>
+<path d="M274 124 L274 144" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#request-arrow-neutral)"/>
+<rect x="24" y="144" width="500" height="64" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="274" y="163.7" text-anchor="middle" font-weight="bold" class="step">1. count and cap: hr_count_tokens()</text>
+<text x="274" y="180.9" font-size="13" text-anchor="middle">counts the prompt; max_output is held to the model's</text>
+<text x="274" y="197.8" font-size="13" text-anchor="middle">output limit and to the room its context window leaves</text>
+<path d="M524 176 L564 176" fill="none" stroke="#bc4c00" stroke-width="1.75" marker-end="url(#request-arrow-accent)"/>
+<rect x="564" y="144" width="312" height="64" rx="8" fill="#fff1e5" stroke="#bc4c00" stroke-width="1.5"/>
+<text x="720" y="163.7" text-anchor="middle" font-weight="bold" fill="#953800">no room for a reply</text>
+<text x="720" y="180.9" font-size="13" text-anchor="middle">a failed result with status 0;</text>
+<text x="720" y="197.8" font-size="13" text-anchor="middle">a step of the trace, never sent</text>
+<path d="M274 208 L274 228" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#request-arrow-neutral)"/>
+<rect x="24" y="228" width="500" height="81" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="274" y="256.2" text-anchor="middle" font-weight="bold" class="step">2. governor, before the cache</text>
+<text x="274" y="273.4" font-size="13" text-anchor="middle" class="limits-call">allowed_models, max_output_tokens, max_calls, reserve_calls</text>
+<text x="274" y="290.3" font-size="13" text-anchor="middle" fill="#57606a">closing = TRUE may spend reserve_calls</text>
+<path d="M524 268.5 L564 268.5" fill="none" stroke="#bc4c00" stroke-width="1.75" marker-end="url(#request-arrow-accent)"/>
+<rect x="564" y="228" width="312" height="81" rx="8" fill="#fff1e5" stroke="#bc4c00" stroke-width="1.5"/>
+<text x="720" y="247.8" text-anchor="middle" font-weight="bold" fill="#953800">refused</text>
+<text x="720" y="265" font-size="13" text-anchor="middle">ok = FALSE, refused = TRUE;</text>
+<text x="720" y="281.9" font-size="13" text-anchor="middle">class hr_budget_refused;</text>
+<text x="720" y="298.8" font-size="13" text-anchor="middle">not sent and not a step</text>
+<path d="M274 309 L274 329" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#request-arrow-neutral)"/>
+<rect x="24" y="329" width="500" height="64" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="274" y="348.7" text-anchor="middle" font-weight="bold" class="step">3. cache: hr_cache_client()</text>
+<text x="274" y="365.9" font-size="13" text-anchor="middle" class="fn">an hr_replay_client() answers from its recording</text>
+<text x="274" y="382.8" font-size="13" text-anchor="middle">instead, and has no cache</text>
+<path d="M524 361 L564 361" fill="none" stroke="#0969da" stroke-width="1.75" marker-end="url(#request-arrow-core)"/>
+<rect x="564" y="329" width="312" height="64" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="720" y="348.7" text-anchor="middle" font-weight="bold">a hit</text>
+<text x="720" y="365.9" font-size="13" text-anchor="middle">returned with cached = TRUE and</text>
+<text x="720" y="382.8" font-size="13" text-anchor="middle">attempts = 0; nothing is paid</text>
+<path d="M274 393 L274 413" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#request-arrow-neutral)"/>
+<rect x="24" y="413" width="500" height="64" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="274" y="432.7" text-anchor="middle" font-weight="bold" class="step">4. governor, on a cache miss</text>
+<text x="274" y="449.9" font-size="13" text-anchor="middle" class="limits-send">max_tokens_total, max_cost_usd, allow_unpriced, reserve_usd</text>
+<text x="274" y="466.8" font-size="13" text-anchor="middle" fill="#57606a">closing = TRUE may spend reserve_usd</text>
+<path d="M524 445 L564 445" fill="none" stroke="#bc4c00" stroke-width="1.75" marker-end="url(#request-arrow-accent)"/>
+<rect x="564" y="413" width="312" height="64" rx="8" fill="#fff1e5" stroke="#bc4c00" stroke-width="1.5"/>
+<text x="720" y="432.7" text-anchor="middle" font-weight="bold" fill="#953800">refused</text>
+<text x="720" y="449.9" font-size="13" text-anchor="middle">as at step 2: nothing is sent</text>
+<text x="720" y="466.8" font-size="13" text-anchor="middle">and nothing is paid</text>
+<path d="M274 477 L274 497" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#request-arrow-neutral)"/>
+<rect x="24" y="497" width="500" height="98" rx="8" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.5"/>
+<text x="274" y="516.8" text-anchor="middle" font-weight="bold" class="step">5. the client sends it</text>
+<text x="274" y="534" font-size="13" text-anchor="middle" class="fn">hr_client() retries a dropped connection and HTTP</text>
+<text x="274" y="550.9" font-size="13" text-anchor="middle" class="retry-status">408, 409, 425, 429, 500, 502, 503 and 504</text>
+<text x="274" y="567.8" font-size="13" text-anchor="middle">up to max_retries = 4 times, pausing between tries;</text>
+<text x="274" y="584.7" font-size="13" text-anchor="middle">an account out of quota is not retried</text>
+<path d="M524 546 L564 546" fill="none" stroke="#0969da" stroke-width="1.75" marker-end="url(#request-arrow-core)"/>
+<rect x="564" y="497" width="312" height="98" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="720" y="533.7" text-anchor="middle" font-weight="bold">the reply is cached</text>
+<text x="720" y="550.9" font-size="13" text-anchor="middle">unless it failed, was cut off at</text>
+<text x="720" y="567.8" font-size="13" text-anchor="middle">its cap or fails the caller's check</text>
+<path d="M274 595 L274 615" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#request-arrow-neutral)"/>
+<rect x="24" y="615" width="500" height="64" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="274" y="634.7" text-anchor="middle" font-weight="bold" class="step">6. trace_record()</text>
+<text x="274" y="651.9" font-size="13" text-anchor="middle">adds one step: tokens, cost, seconds, when it started</text>
+<text x="274" y="668.8" font-size="13" text-anchor="middle">and ended, and the overflow fields when there is one</text>
+<path d="M274 679 L274 699" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#request-arrow-neutral)"/>
+<rect x="24" y="699" width="500" height="81" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="274" y="727.2" text-anchor="middle" font-weight="bold" class="step">7. context overflow</text>
+<text x="274" y="744.4" font-size="13" text-anchor="middle">a 400 or 413 whose body says the prompt is too long</text>
+<text x="274" y="761.3" font-size="13" text-anchor="middle">signals hr_context_overflow</text>
+<path d="M524 739.5 L564 739.5" fill="none" stroke="#0969da" stroke-width="1.75" marker-end="url(#request-arrow-core)"/>
+<rect x="564" y="699" width="312" height="81" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="720" y="718.8" text-anchor="middle" font-weight="bold" class="fn">hr_options(on_overflow = fn)</text>
+<text x="720" y="736" font-size="13" text-anchor="middle">fn makes a smaller prompt, sent</text>
+<text x="720" y="752.9" font-size="13" text-anchor="middle">once, from step 1 again; the default</text>
+<text x="720" y="769.8" font-size="13" text-anchor="middle">&quot;error&quot; returns the failure</text>
+<path d="M274 780 L274 800" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#request-arrow-neutral)"/>
+<rect x="24" y="800" width="852" height="44" rx="8" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.5"/>
+<text x="450" y="826.6" text-anchor="middle">the result: a gr_result with $ok, $text, $usage, $cached, $attempts and more</text>
+</g>
+</svg>

@@ -49,11 +49,11 @@ the repository root, and only when you mean to change what they record:
 | `Rscript dev/build-pdf-fixtures.R` | `fixtures/pdf/`, the PDFs the PDF golden records read; needs pdftools |
 | `dev/record-legacy-keys.R` | `fixtures/legacy-0.6.0/`, a cache and a recording written by an old build; its header says how to rerun it with that build |
 
-`Rscript dev/build-diagrams.R` rewrites the four diagrams in `man/figures/`
-from the code: the layers, a document run, composition, and the registry.
-Rerun it after changing a stage, a kind of module, a composition verb or a
-contract version, and commit the new SVGs. `tests/testthat/test-diagrams.R`
-fails until you do.
+`Rscript dev/build-diagrams.R` rewrites the five diagrams in `man/figures/`
+from the code: the layers, a document run, composition, the registry, and
+one request through `hr_call()`. Rerun it after changing a stage, a kind of
+module, a composition verb, a contract version or a step of a request, and
+commit the new SVGs. `tests/testthat/test-diagrams.R` fails until you do.
 
 `Rscript dev/ci/pr-checks.R <mode> origin/main HEAD` runs a pull request
 check locally; the modes are `tests`, `deps`, `lint`, `namespace`,
