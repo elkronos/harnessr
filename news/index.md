@@ -141,6 +141,29 @@
   step’s output, since an error body or a program’s output can echo a
   key. Off, every copy is byte for byte what it was.
 
+### Documentation
+
+- **A diagram of one request.**
+  [`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)
+  shows the steps of an
+  [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
+  request in order: the count and cap, the governor before the cache,
+  the cache, the governor on a miss with the reserves, the client and
+  its retries, the trace step and a context overflow. The layers diagram
+  on the README now names ten areas of the core, in the order of the
+  core guides, and the document run diagram lists `reserve_calls` and
+  `reserve_usd` with the other limits.
+
+- **A shorter README.** It installs the 0.7.0 release or the development
+  version, makes a first call and shows its trace, then answers a
+  question about the bundled example with
+  [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
+  a block CI checks against real output. It says which limits a call is
+  held to and how a saved trace replays offline. The
+  [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
+  and hand-built recipe examples are left to
+  [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md).
+
 ## harnessr 0.7.0
 
 harnessr 0.7.0 is the first release under the name harnessr. It reframes

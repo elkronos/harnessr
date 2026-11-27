@@ -204,13 +204,13 @@ cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "signature", "chunks_
 # One trace covers all three, so this is the cost of the whole comparison.
 hr_trace_summary(cmp$trace)
 #>                          run_id calls cached steps tokens_in tokens_out errors
-#> 1 run_20261127060206.275_a4ab09     5      0    16      2122         65      0
+#> 1 run_20261127171235.375_fdc342     5      0    16      2122         65      0
 #>   elapsed_s embed_calls embed_tokens tokens_reasoning tokens_cached_in
-#> 1      0.15           0            0                0                0
+#> 1      0.11           0            0                0                0
 #>   usage_estimated request_s local_s overhead_s request_share local_share
-#> 1               1         0       0       0.14        0.0344           0
+#> 1               1         0       0        0.1        0.0472           0
 #>   overhead_share
-#> 1         0.9656
+#> 1         0.9528
 
 # What each recipe cost, and what a right answer cost. The mock is free, so
 # register a price for it under another name to see the columns filled.

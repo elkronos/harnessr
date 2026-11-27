@@ -99,7 +99,7 @@
 </tr><tr><td><code>dev/record-legacy-keys.R</code></td>
 <td>
 <code>fixtures/legacy-0.6.0/</code>, a cache and a recording written by an old build; its header says how to rerun it with that build</td>
-</tr></tbody></table><p><code>Rscript dev/build-diagrams.R</code> rewrites the four diagrams in <code>man/figures/</code> from the code: the layers, a document run, composition, and the registry. Rerun it after changing a stage, a kind of module, a composition verb or a contract version, and commit the new SVGs. <code>tests/testthat/test-diagrams.R</code> fails until you do.</p>
+</tr></tbody></table><p><code>Rscript dev/build-diagrams.R</code> rewrites the five diagrams in <code>man/figures/</code> from the code: the layers, a document run, composition, the registry, and one request through <code><a href="reference/hr_call.html">hr_call()</a></code>. Rerun it after changing a stage, a kind of module, a composition verb, a contract version or a step of a request, and commit the new SVGs. <code>tests/testthat/test-diagrams.R</code> fails until you do.</p>
 <p><code>Rscript dev/ci/pr-checks.R &lt;mode&gt; origin/main HEAD</code> runs a pull request check locally; the modes are <code>tests</code>, <code>deps</code>, <code>lint</code>, <code>namespace</code>, <code>commits</code> and <code>dashes</code>.</p>
 </div>
 <div class="section level3">

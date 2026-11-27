@@ -169,7 +169,7 @@ writeLines("notes", file.path(d, "notes.doc"))   # no extractor claims .doc
 
 inv <- gr_inventory(d)
 inv
-#> <gr_inventory> /tmp/RtmpVwNvOF/file1bfe21b3f53f
+#> <gr_inventory> /tmp/RtmpVhHxtO/file1b291abd615b
 #>   2 file(s), 44.0 B; 1 readable
 #>   1 ready, 1 no_extractor
 #>   tokens: 16   cost floor: unknown: no price set for gpt-5.6-terra (set one with hr_register_model() or hr_load_models())

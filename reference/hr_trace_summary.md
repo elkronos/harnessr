@@ -100,13 +100,13 @@ ans <- answer_document(gr_example(), "What was revenue?", "thorough", client = c
 #> Reading with 'map_reduce' (all|N+logN|tree) over 1 chunk(s).
 hr_trace_summary(ans$trace)
 #>                          run_id calls cached steps tokens_in tokens_out errors
-#> 1 run_20261127060256.939_9b6999     1      0     4       607         10      0
+#> 1 run_20261127171313.896_8c0b73     1      0     4       607         10      0
 #>   elapsed_s embed_calls embed_tokens tokens_reasoning tokens_cached_in
-#> 1      0.03           0            0                0                0
+#> 1      0.02           0            0                0                0
 #>   usage_estimated request_s local_s overhead_s request_share local_share
-#> 1               1         0       0       0.03        0.0344           0
+#> 1               1         0       0       0.02        0.0474           0
 #>   overhead_share
-#> 1         0.9656
+#> 1         0.9526
 
 # What the run cost, each request priced at its own model (nothing, for a
 # mock), and what its model calls would cost at another model's prices.

@@ -76,6 +76,29 @@ does three things:
   refusals](#refusals) below). A request that would pass one is not
   sent.
 
+The diagram follows one request from
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
+to its result, with the four places it can end early: no room for a
+reply, a refusal at either governor check and a cache hit. The cache,
+the recording and the trace each have a section further down.
+
+![hr_call() takes a request through seven steps. 1, count and cap: it
+counts the prompt and caps the reply; a prompt that leaves no room for a
+reply is a failed step of the trace and is not sent. 2, the governor
+checks allowed_models, max_output_tokens, max_calls and reserve_calls
+before the cache; a refused request is not sent and is not a step. 3,
+the cache of hr_cache_client() returns a hit with nothing paid; an
+hr_replay_client() answers from its recording instead. 4, on a cache
+miss the governor checks max_tokens_total, max_cost_usd, allow_unpriced
+and reserve_usd; a request with closing = TRUE may spend the reserves.
+5, the client sends it, and hr_client() retries a dropped connection and
+HTTP 408, 409, 425, 429, 500, 502, 503 and 504 up to max_retries = 4
+times; the cache keeps a usable reply. 6, trace_record() adds the step
+to the trace. 7, a 400 or 413 that says the prompt is too long signals
+hr_context_overflow, and an on_overflow function can retry it once with
+a smaller prompt. The call returns a
+gr_result.](../reference/figures/request.svg)
+
 Each call stands alone. harnessr keeps no conversation between calls, so
 a second call sees only the messages you pass it. To continue a
 conversation, pass the earlier turns again as `"assistant"` and `"user"`
@@ -544,13 +567,13 @@ a <- hr_call(cl, "What was revenue in 2024?", model = "priced-mock",
 b <- hr_call(cl, "Check the draft against the report.", model = "priced-mock",
              trace = tr, label = "check")
 tr
-#> <gr_trace run_20261127060621.996_9a8fff>  2 steps, 2 model calls, 23 in / 26 out tokens, 0 error(s)
+#> <gr_trace run_20261127171546.057_30d83c>  2 steps, 2 model calls, 23 in / 26 out tokens, 0 error(s)
 #>   steps: check x1, draft x1 
 #>   cost: $0.0003 across priced-mock, prices as of 2026-11
-#>   time: 0.01 s (requests 29%, local 0%, overhead 71%)
+#>   time: 0.01 s (requests 35%, local 0%, overhead 65%)
 #>   usage: estimated locally for 100% of requests (the provider reported none)
 #>   actor: purpose = core guide 
-#>   started: 2026-11-27T06:06:21.997Z
+#>   started: 2026-11-27T17:15:46.058Z
 ```
 
 The trace is an environment, so every call that is passed it records
@@ -631,7 +654,7 @@ The summary also says how long the run took and where the time went:
 hr_trace_summary(tr)[, c("elapsed_s", "request_s", "local_s", "overhead_s",
                          "request_share", "overhead_share")]
 #>   elapsed_s request_s local_s overhead_s request_share overhead_share
-#> 1      0.01         0       0          0        0.2925         0.7075
+#> 1      0.01         0       0          0        0.3479         0.6521
 ```
 
 `elapsed_s` runs from the trace’s start to the end of its last step,

@@ -715,11 +715,11 @@ trace leaves them out, since it lists requests only:
 ``` r
 
 tr
-#> <gr_trace run_20261127060617.050_0dcb9e>  1 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
+#> <gr_trace run_20261127171542.045_c5e8b7>  1 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
 #>   steps: truncate x1 
 #>   cost: no cost recorded
-#>   time: 0.01 s (requests 0%, local 0%, overhead 100%)
-#>   started: 2026-11-27T06:06:17.051Z
+#>   time: 0.00 s (requests 0%, local 0%, overhead 100%)
+#>   started: 2026-11-27T17:15:42.046Z
 ```
 
 Two other parts of the core read or write these steps.
