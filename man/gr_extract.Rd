@@ -50,7 +50,10 @@ interrupted extraction resumes instead of restarting.}
 \item{resolve}{What to do when two parts of one document give different values
 for the same field. \code{"first"} (default) takes the earlier one and records
 the disagreement in the \code{conflicts} column, costing nothing. \code{"model"}
-spends one extra call per disagreeing field to adjudicate; if that call
+spends one extra call per disagreeing field to adjudicate, and the table
+gains a \code{model_picks} column naming each field whose value that call
+chose. A model's pick is advisory: no validation against people's
+judgements backs it, so check each one against its quote. If that call
 fails, or a request limit is reached before it can be made, the first
 value is kept, as with \code{"first"}, and a warning (in the row's
 \code{summary$warnings}) names the field. If it chooses none of the values,
@@ -93,8 +96,10 @@ An object of class \code{gr_extraction}:
 the schema and of that field's type, then \code{n_filled}, \code{n_unverified},
 \code{conflicts}, \code{status}, \code{duplicate_of}, \code{error} (with
 \code{agreement_columns = TRUE}, a \verb{<field>_agreement} and a
-\verb{<field>_conflict} column for each field after the field columns).
-\code{status} is the run
+\verb{<field>_conflict} column for each field after the field columns;
+with \code{resolve = "model"}, a \code{model_picks} column after \code{error}: the
+fields whose value a model call chose, comma-separated, or \code{NA} when
+none was). \code{status} is the run
 status from \code{summary}, except that a document some of whose extraction
 requests failed is \code{"incomplete"} (or \code{"failed"} if all did), and one
 whose extraction requests all succeeded is not \code{"failed"} for another

@@ -12,7 +12,7 @@
 #' Bookkeeping columns of an extraction table, never compared as fields.
 #' @noRd
 .gr_extract_bookkeeping <- c("document", "document_id", "n_filled", "n_unverified",
-                             "conflicts", "status", "duplicate_of", "error")
+                             "conflicts", "status", "duplicate_of", "error", "model_picks")
 
 #' The columns gr_extract(agreement_columns = TRUE) adds beside a field:
 #' `<field>_agreement` and `<field>_conflict`, for each field whose two

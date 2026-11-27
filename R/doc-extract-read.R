@@ -177,6 +177,7 @@ read_extract <- function(chunks, question, client, spec, trace) {
                             unsupported else character(0),
                           unreadable = rec$unreadable,
                           unresolved = rec$unresolved,
+                          model_picks = rec$model_picks,
                           conflicts = rec$conflicts, agreement = rec$agreement,
                           failed_calls = failed,
                           record = record))
@@ -199,7 +200,9 @@ read_extract <- function(chunks, question, client, spec, trace) {
 #' named by why: "rejected" (the adjudicating call chose none of the values),
 #' "failed" (it failed, or its reply chose nothing it could) or "limit" (a
 #' request limit was reached first, so it was not made). The first value is
-#' kept for each. `agreement` gives, for each field some chunk reported, how
+#' kept for each. `model_picks` names the conflicted fields whose value the
+#' adjudicating call chose: advisory, since no validation record backs the
+#' choice. `agreement` gives, for each field some chunk reported, how
 #' many of the chunk hits give its most common value, as "2/3".
 #' @noRd
 reconcile_fields <- function(got, fields, d, client, spec, trace) {
@@ -207,6 +210,7 @@ reconcile_fields <- function(got, fields, d, client, spec, trace) {
   conflicts <- list()
   unreadable <- character(0)
   unresolved <- character(0)
+  picked <- character(0)
   ev_chunk <- integer(0); ev_quote <- character(0); ev_field <- character(0)
   agreement <- character(0)
   resolve <- match.arg(as_chr1(spec[["resolve"]] %||% "first"), c("first", "model", "vote"))
@@ -293,7 +297,12 @@ reconcile_fields <- function(got, fields, d, client, spec, trace) {
       if (identical(resolve, "model")) {
         # "limit" when the governor refused the request; see resolve_conflict().
         pick <- resolve_conflict(nm, fields[[nm]], reps, client, spec, trace)
-        if (is.character(pick)) unresolved[[nm]] <- pick else chosen <- pick
+        # A pick is a model's judgement with no validation record behind it,
+        # so the field is named as one even when it chose the first value.
+        if (is.character(pick)) unresolved[[nm]] <- pick else {
+          chosen <- pick
+          picked <- c(picked, nm)
+        }
       }
     }
     record[[nm]] <- chosen$value
@@ -308,7 +317,8 @@ reconcile_fields <- function(got, fields, d, client, spec, trace) {
   }
   list(record = record, conflicts = conflicts, evidence_chunk = ev_chunk,
        evidence_quote = ev_quote, evidence_field = ev_field,
-       unreadable = unreadable, unresolved = unresolved, agreement = agreement)
+       unreadable = unreadable, unresolved = unresolved, model_picks = picked,
+       agreement = agreement)
 }
 
 #' The pieces of a quotation, in the order they are quoted.
