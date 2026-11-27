@@ -80,8 +80,9 @@
   variable whose name ends in `_API_KEY`, `_TOKEN`, `_SECRET`, `_PASSWORD`,
   `_PAT` or `_SECRET_ACCESS_KEY` (in any case), the common provider
   variables such as `ANTHROPIC_API_KEY`, `GITHUB_PAT` and `HF_TOKEN`, and any
-  variable whose value is one of your `api_headers` values of 8 characters
-  or more, and puts them back after it. A program that read one of these
+  variable whose value is one of your `api_headers` values, or the key set
+  with `options(harnessr.api_key =)`, of 8 characters or more, and puts them
+  back after it. A program that read one of these
   variables finds it empty; pass what it needs another way. The step's note
   in the trace gains `hidden_env`, the number of variables hidden, never
   their names or values.

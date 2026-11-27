@@ -497,8 +497,9 @@ check_option <- function(name, value) {
 #'     such as `"^MY_GATEWAY$"`. Added to the built-in list, which hides names
 #'     ending in `_API_KEY`, `_TOKEN`, `_SECRET`, `_PASSWORD`, `_PAT` or
 #'     `_SECRET_ACCESS_KEY`, the common provider variables, and variables
-#'     whose value is one of the `api_headers` values of 8 characters or more
-#'     (see "Credentials" in
+#'     whose value is one of the `api_headers` values, or the key set with
+#'     `options(harnessr.api_key =)`, of 8 characters or more (see
+#'     "Credentials" in
 #'     [hr_step_command()]). Untested: a choice.}
 #'   \item{`command_temp_home` (FALSE)}{Whether [hr_step_command()] runs its
 #'     program with `HOME` (and `USERPROFILE` on Windows) set to an empty

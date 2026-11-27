@@ -153,8 +153,9 @@ expressions matched against variable names, without regard to case,
 such as \code{"^MY_GATEWAY$"}. Added to the built-in list, which hides names
 ending in \verb{_API_KEY}, \verb{_TOKEN}, \verb{_SECRET}, \verb{_PASSWORD}, \verb{_PAT} or
 \verb{_SECRET_ACCESS_KEY}, the common provider variables, and variables
-whose value is one of the \code{api_headers} values of 8 characters or more
-(see "Credentials" in
+whose value is one of the \code{api_headers} values, or the key set with
+\code{options(harnessr.api_key =)}, of 8 characters or more (see
+"Credentials" in
 \code{\link[=hr_step_command]{hr_step_command()}}). Untested: a choice.}
 \item{\code{command_temp_home} (FALSE)}{Whether \code{\link[=hr_step_command]{hr_step_command()}} runs its
 program with \code{HOME} (and \code{USERPROFILE} on Windows) set to an empty

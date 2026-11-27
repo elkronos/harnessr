@@ -50,6 +50,27 @@ test_that("a short api_headers value hides no variable", {
   expect_identical(unname(seen), c("true", "finance", ""))
 })
 
+test_that("the variable behind options(harnessr.api_key) is hidden", {
+  withr::local_envvar(c(HRT_LLM_KEY = "sk-live-0123456789abcdefghij", HRT_SHORT = "abc"))
+  withr::local_options(harnessr.api_key = Sys.getenv("HRT_LLM_KEY"))
+  seen <- sec_seen(sec_env_step(c("HRT_LLM_KEY", "HRT_SHORT"))(list(), list()))
+  expect_identical(unname(seen), c("", "abc"))
+  # A key shorter than 8 characters hides nothing.
+  withr::local_options(harnessr.api_key = "abc")
+  seen <- sec_seen(sec_env_step("HRT_SHORT")(list(), list()))
+  expect_identical(unname(seen), "abc")
+})
+
+test_that("an api_headers value that is not valid UTF-8 does not stop a command step", {
+  old <- hr_options()
+  on.exit(hr_options(old), add = TRUE)
+  bad <- rawToChar(as.raw(c(0xff, 0xfe, 0x41:0x47)))
+  hr_options(api_headers = list(z = bad))
+  out <- hr_step_command("echo", c(sec_rscript, "-e", "cat('hi')"))(list(), list())
+  expect_identical(out$check$status, "passed")
+  expect_identical(out$check$stdout, "hi")
+})
+
 test_that("a name the user adds is hidden, and the count is recorded", {
   withr::local_envvar(c(HRT_REGION = "eu-west", HRT_OTHER = "kept", HRT_X_TOKEN = "t-1"))
   old <- hr_options()

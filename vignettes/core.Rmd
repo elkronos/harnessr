@@ -697,9 +697,9 @@ results, and `vignette("compose")` puts the step in a chain.
 The program inherits your environment variables, less the ones that look like
 credentials: names ending in `_API_KEY`, `_TOKEN`, `_SECRET`, `_PASSWORD`, `_PAT`
 or `_SECRET_ACCESS_KEY`, the common provider variables, and any variable whose
-value is one of your `api_headers` values of 8 characters or more. They are
-unset for the call and put back after it, and a program that prints one finds
-nothing:
+value is one of your `api_headers` values, or the key you set with
+`options(harnessr.api_key =)`, of 8 characters or more. They are unset for the
+call and put back after it, and a program that prints one finds nothing:
 
 ```{r}
 Sys.setenv(DEMO_SERVICE_TOKEN = "tok-123456789", DEMO_REGION = "eu")

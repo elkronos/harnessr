@@ -115,10 +115,11 @@
 #' `GOOGLE_API_KEY`, `GEMINI_API_KEY`, `AZURE_OPENAI_API_KEY`, `GITHUB_PAT`,
 #' `GITHUB_TOKEN`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` and
 #' `HF_TOKEN`, when its name matches a regular expression in
-#' `hr_options(command_hide_env =)`, or when its value is one of the values of
-#' `hr_options(api_headers =)` and 8 characters or longer, such as a gateway
-#' key read with [Sys.getenv()]; a shorter header value, such as `"true"`, is
-#' no credential and hides nothing.
+#' `hr_options(command_hide_env =)`, or when its value is 8 characters or
+#' longer and is one of the values of `hr_options(api_headers =)` or the key
+#' set with `options(harnessr.api_key =)`, such as a gateway key read with
+#' [Sys.getenv()]; a shorter value, such as `"true"`, is no credential and
+#' hides nothing.
 #' A program that needs one of these variables cannot read it; pass what it
 #' needs another way. `hr_options(command_temp_home = TRUE)` also runs the
 #' program with `HOME` (and `USERPROFILE` on Windows) set to an empty folder
@@ -364,8 +365,9 @@ command_exec <- function(name, argv, parse, timeout, wd) {
 #' vector of their values: those whose name matches
 #' .hr_command_hidden_patterns or the patterns of
 #' hr_options("command_hide_env"), those named in .hr_command_hidden_names,
-#' and those whose value is one of hr_options("api_headers") and at least
-#' .hr_command_header_min characters long.
+#' and those whose value is one of hr_options("api_headers"), or the key set
+#' with options(harnessr.api_key), and at least .hr_command_header_min bytes
+#' long.
 #' @noRd
 command_hidden_env <- function() {
   env <- Sys.getenv()
@@ -376,11 +378,16 @@ command_hidden_env <- function() {
   hit <- nm %in% .hr_command_hidden_names
   for (p in pats) hit <- hit | grepl(p, nm, ignore.case = TRUE, perl = TRUE)
   headers <- unlist(hr_options("api_headers") %||% list(), use.names = FALSE)
-  headers <- as.character(headers)
+  # The key harnessr sends, set from a variable of any name; OPENAI_API_KEY
+  # is hidden by its name above.
+  key <- tryCatch(trimws(as_chr1(getOption("harnessr.api_key", ""), "")),
+                  error = function(e) "")
+  values <- c(as.character(headers), key)
   # A short header value, such as "true" or a team name, is no credential,
-  # and a variable that happens to hold it stays visible.
-  headers <- headers[!is.na(headers) & nchar(headers) >= .hr_command_header_min]
-  if (length(headers)) hit <- hit | (env %in% headers & nzchar(env))
+  # and a variable that happens to hold it stays visible. Counted in bytes:
+  # a value that is not valid UTF-8 has no count in characters.
+  values <- values[!is.na(values) & nchar(values, type = "bytes") >= .hr_command_header_min]
+  if (length(values)) hit <- hit | (env %in% values & nzchar(env))
   env[hit]
 }
 
