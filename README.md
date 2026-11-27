@@ -17,7 +17,7 @@ documents count, `gr_extract()` fills a typed schema across all of them, and
 `gr_synthesise()` writes the result up, citing the rows each section rests on
 and flagging any sentence that cites none.
 
-![Two stacked layers. Your code calls the document layer (gr_ functions for ingest, segment, read, screen, extract, claims, synthesis and review) or the core (hr_ functions for the client, calls, cache, trace and ledger, budget and governor, registry and modules, and composition). The document layer calls the core, the core sends requests to a model provider, and the core never calls the document layer.](man/figures/layers.svg)
+![Two stacked layers. The core (hr_ functions for calls and clients, the trace, models and prices, context, effort, limits, cache and replay, composing, evaluating, and the registry and modules) sends every request to a model provider over HTTP or through ellmer, your own function, a mock or a recording. The document layer (gr_ functions for ingest, segment, read, screen, extract, claims, synthesis and review) sits above it and calls the core. Your code calls either layer, and the core never calls the document layer.](man/figures/layers.svg)
 
 Your code can call either layer: the document functions (`gr_`) build on the
 core functions (`hr_`), and the core never calls the document layer.

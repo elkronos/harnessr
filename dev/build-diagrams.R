@@ -281,17 +281,22 @@ doc_prefix <- layer_prefix("doc")
 must(identical(core_prefix, "hr_") && identical(doc_prefix, "gr_"),
      "the core exports hr_ functions and the document layer gr_ functions")
 
-# What each layer holds, with the function that stands for it. The topics are
-# the ones the spec lists; each function is checked to be exported and to be
-# defined in a file of its layer.
+# What each layer holds, with the functions that stand for it. The core items
+# follow the core guides in the order the site lists them (core, models,
+# context, effort, runs, compose, evaluate, then extending for the registry);
+# each function is checked to be exported and to be defined in a file of its
+# layer.
 core_items <- list(
-  list("client", fn("hr_client", "core")),
-  list("calls", fn("hr_call", "core")),
-  list("cache", fn("hr_cache", "core")),
-  list("trace and ledger", fn("hr_trace", "core")),
-  list("budget and governor", fn("hr_budget", "core"), fn("hr_governor", "core")),
-  list("registry and modules", fn("hr_register", "core")),
-  list("composition", fn("hr_chain", "core")))
+  list("calls and clients", fn("hr_call", "core"), fn("hr_client", "core")),
+  list("trace", fn("hr_trace", "core")),
+  list("models and prices", fn("hr_register_model", "core"), fn("hr_load_models", "core")),
+  list("context", fn("hr_budget", "core"), fn("hr_context_fit", "core")),
+  list("effort", fn("hr_effort_escalate", "core"), fn("hr_effort_check", "core")),
+  list("limits", fn("hr_governor", "core")),
+  list("cache and replay", fn("hr_cache_client", "core"), fn("hr_replay_client", "core")),
+  list("composing", fn("hr_chain", "core"), fn("hr_step", "core")),
+  list("evaluating", fn("hr_benchmark", "core"), fn("hr_report", "core")),
+  list("registry and modules", fn("hr_register", "core")))
 doc_items <- list(
   list("ingest", fn("gr_ingest", "doc")),
   list("segment", fn("gr_segment", "doc")),
@@ -302,7 +307,8 @@ doc_items <- list(
   list("synthesis", fn("gr_synthesise", "doc")),
   list("review", fn("gr_audit_report", "doc")))
 clients <- c(fn("hr_client", "core"), fn("hr_ellmer_client", "core"),
-             fn("hr_mock_client", "core"), fn("hr_replay_client", "core"))
+             fn("hr_backend_client", "core"), fn("hr_mock_client", "core"),
+             fn("hr_replay_client", "core"))
 
 item_lines <- function(it, layer) {
   c(list(ln(it[[1]], 14, bold = TRUE, color = pal[[layer]]$ink, cls = paste0(layer, "-item"))),
@@ -310,9 +316,9 @@ item_lines <- function(it, layer) {
 }
 
 draw_layers <- function() {
-  cv <- canvas("layers", 676)
-  heading(cv, "harnessr in two layers",
-          "Calls go down. The core never calls the document layer.")
+  cv <- canvas("layers", 756)
+  heading(cv, "harnessr: a core and a document layer",
+          "The core sends every model request. The document layer builds on it; calls go down.")
   box(cv, 24, 76, 852, 40, list(ln("Your R code", 15, bold = TRUE)))
 
   # The document layer.
@@ -343,8 +349,10 @@ draw_layers <- function() {
   txt(cv, 540, 344, "never: core to document layer", 13, bold = TRUE, color = pal$accent$ink)
   txt(cv, 540, 362, "test-boundary.R checks it", 13, color = muted)
 
-  # The core.
-  rect(cv, 24, 378, 852, 194, "core", cls = "core-layer")
+  # The core, one box per core guide.
+  rows <- ceiling(length(core_items) / 4)
+  core_h <- 36 + rows * 76 + 4
+  rect(cv, 24, 378, 852, core_h, "core", cls = "core-layer")
   txt(cv, 40, 402, sprintf("Core: %s functions in R/core-*.R", core_prefix), 15,
       bold = TRUE, color = pal$core$ink)
   cw <- (852 - 32 - 36) / 4
@@ -355,20 +363,25 @@ draw_layers <- function() {
         item_lines(core_items[[i]], "core"), "core")
   }
 
-  arrow(cv, c(450, 572, 450, 610), cls = "call")
-  txt(cv, 458, 596, "sends requests", 13, color = muted)
-  box(cv, 24, 610, 852, 44, list(ln(sprintf(
-    "A model provider, or a stand-in: %s", paste0(clients, "()", collapse = ", ")),
-    13, cls = "fn")))
+  core_end <- 378 + core_h
+  arrow(cv, c(450, core_end, 450, core_end + 38), cls = "call")
+  txt(cv, 458, core_end + 24, "sends requests", 13, color = muted)
+  box(cv, 24, core_end + 38, 852, 52, list(
+    ln("A model provider over HTTP or through ellmer, your own function, a mock or a recording", 13),
+    ln(paste0(clients, "()", collapse = ", "), 13, cls = "fn")))
+  if (core_end + 38 + 52 + 20 != cv$height) {
+    stop(sprintf("Set the layers height to %s.", fmt(core_end + 38 + 52 + 20)), call. = FALSE)
+  }
 
-  svg_file(cv, "harnessr in two layers",
-           paste0("Two stacked layers. Your R code calls the document layer (", doc_prefix,
-                  " functions: ", paste(vapply(doc_items, `[[`, "", 1), collapse = ", "),
-                  ") or the core directly (", core_prefix, " functions: ",
+  svg_file(cv, "harnessr: a core and a document layer",
+           paste0("Two stacked layers. The core (", core_prefix, " functions: ",
                   paste(vapply(core_items, `[[`, "", 1), collapse = ", "),
-                  "). The document layer calls the core, and the core sends requests to a ",
-                  "model provider or a stand-in. The core never calls the document layer; ",
-                  "tests/testthat/test-boundary.R checks that."))
+                  ") sends every request to a model provider or a stand-in: ",
+                  paste0(clients, "()", collapse = ", "), ". The document layer (", doc_prefix,
+                  " functions: ", paste(vapply(doc_items, `[[`, "", 1), collapse = ", "),
+                  ") sits above it and calls the core. Your R code calls either layer. ",
+                  "The core never calls the document layer; tests/testthat/test-boundary.R ",
+                  "checks that."))
 }
 
 # ---------------------------------------------------------------------------

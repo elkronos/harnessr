@@ -104,8 +104,9 @@ test_that("layers.svg names both layers and the rule between them", {
 test_that("layers.svg lists what each layer holds, as the spec does", {
   doc <- read_diagram("layers.svg")
   expect_identical(diagram_text(doc, "core-item"),
-                   c("client", "calls", "cache", "trace and ledger", "budget and governor",
-                     "registry and modules", "composition"))
+                   c("calls and clients", "trace", "models and prices", "context", "effort",
+                     "limits", "cache and replay", "composing", "evaluating",
+                     "registry and modules"))
   expect_identical(diagram_text(doc, "doc-item"),
                    c("ingest", "segment", "read", "screen", "extract", "claims", "synthesis",
                      "review"))
@@ -245,6 +246,13 @@ test_that("README and the guides show the diagrams, each with alt text", {
   readme <- paste(readLines(file.path(root, "README.md"), warn = FALSE), collapse = "\n")
   expect_match(readme, "![Two stacked layers", fixed = TRUE)
   expect_match(readme, "](man/figures/layers.svg)", fixed = TRUE)
+  # The alt text names what each layer holds, as the diagram does.
+  alt <- regmatches(readme, regexpr("!\\[Two stacked layers[^]]+\\]", readme))
+  expect_length(alt, 1)
+  doc <- read_diagram("layers.svg")
+  for (item in c(diagram_text(doc, "core-item"), diagram_text(doc, "doc-item"))) {
+    expect_match(alt, item, fixed = TRUE, info = item)
+  }
 
   shown <- c(harnessr = "document-run.svg", compose = "composition.svg",
              extending = "registry.svg")
