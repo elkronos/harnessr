@@ -39,6 +39,33 @@
   less their reserves. See "A reserve for the closing request" in
   `vignette("runs")`.
 
+## Context-too-long refusals
+
+* **A provider's refusal of a prompt longer than the window has a name.**
+  A 400 or 413 whose error body says so in one of the phrasings providers
+  use (OpenAI's `context_length_exceeded`, Anthropic's "prompt is too long",
+  Gemini's "exceeds the maximum number of tokens", and others listed in the
+  source) used to come back as a plain HTTP 400. `hr_call()` now signals a
+  condition of class `hr_context_overflow` and sets `$error_class` to the
+  same name. The result's `$overflow` and the trace step's `overflow` field
+  hold the local count of the prompt, the window registered for the model
+  and the status, so you can see how far the local count was off. The error
+  text is unchanged, a 400 for any other reason is left as it was, and a
+  replay of the trace names the refusal again.
+
+* **`hr_options()` gains `on_overflow`.** The default, `"error"`, returns
+  the failed result and sends nothing more. A function of
+  `(messages, info)` that you write returns a smaller prompt, which is sent
+  once as a new request: the governor checks it, the trace records it with
+  `overflow_retry = TRUE`, and it is not retried again. harnessr never asks
+  a model to shorten a prompt. A function that fails or returns nothing
+  usable warns with class `hr_overflow_refit_failed`. In a parallel batch the
+  function runs in the worker, with what it uses from your workspace. See
+  "When the provider says the prompt is too long" in `vignette("context")`.
+
+* **`hr_mock_client()` gains `mode = "overflow"`**, which refuses the first
+  request with OpenAI's overflow body and answers every request after it.
+
 # harnessr 0.7.0
 
 harnessr 0.7.0 is the first release under the name harnessr. It reframes
