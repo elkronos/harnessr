@@ -572,6 +572,7 @@
 "sent_params","core","function"
 "seq_between","core","function"
 "session_interactive","core","function"
+"session_utc_offset","core","function"
 "settings_known","core","function"
 "settings_steps","core","function"
 "settle_usage","core","function"

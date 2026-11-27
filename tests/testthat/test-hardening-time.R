@@ -87,6 +87,43 @@ test_that("a local step recorded in another time zone is placed by the requests'
   expect_identical(hr_trace_summary(tr)$elapsed_s, 10)
 })
 
+test_that("a trace of local steps only, read back in another time zone, keeps its run time", {
+  withr::local_timezone("America/Chicago")
+  tr <- hr_trace()
+  tr$started <- as.POSIXct("2026-01-01 10:00:00", tz = "UTC")
+  trace_push_steps(tr, list(list(
+    step = 1L, label = "step.command", ok = TRUE, kind = "local",
+    at = format(tr$started + 5, "%Y-%m-%dT%H:%M:%OS3", tz = ""), detail = list(seconds = 3))))
+  f <- tempfile(fileext = ".rds")
+  saveRDS(tr, f)
+  on.exit(unlink(f), add = TRUE)
+  expect_identical(hr_trace_summary(tr)$elapsed_s, 5)
+  for (zone in c("Asia/Tokyo", "America/Los_Angeles")) {
+    withr::local_timezone(zone)
+    s <- hr_trace_summary(readRDS(f))
+    expect_identical(s$elapsed_s, 5, info = zone)
+    expect_identical(s$local_s, 3, info = zone)
+    expect_identical(s$overhead_s, 2, info = zone)
+  }
+})
+
+test_that("local steps a trace cannot place give the measured time, not a shifted one", {
+  # A 0.7.0 trace has no utc_offset and no request to read one from.
+  withr::local_timezone("America/Chicago")
+  tr <- hr_trace()
+  rm("utc_offset", envir = tr)
+  tr$started <- as.POSIXct("2026-01-01 10:00:00", tz = "UTC")
+  trace_push_steps(tr, list(list(
+    step = 1L, label = "step.command", ok = TRUE, kind = "local",
+    at = format(tr$started + 5, "%Y-%m-%dT%H:%M:%OS3", tz = ""), detail = list(seconds = 3))))
+  for (zone in c("America/Chicago", "Asia/Tokyo", "America/Los_Angeles")) {
+    withr::local_timezone(zone)
+    s <- hr_trace_summary(tr)
+    expect_identical(s$elapsed_s, 3, info = zone)
+    expect_identical(s$overhead_s, 0, info = zone)
+  }
+})
+
 test_that("parallel requests whose seconds pass the run time leave no negative overhead", {
   tr <- hr_trace()
   tr$started <- as.POSIXct("2026-01-01 10:00:00", tz = "UTC")

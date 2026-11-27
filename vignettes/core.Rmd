@@ -475,13 +475,15 @@ hr_trace_summary(tr)[, c("elapsed_s", "request_s", "local_s", "overhead_s",
 
 `elapsed_s` runs from the trace's start to the end of its last step, read from
 the steps, so a summary taken tomorrow, or of a trace saved with `saveRDS()` and
-read back in another time zone, gives the same figure. An empty trace gives 0. `request_s` is the seconds the requests took,
-`local_s` the seconds that local steps timed (a command step times itself), and
-`overhead_s` the rest: R code between requests, and local steps that record no
-time. The shares add to 1. Requests sent in parallel overlap, so `request_s`
-can pass `elapsed_s`; the overhead is then 0. The print shows the same split on
-its `time:` line, followed by the share of input tokens the provider served from
-its cache when it served any.
+read back in another time zone, gives the same figure. A local step's time has
+no offset, so the trace places it by the offset its requests show, or by the
+`utc_offset` that `hr_trace()` recorded. An empty trace gives 0. `request_s` is
+the seconds the requests took, `local_s` the seconds that local steps timed (a
+command step times itself), and `overhead_s` the rest: R code between requests,
+and local steps that record no time. The shares add to 1. Requests sent in
+parallel overlap, so `request_s` can pass `elapsed_s`; the overhead is then 0.
+The print shows the same split on its `time:` line, followed by the share of
+input tokens the provider served from its cache when it served any.
 
 `hr_trace_save()` writes the trace as JSON, the form `as_json()` returns, and
 `hr_replay_client()` reads that file. The file holds every prompt and reply, so

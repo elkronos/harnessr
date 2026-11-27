@@ -28,13 +28,15 @@
 #'   `run_id`, `started`, `meta`, `actor`, `config`, `steps`, `calls`,
 #'   `cached`, `tokens_in`, `tokens_out`, `embed_tokens`, `errors`,
 #'   `budget_stop`, `stop_reason`, `spent_usd`, `replayed_usd`, `refusals`,
-#'   `governor`.
+#'   `governor`, `utc_offset`.
 #'
 #'   `actor` holds the five fields above. `config` is a snapshot of the
 #'   options in force when the trace was made ([hr_options()], with the values
 #'   of `api_headers` left out, since they can hold credentials) and the R
 #'   version, so a saved trace says what it ran under. [as_json()] writes
-#'   `started` in UTC, as ISO 8601 with a trailing `Z`.
+#'   `started` in UTC, as ISO 8601 with a trailing `Z`. `utc_offset` is the
+#'   recording session's offset from UTC in seconds, which places a local
+#'   step's `at` (see [hr_trace_summary()]); [as_json()] leaves it out.
 #'   `cached` counts the calls answered from an [hr_cache()] or a
 #'   [hr_replay_client()] rather than the network, so `calls - cached` is what
 #'   the run paid for. `calls` includes requests to an embeddings endpoint,
@@ -177,6 +179,10 @@ hr_trace <- function(run_id = NULL, meta = list(), system = NULL, owner = NULL, 
   e <- new.env(parent = emptyenv())
   e$run_id <- as_chr1(run_id %||% gr_new_id("run"))
   e$started <- Sys.time()
+  # This session's offset from UTC in seconds, so a local step's `at`, local
+  # time with no offset, is placed the same way when the trace is read back
+  # in another time zone (see trace_time_parts()).
+  e$utc_offset <- session_utc_offset(e$started)
   # Who the run is for and who ran it, from the arguments, else the `actor`
   # option, else NA. Kept on the run, not in `meta`, so every trace has the
   # same five fields whether or not anyone filled them in.
@@ -694,11 +700,13 @@ as_parent_trace <- function(trace, arg = "trace") {
 #'   `elapsed_s` is the time from the run's start (`trace$started`) to the end
 #'   of its last step: a request's `ended_utc`, or the `at` time of a local
 #'   step. `at` is local time with no offset, so it is placed using the offset
-#'   the trace's requests show (their `at` beside their `ended_utc`), or in
-#'   the current session's time zone when the trace holds no request. It is
-#'   read from the steps, so a summary taken an hour after the run, or of a
-#'   trace saved with [saveRDS()] and read back in another time zone, gives
-#'   the same figure. A trace with no steps gives 0.
+#'   the trace's requests show (their `at` beside their `ended_utc`), or the
+#'   `utc_offset` the trace recorded when it holds no request. It is read from
+#'   the steps, so a summary taken an hour after the run, or of a trace saved
+#'   with [saveRDS()] and read back in another time zone, gives the same
+#'   figure. A trace with local steps, no request and no `utc_offset` (one
+#'   made by harnessr 0.7.0) cannot place them: its `elapsed_s` is then
+#'   `request_s + local_s`. A trace with no steps gives 0.
 #'
 #'   The last six columns split that time. `request_s` is the seconds the
 #'   requests took (model calls and embeddings requests, retries included),
@@ -786,8 +794,8 @@ parse_utc_stamp <- function(x) {
 #' The offset from UTC, in seconds, of the session that recorded a trace's
 #' steps. A request step holds both `at`, local time taken as it was
 #' recorded, and `ended_utc`, taken just before; their smallest difference,
-#' rounded to a quarter hour, is the offset. NA when no step holds both, and
-#' local steps are then read in this session's time zone.
+#' rounded to a quarter hour, is the offset. NA when no step holds both;
+#' trace_time_parts() then uses the offset hr_trace() recorded.
 #' @noRd
 at_offset <- function(steps) {
   lag <- vapply(steps, function(st) {
@@ -799,6 +807,13 @@ at_offset <- function(steps) {
   lag <- lag[is.finite(lag)]
   if (!length(lag)) return(NA_real_)
   round(min(lag) / 900) * 900
+}
+
+#' This session's offset from UTC at time `t`, in seconds.
+#' @noRd
+session_utc_offset <- function(t = Sys.time()) {
+  as.numeric(as.POSIXct(format(t, "%Y-%m-%d %H:%M:%S"), tz = "UTC")) -
+    floor(as.numeric(t))
 }
 
 #' The seconds a step took, as it recorded them: `seconds` on a request, and
@@ -820,6 +835,12 @@ step_seconds <- function(st) {
 #' recorded, and the rest as `overhead`. Read from the steps alone, so a
 #' summary taken later, or of a trace read back from a file, gives the same
 #' figures. An empty trace has taken no time: every part is 0.
+#'
+#' A local step's `at` has no offset. It is placed by the offset the trace's
+#' requests show, else by the one hr_trace() recorded. A trace with neither
+#' (one made before the field existed) cannot place it: read in another time
+#' zone it would land hours early or late, so `elapsed` is then the measured
+#' parts, as when no end can be read.
 #' @noRd
 trace_time_parts <- function(trace) {
   steps <- Filter(is.list, trace$steps)
@@ -829,9 +850,15 @@ trace_time_parts <- function(trace) {
   secs <- vapply(steps, step_seconds, numeric(1))
   request <- sum(secs[!local])
   local_s <- sum(secs[local])
-  ends <- vapply(steps, step_end_time, numeric(1), offset = at_offset(steps))
+  offset <- at_offset(steps)
+  if (is.na(offset)) offset <- as_num1(trace$utc_offset, NA_real_)
+  ends <- vapply(steps, step_end_time, numeric(1), offset = offset)
+  unplaced <- is.na(offset) && any(vapply(steps, function(st) {
+    is.na(parse_utc_stamp(st[["ended_utc", exact = TRUE]])) &&
+      !is.na(as_chr1(st[["at", exact = TRUE]], NA_character_))
+  }, logical(1)))
   started <- if (inherits(trace$started, "POSIXct")) as.numeric(trace$started) else NA_real_
-  elapsed <- if (all(is.na(ends)) || is.na(started)) request + local_s
+  elapsed <- if (unplaced || all(is.na(ends)) || is.na(started)) request + local_s
              else max(max(ends, na.rm = TRUE) - started, 0)
   # Requests sent in parallel overlap, so their seconds can add up to more
   # than the run took. The overhead is then 0, not negative.

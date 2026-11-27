@@ -7,8 +7,11 @@
   taken later, or of a trace read back from a file, overstated the run. It
   now runs from the trace's start to the end of its last step, and a trace
   with no steps gives 0. A local step records local time with no offset, so
-  it is placed by the offset the trace's requests show, and a trace read back
-  in another time zone gives the same figure.
+  it is placed by the offset the trace's requests show, or, in a trace with
+  no requests, by the new `utc_offset` field `hr_trace()` records. A trace
+  read back in another time zone gives the same figure. One with local steps
+  only, made by 0.7.0, has no `utc_offset`, so its `elapsed_s` is
+  `request_s + local_s`.
 
 * **`hr_trace_summary()` splits the run time.** Six columns follow the
   existing ones, which keep their names and positions: `request_s`, the

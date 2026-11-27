@@ -45,13 +45,15 @@ pass the same trace to several calls and they all record into it. Fields:
 \code{run_id}, \code{started}, \code{meta}, \code{actor}, \code{config}, \code{steps}, \code{calls},
 \code{cached}, \code{tokens_in}, \code{tokens_out}, \code{embed_tokens}, \code{errors},
 \code{budget_stop}, \code{stop_reason}, \code{spent_usd}, \code{replayed_usd}, \code{refusals},
-\code{governor}.
+\code{governor}, \code{utc_offset}.
 
 \code{actor} holds the five fields above. \code{config} is a snapshot of the
 options in force when the trace was made (\code{\link[=hr_options]{hr_options()}}, with the values
 of \code{api_headers} left out, since they can hold credentials) and the R
 version, so a saved trace says what it ran under. \code{\link[=as_json]{as_json()}} writes
-\code{started} in UTC, as ISO 8601 with a trailing \code{Z}.
+\code{started} in UTC, as ISO 8601 with a trailing \code{Z}. \code{utc_offset} is the
+recording session's offset from UTC in seconds, which places a local
+step's \code{at} (see \code{\link[=hr_trace_summary]{hr_trace_summary()}}); \code{\link[=as_json]{as_json()}} leaves it out.
 \code{cached} counts the calls answered from an \code{\link[=hr_cache]{hr_cache()}} or a
 \code{\link[=hr_replay_client]{hr_replay_client()}} rather than the network, so \code{calls - cached} is what
 the run paid for. \code{calls} includes requests to an embeddings endpoint,

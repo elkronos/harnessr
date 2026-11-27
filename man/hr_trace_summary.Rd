@@ -48,11 +48,13 @@ it is above 0.
 \code{elapsed_s} is the time from the run's start (\code{trace$started}) to the end
 of its last step: a request's \code{ended_utc}, or the \code{at} time of a local
 step. \code{at} is local time with no offset, so it is placed using the offset
-the trace's requests show (their \code{at} beside their \code{ended_utc}), or in
-the current session's time zone when the trace holds no request. It is
-read from the steps, so a summary taken an hour after the run, or of a
-trace saved with \code{\link[=saveRDS]{saveRDS()}} and read back in another time zone, gives
-the same figure. A trace with no steps gives 0.
+the trace's requests show (their \code{at} beside their \code{ended_utc}), or the
+\code{utc_offset} the trace recorded when it holds no request. It is read from
+the steps, so a summary taken an hour after the run, or of a trace saved
+with \code{\link[=saveRDS]{saveRDS()}} and read back in another time zone, gives the same
+figure. A trace with local steps, no request and no \code{utc_offset} (one
+made by harnessr 0.7.0) cannot place them: its \code{elapsed_s} is then
+\code{request_s + local_s}. A trace with no steps gives 0.
 
 The last six columns split that time. \code{request_s} is the seconds the
 requests took (model calls and embeddings requests, retries included),
