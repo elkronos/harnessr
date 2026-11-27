@@ -66,6 +66,39 @@
 * **`hr_mock_client()` gains `mode = "overflow"`**, which refuses the first
   request with OpenAI's overflow body and answers every request after it.
 
+## Credentials in command steps and stored copies
+
+* **`hr_step_command()` hides more credentials from the program it runs.**
+  It unset only `OPENAI_API_KEY`. It now unsets, for the call, every
+  variable whose name ends in `_API_KEY`, `_TOKEN`, `_SECRET`, `_PASSWORD`,
+  `_PAT` or `_SECRET_ACCESS_KEY` (in any case), the common provider
+  variables such as `ANTHROPIC_API_KEY`, `GITHUB_PAT` and `HF_TOKEN`, and any
+  variable whose value is one of your `api_headers` values of 8 characters
+  or more, and puts them back after it. A program that read one of these
+  variables finds it empty; pass what it needs another way. The step's note
+  in the trace gains `hidden_env`, the number of variables hidden, never
+  their names or values.
+
+* **`hr_options()` gains `command_hide_env` and `command_temp_home`.**
+  `command_hide_env` adds regular expressions matched against variable
+  names to the list above. `command_temp_home = TRUE` runs the program with
+  `HOME` (and `USERPROFILE` on Windows) set to an empty folder made for the
+  call, so it does not read your configuration files or stored logins. Both
+  are off by default. See "Credentials and the program" in
+  `vignette("core")`.
+
+* **`hr_options()` gains `mask_secrets`**, off by default. Turned on, it
+  replaces key-shaped strings (OpenAI, Anthropic, GitHub, AWS, Google, Slack
+  and Hugging Face keys, JSON web tokens, the token after `Bearer ` and the
+  values a command step hides) with `<masked>` in the output a command step
+  keeps, in the file `hr_trace_save()` writes and in a printed trace. The
+  step's note records `masked`, a saved trace a top-level `masked`, and the
+  print a `masked:` line, each a count. The trace in your session, the cache
+  and every cache and replay key keep the text as it was, so a replay of a
+  masked file still finds its replies. Turn it on before you share a trace or
+  a step's output, since an error body or a program's output can echo a key.
+  Off, every copy is byte for byte what it was.
+
 # harnessr 0.7.0
 
 harnessr 0.7.0 is the first release under the name harnessr. It reframes
