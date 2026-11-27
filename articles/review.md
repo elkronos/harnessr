@@ -1038,7 +1038,10 @@ table$table[, c("document", "region", "revenue", "year", "n_unverified")]
 Reconciling the chunks costs nothing by default. If the document
 contradicts itself, `conflicts` names the field and the earliest chunk’s
 value is kept; `resolve = "model"` spends one call per disagreeing field
-to have the model choose instead.
+to have the model choose instead. The table then gains a `model_picks`
+column that names each field whose value the model chose. A model’s pick
+is advisory: no validation against people’s judgements backs it, so
+check each one against its quote.
 
 Check `n_unverified` before you trust a row: zero means every value in
 it has a quote found in the document. `table$evidence` is the long form,
@@ -1719,7 +1722,7 @@ than 10 points and narrower than 20, so the sample is adequate under the
 wider bar only. Widening the bar accepts a less precise figure; the
 sample says no more than before.
 
-### Screening replies: `criteria_schema`, `samples` and `sample_rule`
+### Screening replies: `criteria_schema`, `samples`, `sample_rule` and `sample_k`
 
 **What it controls.** `criteria_schema` sets what each screening reply
 holds. `"decision"` asks for a decision, a reason, the deciding
@@ -1735,9 +1738,18 @@ criterion) is recorded as `"unclear"`, for a person to decide.
 draws, and `sample_rule` combines them. `"include_if_any"` includes a
 document any draw included and excludes one only when every draw
 excluded it, so a study one draw would keep is not lost to the others.
-`"majority"` takes the decision most draws gave. The table then records
-each draw’s decision (`sample_decisions`) and the share that included
-(`include_share`).
+`"majority"` takes the decision most draws gave. `"k_of_n"` includes a
+document when at least `sample_k` draws included it and, like
+`"include_if_any"`, excludes one only when every draw excluded it; the
+rest go to a person as `"unclear"`. At `sample_k = 1` it decides as
+`"include_if_any"` does. The table then records each draw’s decision
+(`sample_decisions`) and the share that included (`include_share`), and
+the result’s `sampling` field names the rule.
+[`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md)
+and
+[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
+read the combined `decision`, so recall is measured on what the rule
+kept.
 
 **Signs it needs changing.** Exclusions whose reasons say the excerpt
 does not mention something (“the age of participants is not given”) are
@@ -1752,7 +1764,8 @@ many times the screening requests.
 was written with; it has not been compared with `"per_criterion"`.
 `samples = 1` sends one request per document, as before, and
 `"include_if_any"` was chosen so that no study a draw would keep is
-lost; neither has been compared (`untested`).
+lost; neither has been compared (`untested`). `sample_k` has no default:
+you choose it, and no value has been compared.
 
 **How to test it.** `criteria_schema` changes the request (a schema and
 one more instruction), so first test what it does to the same reply.
@@ -1805,6 +1818,28 @@ sampled$table[, c("document", "decision", "sample_decisions", "include_share")]
 #> 2 south.txt  include exclude, include, exclude     0.3333333
 ```
 
+Asking for two of the three draws to include holds the southern report
+back for a person:
+
+``` r
+
+two <- gr_screen(reports, protocol, client = draws, samples = 3,
+                 sample_rule = "k_of_n", sample_k = 2)
+two$table[, c("document", "decision", "sample_decisions")]
+#>    document decision          sample_decisions
+#> 1 north.txt  include include, include, include
+#> 2 south.txt  unclear exclude, include, exclude
+two$sampling
+#> $samples
+#> [1] 3
+#> 
+#> $sample_rule
+#> [1] "k_of_n"
+#> 
+#> $sample_k
+#> [1] 2
+```
+
 On your own records, compare the two values against labels, one arm per
 value, as in “Knowing how good the screening is” above. Here `labelled`
 is an
@@ -1835,7 +1870,9 @@ one document give different values for a field:
   `conflicts`, at no cost.
 - `"vote"` keeps the value most chunks gave, also at no cost; a tie goes
   to the earliest value, as under `"first"`.
-- `"model"` spends one request per disagreeing field to choose.
+- `"model"` spends one request per disagreeing field to choose, and
+  names each field it chose in a `model_picks` column. Treat those
+  values as advisory and check them against their quotes.
 
 `agreement_columns = TRUE` adds a `<field>_agreement` column (how many
 of the chunks that reported the field give its most common value, as
@@ -2077,6 +2114,79 @@ bench <- hr_benchmark(check_arms, review_ref, runs = 5, client = my_client,
 hr_report(bench)
 ```
 
+### Synthesis: `context_policy` and `context_order`
+
+**What they control.** A write-up never leaves a study out to fit a
+prompt: a section too large for one is drafted in batches and merged. It
+cuts two things. The gaps are cut to a quarter of the model’s input
+room, and a batch draft too long for a merge is cut before the merge.
+
+- `context_policy` takes an
+  [`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md)
+  for both cuts. The gaps are fitted line by line, each line a piece
+  named `"gap 1"`, `"gap 2"` and so on, with its kind and dimension as
+  its title. `overflow = "stubs"` lists the lines cut away under the
+  gaps the closing section is given, and `disclose_subset` adds a line
+  such as “40 of 300 gaps shown; do not state totals”. A batch draft cut
+  for a merge is the piece `"findings"`: its `keep` rule and the
+  policy’s `marker` apply, and `order_merges = TRUE` places the drafts
+  by `context_order`.
+  [`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md)
+  covers the marker, the stubs and the subset line.
+- `context_order` places a section’s claims in its prompt: in their rank
+  (`"relevance"`), by claim number (`"document"`), or with the highest
+  ranked at the start, the next at the end and the lowest in the middle
+  (`"edges"`). Each claim keeps the sentence budget its rank gave it.
+
+**Signs they need changing.** A closing section that states a count of
+gaps after a `gr_gaps_truncated` warning points to `disclose_subset`.
+One that leaves out a kind of gap you can see in `$gaps` points to
+`overflow = "stubs"`. A section that misses claims from the middle of a
+long list (`claims_missed`) points to `context_order = "edges"`, which
+leaves the lowest ranked claims there, or to `"document"` when the
+claims follow an order of their own.
+
+**Where the defaults came from.** `context_policy = NULL` makes the cuts
+the write-up made before the setting existed: the gaps cut at a line,
+and drafts cut at their start with `" ...[truncated]"`.
+`context_order = "relevance"` keeps the rank order the sections were
+written in. Neither is compared with the alternatives; both are
+`untested`.
+
+**How to test them.** With a policy set, the write-up runs as before
+when nothing needs cutting. The gaps here are short, so this policy
+changes no request:
+
+``` r
+
+told <- gr_synthesise(table, outline = outline, question = protocol$question,
+                      client = claim_writer, claims = cm,
+                      gaps = gr_gaps(cm, extraction = table), context_order = "document",
+                      context_policy = hr_context_policy(
+                        overflow = "stubs",
+                        disclose_subset = "{shown} of {total} gaps shown; do not state totals."))
+told$sections[, c("section", "n_claims", "partial")]
+#>                   section n_claims partial
+#> 1 Where revenue is higher        2   FALSE
+#> 2         What is missing        0    TRUE
+```
+
+Both change what is sent when they act, so test them as arms on a corpus
+large enough to need the cuts:
+
+``` r
+
+arms <- hr_sweep(function(order) {
+  hr_arm(paste0("order-", order), function(item, ctx) {
+    gr_synthesise(item$table, outline = item$outline, question = item$question,
+                  client = ctx$client, claims = item$claims, context_order = order,
+                  trace = ctx$trace)$text
+  }, params = list(context_order = order))
+}, list(order = c("relevance", "document", "edges")))
+bench <- hr_benchmark(arms, review_ref, runs = 5, client = my_client, scorer = my_scorer)
+hr_report(bench)
+```
+
 ## Counting and reporting the run
 
 [`gr_flow()`](https://elkronos.github.io/harnessr/reference/gr_flow.md)
@@ -2155,8 +2265,8 @@ is checked: a stage run on a version other than the report’s is flagged:
 page <- gr_audit_report(tempfile(fileext = ".html"), screening = screened,
                         extraction = table, open = FALSE)
 grep("UTC</td>", readLines(page), value = TRUE)
-#> [1] "<tr><td>screening</td><td>2026-11-27 17:17:34 UTC</td><td>0.7.0.9000</td></tr>" 
-#> [2] "<tr><td>extraction</td><td>2026-11-27 17:17:36 UTC</td><td>0.7.0.9000</td></tr>"
+#> [1] "<tr><td>screening</td><td>2026-11-27 17:45:59 UTC</td><td>0.7.0.9000</td></tr>" 
+#> [2] "<tr><td>extraction</td><td>2026-11-27 17:46:00 UTC</td><td>0.7.0.9000</td></tr>"
 ```
 
 The report puts the failures near the top and counts them there:

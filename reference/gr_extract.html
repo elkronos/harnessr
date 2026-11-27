@@ -133,7 +133,10 @@ interrupted extraction resumes instead of restarting.</p></dd>
 <dd><p>What to do when two parts of one document give different values
 for the same field. <code>"first"</code> (default) takes the earlier one and records
 the disagreement in the <code>conflicts</code> column, costing nothing. <code>"model"</code>
-spends one extra call per disagreeing field to adjudicate; if that call
+spends one extra call per disagreeing field to adjudicate, and the table
+gains a <code>model_picks</code> column naming each field whose value that call
+chose. A model's pick is advisory: no validation against people's
+judgements backs it, so check each one against its quote. If that call
 fails, or a request limit is reached before it can be made, the first
 value is kept, as with <code>"first"</code>, and a warning (in the row's
 <code>summary$warnings</code>) names the field. If it chooses none of the values,
@@ -187,8 +190,10 @@ cut into and therefore how many calls it costs.</p></dd>
 the schema and of that field's type, then <code>n_filled</code>, <code>n_unverified</code>,
 <code>conflicts</code>, <code>status</code>, <code>duplicate_of</code>, <code>error</code> (with
 <code>agreement_columns = TRUE</code>, a <code>&lt;field&gt;_agreement</code> and a
-<code>&lt;field&gt;_conflict</code> column for each field after the field columns).
-<code>status</code> is the run
+<code>&lt;field&gt;_conflict</code> column for each field after the field columns;
+with <code>resolve = "model"</code>, a <code>model_picks</code> column after <code>error</code>: the
+fields whose value a model call chose, comma-separated, or <code>NA</code> when
+none was). <code>status</code> is the run
 status from <code>summary</code>, except that a document some of whose extraction
 requests failed is <code>"incomplete"</code> (or <code>"failed"</code> if all did), and one
 whose extraction requests all succeeded is not <code>"failed"</code> for another
@@ -343,14 +348,14 @@ the sentence it was taken from and a check that the sentence is really there.</p
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="st">"We ran a randomised controlled trial. We enrolled 120 participants."</span>, <span class="va">f</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu">gr_extract</span><span class="op">(</span><span class="va">f</span>, <span class="va">fields</span>, client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/1] file1b29707e48cf.txt</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1b29707e48cf.txt' with the 'txt' extractor.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/1] file1b664b07b47c.txt</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1b664b07b47c.txt' with the 'txt' extractor.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Ingested 1 block(s), ~22 tokens (0 chars removed by cleaning).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Segmenting with 'structural' (cap 900 tokens, overlap 90).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).</span>
 <span class="r-in"><span><span class="va">x</span><span class="op">$</span><span class="va">table</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"document"</span>, <span class="st">"design"</span>, <span class="st">"n"</span>, <span class="st">"n_unverified"</span>, <span class="st">"status"</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>               document                      design   n n_unverified status</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 file1b29707e48cf.txt randomised controlled trial 120            0     ok</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 file1b664b07b47c.txt randomised controlled trial 120            0     ok</span>
 <span class="r-in"><span><span class="va">x</span><span class="op">$</span><span class="va">evidence</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"field"</span>, <span class="st">"quote"</span>, <span class="st">"verified"</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    field                                 quote verified</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 design We ran a randomised controlled trial.     TRUE</span>

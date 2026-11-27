@@ -674,7 +674,12 @@ sentences, pieces) are packed into chunks under the cap.
 
 - `packing = "greedy"` fills each chunk to `max_tokens` and leaves the
   remainder in the last chunk. `"balanced"` keeps the same number of
-  chunks and evens their sizes.
+  chunks and evens their sizes. It cuts at the unit boundaries nearest
+  to each equal share of the tokens. When that leaves a chunk over
+  `max_tokens`, it takes the cuts that keep the largest chunk smallest,
+  if their sizes are closer together than the greedy chunks’. No unit is
+  split for it: when a unit is longer than `max_tokens`, the greedy
+  chunks are kept. Chunks stay in document order.
 - `min_tokens` merges a chunk smaller than it into the chunk before it.
 - `runt_merge = "both"` also merges a first chunk smaller than
   `min_tokens` forward into the second. The backward rule cannot reach a

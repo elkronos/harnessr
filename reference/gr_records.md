@@ -141,7 +141,7 @@ writeLines(c("TY  - JOUR", "AU  - Smith, J.", "TI  - A trial of spacing",
 recs <- gr_records(ris)
 recs
 #> <gr_records> 1 record(s) from 1 export(s)
-#>   file1b291e23d894.ris 1
+#>   file1b66593ca6c9.ris 1
 #>   records identified       1
 #>   duplicates removed       0
 #>   records screened         1

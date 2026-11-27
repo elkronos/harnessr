@@ -97,7 +97,11 @@ merge findings to place them by the read's <code>context_order</code> as well; s
 <span>  pin <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"question"</span>, <span class="st">"instructions"</span><span class="op">)</span>,</span>
 <span>  cut_order <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
 <span>  keep <span class="op">=</span> <span class="st">"head"</span>,</span>
-<span>  order_merges <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  order_merges <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  marker <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  overflow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"marker"</span>, <span class="st">"stubs"</span><span class="op">)</span>,</span>
+<span>  stub_tokens <span class="op">=</span> <span class="fl">200L</span>,</span>
+<span>  disclose_subset <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'hr_context_policy'</span></span>
@@ -125,6 +129,30 @@ vector of them named by piece.</p></dd>
 <dd><p>Whether merge packers follow <code>context_order</code>.</p></dd>
 
 
+<dt id="arg-marker">marker<a class="anchor" aria-label="anchor" href="#arg-marker"></a></dt>
+<dd><p><code>NULL</code> (the default) for each packer's own marker, or the
+text that marks a cut, with <code>{tokens_dropped}</code> and <code>{units_dropped}</code>
+filled in.</p></dd>
+
+
+<dt id="arg-overflow">overflow<a class="anchor" aria-label="anchor" href="#arg-overflow"></a></dt>
+<dd><p><code>"marker"</code> (the default): a piece cut away entirely
+leaves nothing behind. <code>"stubs"</code>: such pieces are listed by name and
+title in the fit's <code>notice</code>.</p></dd>
+
+
+<dt id="arg-stub-tokens">stub_tokens<a class="anchor" aria-label="anchor" href="#arg-stub-tokens"></a></dt>
+<dd><p>The most tokens the list of stubs may take; 200 by
+default. When that cannot hold one stub, the list is the header and
+<code>"- and N more"</code> alone.</p></dd>
+
+
+<dt id="arg-disclose-subset">disclose_subset<a class="anchor" aria-label="anchor" href="#arg-disclose-subset"></a></dt>
+<dd><p><code>FALSE</code> (the default), <code>TRUE</code>, or a template with
+<code>{shown}</code> and <code>{total}</code>: the line added to the fit's <code>notice</code> when
+pieces were cut away.</p></dd>
+
+
 <dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
 <dd><p>An <code>hr_context_policy</code>.</p></dd>
 
@@ -136,16 +164,32 @@ vector of them named by piece.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An object of class <code>hr_context_policy</code>: a list of <code>pin</code>,
-<code>cut_order</code>, <code>keep</code> and <code>order_merges</code>.</p>
+<code>cut_order</code>, <code>keep</code> and <code>order_merges</code>, followed by <code>marker</code>,
+<code>overflow</code>, <code>stub_tokens</code> and <code>disclose_subset</code> for those set away from
+their defaults.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>A pinned piece is never cut by the policy. When the pinned pieces alone
+    <p>Three settings make a cut say what it removed. <code>marker</code> replaces the text
+that marks a cut piece, and may hold <code>{tokens_dropped}</code> and
+<code>{units_dropped}</code> (see <code><a href="hr_truncate.html">hr_truncate()</a></code>). <code>overflow = "stubs"</code> lists the
+pieces cut away entirely by name, with the titles the caller gives
+<code><a href="hr_context_fit.html">hr_context_fit()</a></code>, in at most <code>stub_tokens</code> tokens, or as a count alone
+when that cannot hold one; fetching one by its name is left to the
+caller. <code>disclose_subset</code> adds one line when pieces
+were cut away, such as "12 of 40 studies shown; do not state totals":
+<code>TRUE</code> writes "<code>{shown}</code> of <code>{total}</code> items shown; do not state totals.",
+and a string is used as the template. <code><a href="hr_context_fit.html">hr_context_fit()</a></code> returns the
+list and the line as its <code>notice</code>, for the caller to place in the
+request. A policy that leaves these three at their defaults is the same
+object it was before they existed.</p>
+<p>A pinned piece is never cut by the policy. When the pinned pieces alone
 do not fit, <code><a href="hr_context_fit.html">hr_context_fit()</a></code> says so (<code>fits = FALSE</code>) and leaves the
 decision to its caller.</p>
 <p><code><a href="hr_context_fit.html">hr_context_fit()</a></code> applies a policy to a set of pieces. In the document
 layer, a read takes one as the <code>context_policy</code> setting of
-<code><a href="gr_read_spec.html">gr_read_spec()</a></code>; <code>NULL</code>, the default, keeps each reader's own cuts.</p>
+<code><a href="gr_read_spec.html">gr_read_spec()</a></code>, and a write-up as the <code>context_policy</code> argument of
+<code><a href="gr_synthesise.html">gr_synthesise()</a></code>; <code>NULL</code>, the default, keeps each packer's own cuts.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -176,6 +220,17 @@ layer, a read takes one as the <code>context_policy</code> setting of
 <span class="r-out co"><span class="r-pr">#&gt;</span>   cut first:    -</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep:         excerpt = both, head</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   order merges: FALSE</span>
+<span class="r-in"><span><span class="co"># A policy that names what it leaves out.</span></span></span>
+<span class="r-in"><span><span class="fu">hr_context_policy</span><span class="op">(</span>marker <span class="op">=</span> <span class="st">" [{tokens_dropped} tokens cut]"</span>, overflow <span class="op">=</span> <span class="st">"stubs"</span>,</span></span>
+<span class="r-in"><span>                  disclose_subset <span class="op">=</span> <span class="st">"{shown} of {total} studies shown; do not state totals."</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;hr_context_policy&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   pin:          question, instructions</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   cut first:    -</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep:         head</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   order merges: FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   marker:       " [{tokens_dropped} tokens cut]"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   overflow:     stubs, in at most 200 tokens</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   subset line:  "{shown} of {total} studies shown; do not state totals."</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

@@ -721,7 +721,7 @@ settings <- gr_settings_table()
 table(factor(settings$stage, unique(settings$stage)))
 #> 
 #>     ingest    segment       read     screen    extract synthesise   evaluate 
-#>         21         20         50         33         10         29         30 
+#>         21         20         50         34         10         31         30 
 #>    options 
 #>         41
 ```
@@ -731,9 +731,9 @@ table(factor(settings$stage, unique(settings$stage)))
 | ingest | 21 | [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md), or by name in [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md) | [`vignette("ingest")`](https://elkronos.github.io/harnessr/articles/ingest.md) |
 | segment | 20 | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md), or by name | [`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md) |
 | read | 50 | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md), or by name; [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md) for a folder | [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md) |
-| screen | 33 | the arguments of [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md) and the functions beside it | [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md) |
+| screen | 34 | the arguments of [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md) and the functions beside it | [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md) |
 | extract | 10 | the arguments of [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md) | [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md) |
-| synthesise | 29 | the arguments of [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) and the functions beside it | [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md) |
+| synthesise | 31 | the arguments of [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) and the functions beside it | [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md) |
 | evaluate | 30 | the arguments of [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md), [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) and [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | [`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md), [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md) |
 | options | 41 | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md), for the whole session | [`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md), [`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md), [`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md), [`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md), [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md) |
 
@@ -768,7 +768,7 @@ defaults and when to change each:
 | options | `cache_dir` (a temporary directory) | a long run should be paid for once and survive the session |
 
 [`vignette("settings")`](https://elkronos.github.io/harnessr/articles/settings.md)
-lists all 234 with their defaults and where each default came from, and
+lists all 237 with their defaults and where each default came from, and
 [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
 returns them in R. The settings page links each important one to a
 walkthrough at the end of one of ten guides. Each walkthrough says what

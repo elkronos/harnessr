@@ -668,13 +668,114 @@ budget:</p>
 </div>
 </div>
 <div class="section level2">
+<h2 id="disclose">Cuts that say what they removed<a class="anchor" aria-label="anchor" href="#disclose"></a>
+</h2>
+<p>A model given part of a list can write as if it had the whole: “five
+studies report a benefit” when five of the twelve it was shown do, out
+of forty. Three opt-in settings make a cut visible in the request
+itself. Each changes the text sent, so each is off by default.</p>
+<div class="section level3">
+<h3 id="a-marker-that-counts">A marker that counts<a class="anchor" aria-label="anchor" href="#a-marker-that-counts"></a>
+</h3>
+<p>A marker may hold <code>{tokens_dropped}</code> and
+<code>{units_dropped}</code>. <code><a href="../reference/hr_truncate.html">hr_truncate()</a></code> fills them
+after the cut: the tokens of the text it removed, and the units it did
+not keep whole (the elements of a vector, else the paragraphs):</p>
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_truncate.html">hr_truncate</a></span><span class="op">(</span><span class="va">txt</span>, <span class="fl">40</span>, marker <span class="op">=</span> <span class="st">" [{tokens_dropped} tokens, {units_dropped} paragraphs cut]"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Para 1 says something about revenue.</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Para 2 says something about revenue.</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Para 3 says something about [28 tokens, 4 paragraphs cut]</span></span></code></pre></div>
+<p>The cut is sized with each count at its largest, so the marker the
+model sees never costs more than the room set aside for it, and the
+result stays within <code>n</code>. The marker rules above apply as they
+do to a plain marker. A policy’s <code>marker</code> is the one
+<code><a href="../reference/hr_context_fit.html">hr_context_fit()</a></code> passes to every cut it makes:</p>
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">counted</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_context_policy.html">hr_context_policy</a></span><span class="op">(</span>marker <span class="op">=</span> <span class="st">" [{tokens_dropped} tokens cut]"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_context_fit.html">hr_context_fit</a></span><span class="op">(</span><span class="va">pieces</span>, <span class="va">bud</span><span class="op">$</span><span class="va">input</span>, <span class="va">counted</span><span class="op">)</span><span class="op">$</span><span class="va">pieces</span><span class="op">[[</span><span class="st">"excerpt"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Acme Ltd annual report, fiscal 2024.</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; The board met eleven times during the year and approved a new audit charter.</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Staff numbers rose from 410 to 452, mostly in the logistics division.</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Revenue for fiscal 2024 was 45.2 million dollars, up from 38.1 million.</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; The company opened two warehouses, in Leeds and in Rotterdam.</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Energy costs fell [30 tokens cut]</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="stubs-for-the-pieces-left-out">Stubs for the pieces left out<a class="anchor" aria-label="anchor" href="#stubs-for-the-pieces-left-out"></a>
+</h3>
+<p>A piece cut away entirely becomes <code>""</code>, and the model is
+told nothing of it. With <code>overflow = "stubs"</code>,
+<code><a href="../reference/hr_context_fit.html">hr_context_fit()</a></code> lists such pieces by name, with the titles
+you pass as <code>titles</code>, in at most <code>stub_tokens</code>
+tokens (200 by default). It does not fetch anything: a name tells the
+model, or you, what to ask for next. Here eight studies compete for a
+small budget:</p>
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">studies</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Study"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">8</span>, <span class="st">"found that revenue rose after the price change"</span>,</span>
+<span>                          <span class="st">"in its region, with figures for each quarter."</span><span class="op">)</span>,</span>
+<span>                    <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"study"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">8</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">titles</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Regional trial"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">8</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">studies</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">stubbed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_context_fit.html">hr_context_fit</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>question <span class="op">=</span> <span class="st">"What was found?"</span>, <span class="va">studies</span><span class="op">)</span>, <span class="fl">120</span>,</span>
+<span>                          <span class="fu"><a href="../reference/hr_context_policy.html">hr_context_policy</a></span><span class="op">(</span>overflow <span class="op">=</span> <span class="st">"stubs"</span>, stub_tokens <span class="op">=</span> <span class="fl">40</span><span class="op">)</span>,</span>
+<span>                          titles <span class="op">=</span> <span class="va">titles</span><span class="op">)</span></span>
+<span><span class="va">stubbed</span><span class="op">$</span><span class="va">omitted</span></span>
+<span><span class="co">#&gt; [1] "study 4" "study 5" "study 6" "study 7" "study 8"</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="va">stubbed</span><span class="op">$</span><span class="va">notice</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Left out for space:</span></span>
+<span><span class="co">#&gt; - study 4: Regional trial 4</span></span>
+<span><span class="co">#&gt; - study 5: Regional trial 5</span></span>
+<span><span class="co">#&gt; - and 3 more</span></span></code></pre></div>
+<p>The list goes in the fit’s <code>notice</code>, which you place in
+the request; the pieces stay where they were. Room for the notice is set
+aside before anything is cut, so the pieces and the notice together fit
+the budget. Stubs that do not fit under <code>stub_tokens</code> are
+counted in a last line, <code>"- and N more"</code>. When
+<code>stub_tokens</code> cannot hold even one stub, the list is the
+header and that last line alone. Only unpinned pieces cut away entirely
+are listed; a piece cut in part carries the marker instead.</p>
+</div>
+<div class="section level3">
+<h3 id="one-line-on-the-subset">One line on the subset<a class="anchor" aria-label="anchor" href="#one-line-on-the-subset"></a>
+</h3>
+<p><code>disclose_subset</code> adds one line to the notice when pieces
+were cut away. <code>TRUE</code> writes “<code>{shown}</code> of
+<code>{total}</code> items shown; do not state totals.”; a string is
+used as the template:</p>
+<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">shown</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_context_fit.html">hr_context_fit</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>question <span class="op">=</span> <span class="st">"What was found?"</span>, <span class="va">studies</span><span class="op">)</span>, <span class="fl">120</span>,</span>
+<span>                        <span class="fu"><a href="../reference/hr_context_policy.html">hr_context_policy</a></span><span class="op">(</span></span>
+<span>                          disclose_subset <span class="op">=</span> <span class="st">"{shown} of {total} studies shown; do not state totals."</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="va">shown</span><span class="op">$</span><span class="va">notice</span><span class="op">)</span></span>
+<span><span class="co">#&gt; 4 of 8 studies shown; do not state totals.</span></span></code></pre></div>
+<p><code>{total}</code> counts the unpinned pieces that had text, and
+<code>{shown}</code> those that still have some. With both settings the
+line comes first and the stubs follow. When nothing is cut away the
+notice is <code>""</code>. The room set aside is at most half the
+budget, so with a very small budget the notice is <code>""</code> as
+well: a fit never goes over the budget to name what it left out.</p>
+<p>The readers use a policy’s marker for the cuts they make under it.
+<code>refine</code> fits two pieces and sets no room aside for a notice.
+<code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code> places the notice under the gaps it cuts;
+its “Context policy” help section covers how. In a packer of your own,
+place <code>fit$notice</code> in the request.</p>
+</div>
+</div>
+<div class="section level2">
 <h2 id="trace-steps">Cuts in the trace<a class="anchor" aria-label="anchor" href="#trace-steps"></a>
 </h2>
 <p>Give <code><a href="../reference/hr_context_fit.html">hr_context_fit()</a></code> or <code><a href="../reference/hr_truncate.html">hr_truncate()</a></code> a
 trace, and each cut becomes a step labelled <code>"truncate"</code>.
 <code><a href="../reference/hr_context_fit.html">hr_context_fit()</a></code> names each step’s <code>where</code> as
 <code>"&lt;where&gt;.&lt;piece&gt;"</code>:</p>
-<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_context_fit.html">hr_context_fit</a></span><span class="op">(</span><span class="va">pieces</span>, <span class="va">bud</span><span class="op">$</span><span class="va">input</span>, <span class="fu"><a href="../reference/hr_context_policy.html">hr_context_policy</a></span><span class="op">(</span>cut_order <span class="op">=</span> <span class="st">"notes"</span><span class="op">)</span>,</span>
 <span>                      trace <span class="op">=</span> <span class="va">tr</span>, where <span class="op">=</span> <span class="st">"answer"</span><span class="op">)</span></span>
@@ -736,13 +837,13 @@ saved, and the trace gives the source text lost.</p>
 <code>"truncate"</code> steps had no cuts. The printed trace counts them
 among its steps, and <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> of a trace leaves them
 out, since it lists requests only:</p>
-<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tr</span></span>
-<span><span class="co">#&gt; &lt;gr_trace run_20261127171542.045_c5e8b7&gt;  1 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)</span></span>
+<span><span class="co">#&gt; &lt;gr_trace run_20261127174431.709_0098a7&gt;  1 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)</span></span>
 <span><span class="co">#&gt;   steps: truncate x1 </span></span>
 <span><span class="co">#&gt;   cost: no cost recorded</span></span>
 <span><span class="co">#&gt;   time: 0.00 s (requests 0%, local 0%, overhead 100%)</span></span>
-<span><span class="co">#&gt;   started: 2026-11-27T17:15:42.046Z</span></span></code></pre></div>
+<span><span class="co">#&gt;   started: 2026-11-27T17:44:31.710Z</span></span></code></pre></div>
 <p>Two other parts of the core read or write these steps.
 <code><a href="../reference/hr_embed.html">hr_embed()</a></code> cuts a text longer than the embedding model’s
 window and writes the cut as a <code>"truncate"</code> step whose
@@ -762,7 +863,7 @@ a request of its own in the trace.) When you want a summary in place of
 a cut, such as a long set of notes condensed before the next request,
 make it a step of its own: a call whose reply becomes a piece of the
 next prompt.</p>
-<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">condense</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_step.html">hr_step</a></span><span class="op">(</span><span class="st">"condense"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">notes</span>, <span class="va">ctx</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="../reference/hr_count_tokens.html">hr_count_tokens</a></span><span class="op">(</span><span class="va">notes</span><span class="op">)</span> <span class="op">&lt;=</span> <span class="fl">30</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="va">notes</span><span class="op">)</span></span>
 <span>  <span class="va">ctx</span><span class="op">$</span><span class="fu">call</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Condense these notes, keeping every figure:\n\n"</span>, <span class="va">notes</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">text</span></span>
@@ -770,7 +871,7 @@ next prompt.</p>
 <p>Inside a chain, <code>ctx$call()</code> sends the request through the
 arm’s client and trace, so the summary is a request in the trace like
 any other, with its own cost. Called here with a stand-in context:</p>
-<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">summariser</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="st">"Revenue may be restated in the notes; 2023 was 38.1 million."</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
@@ -799,7 +900,7 @@ registered for the model, so you can see how far apart the two counts
 were. A 400 for any other reason is left as it was.</p>
 <p><code>hr_mock_client(mode = "overflow")</code> refuses its first
 request that way:</p>
-<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">over</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million."</span>,</span>
 <span>                       mode <span class="op">=</span> <span class="st">"overflow"</span><span class="op">)</span></span>
@@ -817,7 +918,7 @@ try, give <code>on_overflow</code> a function of your own that returns a
 smaller prompt. It is called with the messages sent and what the refusal
 said, and its messages go out once as a new request, which the governor
 checks and the trace records:</p>
-<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb43"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">shorter</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">info</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">last</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">messages</span><span class="op">)</span></span>
 <span>  <span class="va">messages</span><span class="op">[[</span><span class="va">last</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_truncate.html">hr_truncate</a></span><span class="op">(</span><span class="va">messages</span><span class="op">[[</span><span class="va">last</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span>, <span class="fl">50</span><span class="op">)</span></span>
@@ -866,7 +967,7 @@ as untested.</p>
 <p><strong>How to test it.</strong> Compare the input room at each
 margin you consider, and the local count of your prompts with the prompt
 tokens your provider reports:</p>
-<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.05</span>, <span class="fl">0.10</span>, <span class="fl">0.20</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="fu"><a href="../reference/hr_budget.html">hr_budget</a></span><span class="op">(</span><span class="st">"gpt-4o"</span>, safety_margin <span class="op">=</span> <span class="va">m</span><span class="op">)</span><span class="op">$</span><span class="va">input</span>,</span>
 <span>       <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 111616 105216  98816  86016</span></span></code></pre></div>
@@ -902,7 +1003,7 @@ not measured. <code>gr_settings_table("options")</code> lists both as
 untested.</p>
 <p><strong>How to test them.</strong> See how the input room moves with
 the share, on the model you use:</p>
-<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb45"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">prev</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"output_reserve_share"</span>, <span class="st">"min_output_tokens"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="va">room</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.10</span>, <span class="fl">0.25</span>, <span class="fl">0.40</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>output_reserve_share <span class="op">=</span> <span class="va">s</span><span class="op">)</span></span>
@@ -952,7 +1053,10 @@ takes a policy as the <code>context_policy</code> setting of
 excerpt with <code><a href="../reference/hr_context_fit.html">hr_context_fit()</a></code>, and the merges,
 <code>hierarchical</code> and <code>preview</code> cut their pieces with
 <code><a href="../reference/hr_truncate.html">hr_truncate()</a></code>. “What a request keeps” in
-<code><a href="../articles/readers.html">vignette("readers")</a></code> covers the setting.</p>
+<code><a href="../articles/readers.html">vignette("readers")</a></code> covers the setting. A write-up takes
+one as the <code>context_policy</code> argument of
+<code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code>, for its gaps and its merges; the synthesis
+settings in <code><a href="../articles/review.html">vignette("review")</a></code> cover it.</p>
 </div>
 <div class="section level2">
 <h2 id="next">Next<a class="anchor" aria-label="anchor" href="#next"></a>

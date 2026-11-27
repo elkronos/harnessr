@@ -3,15 +3,15 @@
 policy (hr_context_policy()): pinned pieces are never cut; the pieces
 in cut_order are cut first, in order, and then the others, the last
 piece first. Each piece is cut only as far as the total needs, by
-hr_truncate() with the piece's keep rule, and a piece that must go
-entirely becomes &quot;&quot;. Each cut is written to trace as a &quot;truncate&quot;
-step with where set to &quot;&amp;lt;where&amp;gt;.&amp;lt;piece&amp;gt;&quot;."><meta property="og:description" content="When the pieces together are longer than budget tokens, cuts them under
+hr_truncate() with the piece's keep rule and the policy's marker, and
+a piece that must go entirely becomes &quot;&quot;. Each cut is written to trace
+as a &quot;truncate&quot; step with where set to &quot;&amp;lt;where&amp;gt;.&amp;lt;piece&amp;gt;&quot;."><meta property="og:description" content="When the pieces together are longer than budget tokens, cuts them under
 policy (hr_context_policy()): pinned pieces are never cut; the pieces
 in cut_order are cut first, in order, and then the others, the last
 piece first. Each piece is cut only as far as the total needs, by
-hr_truncate() with the piece's keep rule, and a piece that must go
-entirely becomes &quot;&quot;. Each cut is written to trace as a &quot;truncate&quot;
-step with where set to &quot;&amp;lt;where&amp;gt;.&amp;lt;piece&amp;gt;&quot;."></head><body>
+hr_truncate() with the piece's keep rule and the policy's marker, and
+a piece that must go entirely becomes &quot;&quot;. Each cut is written to trace
+as a &quot;truncate&quot; step with where set to &quot;&amp;lt;where&amp;gt;.&amp;lt;piece&amp;gt;&quot;."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -77,9 +77,9 @@ step with where set to &quot;&amp;lt;where&amp;gt;.&amp;lt;piece&amp;gt;&quot;."
 <code>policy</code> (<code><a href="hr_context_policy.html">hr_context_policy()</a></code>): pinned pieces are never cut; the pieces
 in <code>cut_order</code> are cut first, in order, and then the others, the last
 piece first. Each piece is cut only as far as the total needs, by
-<code><a href="hr_truncate.html">hr_truncate()</a></code> with the piece's keep rule, and a piece that must go
-entirely becomes <code>""</code>. Each cut is written to <code>trace</code> as a <code>"truncate"</code>
-step with <code>where</code> set to <code>"&lt;where&gt;.&lt;piece&gt;"</code>.</p>
+<code><a href="hr_truncate.html">hr_truncate()</a></code> with the piece's keep rule and the policy's <code>marker</code>, and
+a piece that must go entirely becomes <code>""</code>. Each cut is written to <code>trace</code>
+as a <code>"truncate"</code> step with <code>where</code> set to <code>"&lt;where&gt;.&lt;piece&gt;"</code>.</p>
     </div>
 
     <div class="section level2">
@@ -90,7 +90,8 @@ step with <code>where</code> set to <code>"&lt;where&gt;.&lt;piece&gt;"</code>.<
 <span>  policy <span class="op">=</span> <span class="fu"><a href="hr_context_policy.html">hr_context_policy</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  scores <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  trace <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  where <span class="op">=</span> <span class="st">"context"</span></span>
+<span>  where <span class="op">=</span> <span class="st">"context"</span>,</span>
+<span>  titles <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -123,13 +124,35 @@ vectors named by piece. A piece without scores is cut with <code>"head"</code>.<
 <dt id="arg-where">where<a class="anchor" aria-label="anchor" href="#arg-where"></a></dt>
 <dd><p>The packer's name, the start of each cut's <code>where</code>.</p></dd>
 
+
+<dt id="arg-titles">titles<a class="anchor" aria-label="anchor" href="#arg-titles"></a></dt>
+<dd><p>For <code>overflow = "stubs"</code>: a character vector of titles
+named by piece, written after each stub's name. A piece without a title
+is listed by name alone.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A list of <code>pieces</code> (named character, in the order given), <code>fits</code>
-(whether they now fit; <code>FALSE</code> when the pinned pieces alone do not),
-<code>tokens</code> (their total), <code>cut</code> (the names of the pieces cut) and
-<code>tokens_dropped</code>.</p>
+(whether they now fit with the notice; <code>FALSE</code> when the pinned pieces
+alone do not), <code>tokens</code> (their total, the notice's included), <code>cut</code>
+(the names of the pieces cut), <code>tokens_dropped</code>, <code>omitted</code> (the names
+of the unpinned pieces cut away entirely) and <code>notice</code> (the subset line
+and stubs, or <code>""</code>).</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Under a policy with <code>overflow = "stubs"</code> or <code>disclose_subset</code>, room for
+the <code>notice</code> is set aside before anything is cut, and the notice names
+the unpinned pieces cut away entirely: the subset line first, then the
+stubs, one line each, <code>"- &lt;name&gt;: &lt;title&gt;"</code>, with <code>"- and N more"</code> for
+those the stub cap leaves out. The pieces and the notice together stay
+within <code>budget</code> whenever the pinned pieces fit. When <code>stub_tokens</code> cannot
+hold one stub, the stubs shrink to the header and <code>"- and N more"</code>. The
+room set aside is at most half of <code>budget</code>, so the notice is <code>""</code> when
+nothing was cut away, when the policy asks for neither, or when that room
+cannot hold the subset line or that shortest list; placing it in the
+request is the caller's job.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -161,6 +184,23 @@ vectors named by piece. A piece without scores is cut with <code>"head"</code>.<
 <span class="r-out co"><span class="r-pr">#&gt;</span>        7       93        0 </span>
 <span class="r-in"><span><span class="va">fit</span><span class="op">$</span><span class="va">cut</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "excerpt"</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Studies as pieces: the ones left out are named, with their titles.</span></span></span>
+<span class="r-in"><span><span class="va">studies</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Study"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">8</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"findings"</span>, <span class="fl">20</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">" "</span><span class="op">)</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>                    <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"study"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">8</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">pol</span> <span class="op">&lt;-</span> <span class="fu"><a href="hr_context_policy.html">hr_context_policy</a></span><span class="op">(</span>overflow <span class="op">=</span> <span class="st">"stubs"</span>,</span></span>
+<span class="r-in"><span>  disclose_subset <span class="op">=</span> <span class="st">"{shown} of {total} studies shown; do not state totals."</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">hr_context_fit</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>question <span class="op">=</span> <span class="st">"What was found?"</span>, <span class="va">studies</span><span class="op">)</span>, <span class="fl">150</span>, <span class="va">pol</span>,</span></span>
+<span class="r-in"><span>                      titles <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Trial"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">8</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">studies</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">notice</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 of 8 studies shown; do not state totals.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Left out for space:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> - study 3: Trial 3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> - study 4: Trial 4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> - study 5: Trial 5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> - study 6: Trial 6</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> - study 7: Trial 7</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> - and 1 more</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

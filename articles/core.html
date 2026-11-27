@@ -626,13 +626,13 @@ names what the call was for:</p>
 <span><span class="va">b</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">cl</span>, <span class="st">"Check the draft against the report."</span>, model <span class="op">=</span> <span class="st">"priced-mock"</span>,</span>
 <span>             trace <span class="op">=</span> <span class="va">tr</span>, label <span class="op">=</span> <span class="st">"check"</span><span class="op">)</span></span>
 <span><span class="va">tr</span></span>
-<span><span class="co">#&gt; &lt;gr_trace run_20261127171546.057_30d83c&gt;  2 steps, 2 model calls, 23 in / 26 out tokens, 0 error(s)</span></span>
+<span><span class="co">#&gt; &lt;gr_trace run_20261127174437.222_338a22&gt;  2 steps, 2 model calls, 23 in / 26 out tokens, 0 error(s)</span></span>
 <span><span class="co">#&gt;   steps: check x1, draft x1 </span></span>
 <span><span class="co">#&gt;   cost: $0.0003 across priced-mock, prices as of 2026-11</span></span>
-<span><span class="co">#&gt;   time: 0.01 s (requests 35%, local 0%, overhead 65%)</span></span>
+<span><span class="co">#&gt;   time: 0.00 s (requests 54%, local 0%, overhead 46%)</span></span>
 <span><span class="co">#&gt;   usage: estimated locally for 100% of requests (the provider reported none)</span></span>
 <span><span class="co">#&gt;   actor: purpose = core guide </span></span>
-<span><span class="co">#&gt;   started: 2026-11-27T17:15:46.058Z</span></span></code></pre></div>
+<span><span class="co">#&gt;   started: 2026-11-27T17:44:37.222Z</span></span></code></pre></div>
 <p>The trace is an environment, so every call that is passed it records
 into the same object, and you need not collect it from each result.
 Printing it gives the number of steps and calls, the tokens, the errors,
@@ -693,7 +693,7 @@ went:</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_trace_summary.html">hr_trace_summary</a></span><span class="op">(</span><span class="va">tr</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"elapsed_s"</span>, <span class="st">"request_s"</span>, <span class="st">"local_s"</span>, <span class="st">"overhead_s"</span>,</span>
 <span>                         <span class="st">"request_share"</span>, <span class="st">"overhead_share"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   elapsed_s request_s local_s overhead_s request_share overhead_share</span></span>
-<span><span class="co">#&gt; 1      0.01         0       0          0        0.3479         0.6521</span></span></code></pre></div>
+<span><span class="co">#&gt; 1         0         0       0          0        0.5384         0.4616</span></span></code></pre></div>
 <p><code>elapsed_s</code> runs from the trace’s start to the end of its
 last step, read from the steps, so a summary taken tomorrow, or of a
 trace saved with <code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code> and read back in another time

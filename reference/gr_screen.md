@@ -26,7 +26,8 @@ gr_screen(
   trace = NULL,
   criteria_schema = c("decision", "per_criterion"),
   samples = 1L,
-  sample_rule = c("include_if_any", "majority"),
+  sample_rule = c("include_if_any", "majority", "k_of_n"),
+  sample_k = NULL,
   ...
 )
 ```
@@ -117,8 +118,19 @@ gr_screen(
   when every draw was read and excluded it, and sends the rest to a
   person as `"unclear"`, so a study one draw would keep is not lost to
   the others. `"majority"` takes the decision most draws gave,
-  `"unclear"` on a tie. The reason, criterion and quote are the first
-  draw's that gave the decision kept. Untested.
+  `"unclear"` on a tie. `"k_of_n"` includes a document when at least
+  `sample_k` draws included it, excludes one only when every draw was
+  read and excluded it, and sends the rest to a person as `"unclear"`.
+  The reason, criterion and quote are the first draw's that gave the
+  decision kept. Untested.
+
+- sample_k:
+
+  Under `sample_rule = "k_of_n"`, how many draws must include a document
+  for it to be included: a whole number from 1 to `samples`. `k_of_n`
+  needs it, and the other rules take none. At 1 it decides as
+  `"include_if_any"` does; at `samples` a document is included only when
+  every draw included it. Untested.
 
 - ...:
 
@@ -171,6 +183,12 @@ An object of class `gr_screening`:
   The
   [`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md)
   the run was made over, or `NULL`.
+
+- `sampling`:
+
+  Only when `samples` is above 1: a list of `samples`, `sample_rule`
+  and, under `"k_of_n"`, `sample_k`, the rule that turned the draws in
+  `sample_decisions` into `decision`.
 
 - `summary`,`answers`,`trace`,`store`:
 
@@ -243,12 +261,12 @@ writeLines("We randomly assigned participants to two groups.", f)
 
 s <- gr_screen(f, question = "Does the treatment work?",
                include = "Reports a randomised comparison", client = cl)
-#> [1/1] file1b297e4b1a4.txt
-#> Extracting 'file1b297e4b1a4.txt' with the 'txt' extractor.
+#> [1/1] file1b662bdc0cde.txt
+#> Extracting 'file1b662bdc0cde.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~15 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'screen' (head|1|none) over 1 chunk(s).
 s$table[, c("document", "decision", "reason")]
-#>              document decision                           reason
-#> 1 file1b297e4b1a4.txt  include Reports a randomised comparison.
+#>               document decision                           reason
+#> 1 file1b662bdc0cde.txt  include Reports a randomised comparison.
 ```

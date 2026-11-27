@@ -95,14 +95,13 @@
 <td>test-adversarial.R, test-cache-replay.R and 26 more</td>
 </tr><tr><td><code><a href="reference/hr_context_fit.html">hr_context_fit()</a></code></td>
 <td>
-<code>read_refine()</code>, under a read’s <code>context_policy</code>
-</td>
-<td>test-context-policy.R</td>
+<code>read_refine()</code>, under a read’s <code>context_policy</code>; <code>fit_gap_lines()</code>, under <code><a href="reference/gr_synthesise.html">gr_synthesise()</a></code>’s</td>
+<td>test-context-policy.R, test-synth-context.R</td>
 </tr><tr><td><code><a href="reference/hr_context_policy.html">hr_context_policy()</a></code></td>
 <td>
-<code>check_context_policy()</code>, which resolves a read’s <code>context_policy</code>
+<code>check_context_policy()</code>, which resolves the <code>context_policy</code> of a read and of <code><a href="reference/gr_synthesise.html">gr_synthesise()</a></code>
 </td>
-<td>test-context-policy.R</td>
+<td>test-context-policy.R, test-synth-context.R</td>
 </tr><tr><td><code><a href="reference/hr_cost.html">hr_cost()</a></code></td>
 <td>the reader cost functions: <code>cost_extract()</code>, <code>cost_map_reduce()</code> and the rest</td>
 <td>test-conformance.R, test-core-schema.R</td>
@@ -186,9 +185,8 @@
 <td>test-backend.R, test-cache-replay.R and 8 more</td>
 </tr><tr><td><code><a href="reference/hr_truncate.html">hr_truncate()</a></code></td>
 <td>
-<code>cut_piece()</code>, which the merge, <code>hierarchical</code> and <code>preview</code> packers call under a <code>context_policy</code>
-</td>
-<td>test-context-policy.R</td>
+<code>cut_piece()</code>, which the merge, <code>hierarchical</code> and <code>preview</code> packers call under a <code>context_policy</code>, the merges of <code><a href="reference/gr_synthesise.html">gr_synthesise()</a></code> included</td>
+<td>test-context-policy.R, test-synth-context.R</td>
 </tr><tr><td><code><a href="reference/hr_truncate_tokens.html">hr_truncate_tokens()</a></code></td>
 <td>
 <code>cap_gap_lines()</code>, <code>screen_opening()</code> and <code>seg_contextual()</code>

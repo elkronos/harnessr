@@ -104,9 +104,9 @@ s <- gr_settings_table()
 table(s$stage)
 #> 
 #>   evaluate    extract     ingest    options       read     screen    segment 
-#>         30         10         21         41         50         33         20 
+#>         30         10         21         41         50         34         20 
 #> synthesise 
-#>         29 
+#>         31 
 s[s$tier == "basic", c("stage", "name", "default")]
 #>          stage           name                         default
 #> 1       ingest            ocr                            auto
@@ -126,37 +126,37 @@ s[s$tier == "basic", c("stage", "name", "default")]
 #> 92      screen         recipe                        research
 #> 94      screen  screen_tokens                            NULL
 #> 96      screen  max_total_usd                            NULL
-#> 103     screen              n                              50
-#> 104     screen             of                        excluded
-#> 112     screen  recall_target                            0.95
-#> 113     screen           conf                            0.95
-#> 116     screen  recall_target                            0.95
-#> 117     screen           conf                            0.95
-#> 118     screen     prevalence                            NULL
-#> 122     screen         target                            0.95
-#> 125    extract         recipe                        research
-#> 127    extract        resolve                           first
-#> 128    extract  require_quote                           FALSE
-#> 135 synthesise          model                            NULL
-#> 143 synthesise   max_sections                               6
-#> 150 synthesise          model                            NULL
-#> 154 synthesise     cite_style                            auto
-#> 156 synthesise      coherence                           FALSE
-#> 164   evaluate           runs                               5
-#> 165   evaluate         scorer               hr_scorer_exact()
-#> 167   evaluate       governor                            NULL
-#> 171   evaluate           conf                            0.95
-#> 174   evaluate         method                            auto
-#> 178   evaluate           mode                          select
-#> 179   evaluate          model                            NULL
-#> 180   evaluate         orders                               2
-#> 183   evaluate        recipes c("fast", "needle", "thorough")
-#> 191   evaluate          parse                            exit
-#> 194    options        verbose                            TRUE
-#> 196    options          model                   gpt-5.6-terra
-#> 209    options      cache_dir                            NULL
-#> 213    options   max_cost_usd                               5
-#> 214    options      max_calls                             400
+#> 104     screen              n                              50
+#> 105     screen             of                        excluded
+#> 113     screen  recall_target                            0.95
+#> 114     screen           conf                            0.95
+#> 117     screen  recall_target                            0.95
+#> 118     screen           conf                            0.95
+#> 119     screen     prevalence                            NULL
+#> 123     screen         target                            0.95
+#> 126    extract         recipe                        research
+#> 128    extract        resolve                           first
+#> 129    extract  require_quote                           FALSE
+#> 136 synthesise          model                            NULL
+#> 144 synthesise   max_sections                               6
+#> 151 synthesise          model                            NULL
+#> 155 synthesise     cite_style                            auto
+#> 157 synthesise      coherence                           FALSE
+#> 167   evaluate           runs                               5
+#> 168   evaluate         scorer               hr_scorer_exact()
+#> 170   evaluate       governor                            NULL
+#> 174   evaluate           conf                            0.95
+#> 177   evaluate         method                            auto
+#> 181   evaluate           mode                          select
+#> 182   evaluate          model                            NULL
+#> 183   evaluate         orders                               2
+#> 186   evaluate        recipes c("fast", "needle", "thorough")
+#> 194   evaluate          parse                            exit
+#> 197    options        verbose                            TRUE
+#> 199    options          model                   gpt-5.6-terra
+#> 212    options      cache_dir                            NULL
+#> 216    options   max_cost_usd                               5
+#> 217    options      max_calls                             400
 gr_settings_table("synthesise")[, c("name", "default", "status")]
 #>                  name                                   default   status
 #> 1               model                                      NULL     <NA>
@@ -188,4 +188,6 @@ gr_settings_table("synthesise")[, c("name", "default", "status")]
 #> 27         prominence                c(top = 1/3, middle = 1/3) untested
 #> 28      study_weights                                      NULL     <NA>
 #> 29     revision_check                                   lexicon untested
+#> 30     context_policy                                      NULL untested
+#> 31      context_order                                 relevance untested
 ```

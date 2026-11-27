@@ -79,9 +79,12 @@ gr_extract(
   What to do when two parts of one document give different values for
   the same field. `"first"` (default) takes the earlier one and records
   the disagreement in the `conflicts` column, costing nothing. `"model"`
-  spends one extra call per disagreeing field to adjudicate; if that
-  call fails, or a request limit is reached before it can be made, the
-  first value is kept, as with `"first"`, and a warning (in the row's
+  spends one extra call per disagreeing field to adjudicate, and the
+  table gains a `model_picks` column naming each field whose value that
+  call chose. A model's pick is advisory: no validation against people's
+  judgements backs it, so check each one against its quote. If that call
+  fails, or a request limit is reached before it can be made, the first
+  value is kept, as with `"first"`, and a warning (in the row's
   `summary$warnings`) names the field. If it chooses none of the values,
   the first value is kept but is not verified, so `n_unverified` counts
   it and `require_quote` drops it. `"vote"` takes the value the most
@@ -140,13 +143,15 @@ An object of class `gr_extraction`:
   and of that field's type, then `n_filled`, `n_unverified`,
   `conflicts`, `status`, `duplicate_of`, `error` (with
   `agreement_columns = TRUE`, a `<field>_agreement` and a
-  `<field>_conflict` column for each field after the field columns).
-  `status` is the run status from `summary`, except that a document some
-  of whose extraction requests failed is `"incomplete"` (or `"failed"`
-  if all did), and one whose extraction requests all succeeded is not
-  `"failed"` for another request's failure; see the section on `NA`
-  below. A document whose cleaned text repeats one already read is not
-  read again (see
+  `<field>_conflict` column for each field after the field columns; with
+  `resolve = "model"`, a `model_picks` column after `error`: the fields
+  whose value a model call chose, comma-separated, or `NA` when none
+  was). `status` is the run status from `summary`, except that a
+  document some of whose extraction requests failed is `"incomplete"`
+  (or `"failed"` if all did), and one whose extraction requests all
+  succeeded is not `"failed"` for another request's failure; see the
+  section on `NA` below. A document whose cleaned text repeats one
+  already read is not read again (see
   [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)),
   so `subset(x$table, is.na(duplicate_of))` is the set of distinct
   documents.
@@ -314,14 +319,14 @@ f <- tempfile(fileext = ".txt")
 writeLines("We ran a randomised controlled trial. We enrolled 120 participants.", f)
 
 x <- gr_extract(f, fields, client = cl)
-#> [1/1] file1b29707e48cf.txt
-#> Extracting 'file1b29707e48cf.txt' with the 'txt' extractor.
+#> [1/1] file1b664b07b47c.txt
+#> Extracting 'file1b664b07b47c.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~22 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).
 x$table[, c("document", "design", "n", "n_unverified", "status")]
 #>               document                      design   n n_unverified status
-#> 1 file1b29707e48cf.txt randomised controlled trial 120            0     ok
+#> 1 file1b664b07b47c.txt randomised controlled trial 120            0     ok
 x$evidence[, c("field", "quote", "verified")]
 #>    field                                 quote verified
 #> 1 design We ran a randomised controlled trial.     TRUE

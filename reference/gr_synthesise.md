@@ -31,7 +31,9 @@ gr_synthesise(
   figure_bands = c(about = 0.1, over = 0.25, under = 0.25),
   prominence = c(top = 1/3, middle = 1/3),
   study_weights = NULL,
-  revision_check = c("lexicon", "judge")
+  revision_check = c("lexicon", "judge"),
+  context_policy = NULL,
+  context_order = c("relevance", "document", "edges")
 )
 ```
 
@@ -213,7 +215,9 @@ gr_synthesise(
   gaps and no others. When the outline has no such section they reach
   none, and a warning (`gr_gaps_unused`) says so. They are cut, at a
   line, to a quarter of the model's input room, with a warning
-  (`gr_gaps_truncated`), and the closing section is then partial.
+  (`gr_gaps_truncated`), and the closing section is then partial. Under
+  a `context_policy` the policy makes that cut instead (see "Context
+  policy").
 
 - trace:
 
@@ -306,6 +310,25 @@ gr_synthesise(
   as it was. The judge is not validated against people's labels (see
   [`hr_judge_validate()`](https://elkronos.github.io/harnessr/reference/hr_judge_validate.md)),
   so its flags are for a person to read. Untested.
+
+- context_policy:
+
+  `NULL` (the default), or an
+  [`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md)
+  (or a named list of its arguments) for what the write-up cuts when its
+  text does not fit: the gaps, and batch drafts too long for a merge.
+  See "Context policy". `NULL` makes the cuts described above, as
+  before.
+
+- context_order:
+
+  Where a section's claims sit in its prompt, with `claims`:
+  `"relevance"` (the default) in their rank, as before; `"document"` by
+  claim number; `"edges"` with the highest ranked at the start and the
+  next at the end, the lowest in the middle. The rank and the sentence
+  budget each claim gets do not change. Under a `context_policy` with
+  `order_merges = TRUE`, the batch drafts a merge combines are placed by
+  it as well, with or without `claims`.
 
 ## Value
 
@@ -529,6 +552,32 @@ without `claims` a batch none of whose studies the merged section cites
 is reported (`gr_synth_batch_dropped`) and marks it partial. Raise
 `max_section_tokens`, or divide the table between narrower sections.
 
+## Context policy
+
+A write-up never leaves a study out to fit a prompt: a section too large
+for one is drafted in batches and merged. Two things are cut. The gaps
+are cut to a quarter of the model's input room, and a batch draft longer
+than a merge's room is cut before the merge. `context_policy` sets both
+cuts (see
+[`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md)
+and
+[`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md)):
+
+- The gaps are fitted line by line by
+  [`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md),
+  each line a piece named `"gap 1"`, `"gap 2"` and so on, its title the
+  gap's kind and dimension. The last lines are cut first, unless
+  `cut_order` names others, and a line is cut by its `keep` rule. With
+  `overflow = "stubs"` the lines cut away are listed by name and title
+  under the gaps the section is given, and `disclose_subset` adds a line
+  such as "40 of 300 gaps shown; do not state totals". A cut still warns
+  (`gr_gaps_truncated`) and marks the closing section partial.
+
+- A batch draft too long for a merge is a piece named `"findings"`: the
+  policy's `keep` rule for it, and its `marker`, apply.
+
+`context_order`, with or without a policy, places each section's claims.
+
 ## Figures
 
 The citation check says which rows a sentence rests on, not what it says
@@ -626,8 +675,8 @@ cl <- hr_mock_client(function(messages, params) {
 f <- tempfile(fileext = ".txt")
 writeLines("We ran a randomised trial. We enrolled 120 people.", f)
 x <- gr_extract(f, fields, client = cl)
-#> [1/1] file1b2931b7cd1c.txt
-#> Extracting 'file1b2931b7cd1c.txt' with the 'txt' extractor.
+#> [1/1] file1b66633d1d5d.txt
+#> Extracting 'file1b66633d1d5d.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~18 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).

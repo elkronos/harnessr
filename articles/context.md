@@ -668,6 +668,120 @@ writes to a trace when you give it one;
 [`hr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/hr_truncate_tokens.md)
 takes no trace.
 
+## Cuts that say what they removed
+
+A model given part of a list can write as if it had the whole: “five
+studies report a benefit” when five of the twelve it was shown do, out
+of forty. Three opt-in settings make a cut visible in the request
+itself. Each changes the text sent, so each is off by default.
+
+### A marker that counts
+
+A marker may hold `{tokens_dropped}` and `{units_dropped}`.
+[`hr_truncate()`](https://elkronos.github.io/harnessr/reference/hr_truncate.md)
+fills them after the cut: the tokens of the text it removed, and the
+units it did not keep whole (the elements of a vector, else the
+paragraphs):
+
+``` r
+
+cat(hr_truncate(txt, 40, marker = " [{tokens_dropped} tokens, {units_dropped} paragraphs cut]"))
+#> Para 1 says something about revenue.
+#> 
+#> Para 2 says something about revenue.
+#> 
+#> Para 3 says something about [28 tokens, 4 paragraphs cut]
+```
+
+The cut is sized with each count at its largest, so the marker the model
+sees never costs more than the room set aside for it, and the result
+stays within `n`. The marker rules above apply as they do to a plain
+marker. A policy’s `marker` is the one
+[`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md)
+passes to every cut it makes:
+
+``` r
+
+counted <- hr_context_policy(marker = " [{tokens_dropped} tokens cut]")
+cat(hr_context_fit(pieces, bud$input, counted)$pieces[["excerpt"]])
+#> Acme Ltd annual report, fiscal 2024.
+#> 
+#> The board met eleven times during the year and approved a new audit charter.
+#> 
+#> Staff numbers rose from 410 to 452, mostly in the logistics division.
+#> 
+#> Revenue for fiscal 2024 was 45.2 million dollars, up from 38.1 million.
+#> 
+#> The company opened two warehouses, in Leeds and in Rotterdam.
+#> 
+#> Energy costs fell [30 tokens cut]
+```
+
+### Stubs for the pieces left out
+
+A piece cut away entirely becomes `""`, and the model is told nothing of
+it. With `overflow = "stubs"`,
+[`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md)
+lists such pieces by name, with the titles you pass as `titles`, in at
+most `stub_tokens` tokens (200 by default). It does not fetch anything:
+a name tells the model, or you, what to ask for next. Here eight studies
+compete for a small budget:
+
+``` r
+
+studies <- setNames(paste("Study", 1:8, "found that revenue rose after the price change",
+                          "in its region, with figures for each quarter."),
+                    paste("study", 1:8))
+titles <- setNames(paste("Regional trial", 1:8), names(studies))
+stubbed <- hr_context_fit(c(question = "What was found?", studies), 120,
+                          hr_context_policy(overflow = "stubs", stub_tokens = 40),
+                          titles = titles)
+stubbed$omitted
+#> [1] "study 4" "study 5" "study 6" "study 7" "study 8"
+cat(stubbed$notice)
+#> Left out for space:
+#> - study 4: Regional trial 4
+#> - study 5: Regional trial 5
+#> - and 3 more
+```
+
+The list goes in the fit’s `notice`, which you place in the request; the
+pieces stay where they were. Room for the notice is set aside before
+anything is cut, so the pieces and the notice together fit the budget.
+Stubs that do not fit under `stub_tokens` are counted in a last line,
+`"- and N more"`. When `stub_tokens` cannot hold even one stub, the list
+is the header and that last line alone. Only unpinned pieces cut away
+entirely are listed; a piece cut in part carries the marker instead.
+
+### One line on the subset
+
+`disclose_subset` adds one line to the notice when pieces were cut away.
+`TRUE` writes “`{shown}` of `{total}` items shown; do not state
+totals.”; a string is used as the template:
+
+``` r
+
+shown <- hr_context_fit(c(question = "What was found?", studies), 120,
+                        hr_context_policy(
+                          disclose_subset = "{shown} of {total} studies shown; do not state totals."))
+cat(shown$notice)
+#> 4 of 8 studies shown; do not state totals.
+```
+
+`{total}` counts the unpinned pieces that had text, and `{shown}` those
+that still have some. With both settings the line comes first and the
+stubs follow. When nothing is cut away the notice is `""`. The room set
+aside is at most half the budget, so with a very small budget the notice
+is `""` as well: a fit never goes over the budget to name what it left
+out.
+
+The readers use a policy’s marker for the cuts they make under it.
+`refine` fits two pieces and sets no room aside for a notice.
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
+places the notice under the gaps it cuts; its “Context policy” help
+section covers how. In a packer of your own, place `fit$notice` in the
+request.
+
 ## Cuts in the trace
 
 Give
@@ -715,11 +829,11 @@ trace leaves them out, since it lists requests only:
 ``` r
 
 tr
-#> <gr_trace run_20261127171542.045_c5e8b7>  1 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
+#> <gr_trace run_20261127174431.709_0098a7>  1 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
 #>   steps: truncate x1 
 #>   cost: no cost recorded
 #>   time: 0.00 s (requests 0%, local 0%, overhead 100%)
-#>   started: 2026-11-27T17:15:42.046Z
+#>   started: 2026-11-27T17:44:31.710Z
 ```
 
 Two other parts of the core read or write these steps.
@@ -961,7 +1075,12 @@ and the merges, `hierarchical` and `preview` cut their pieces with
 [`hr_truncate()`](https://elkronos.github.io/harnessr/reference/hr_truncate.md).
 “What a request keeps” in
 [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
-covers the setting.
+covers the setting. A write-up takes one as the `context_policy`
+argument of
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md),
+for its gaps and its merges; the synthesis settings in
+[`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md)
+cover it.
 
 ## Next
 

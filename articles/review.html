@@ -964,7 +964,11 @@ paper, cannot be compared.</p>
 <p>Reconciling the chunks costs nothing by default. If the document
 contradicts itself, <code>conflicts</code> names the field and the
 earliest chunk’s value is kept; <code>resolve = "model"</code> spends
-one call per disagreeing field to have the model choose instead.</p>
+one call per disagreeing field to have the model choose instead. The
+table then gains a <code>model_picks</code> column that names each field
+whose value the model chose. A model’s pick is advisory: no validation
+against people’s judgements backs it, so check each one against its
+quote.</p>
 <p>Check <code>n_unverified</code> before you trust a row: zero means
 every value in it has a quote found in the document.
 <code>table$evidence</code> is the long form, one row per supported
@@ -1564,7 +1568,8 @@ sample says no more than before.</p>
 </div>
 <div class="section level3">
 <h3 id="set-screen-reply">Screening replies: <code>criteria_schema</code>,
-<code>samples</code> and <code>sample_rule</code><a class="anchor" aria-label="anchor" href="#set-screen-reply"></a>
+<code>samples</code>, <code>sample_rule</code> and
+<code>sample_k</code><a class="anchor" aria-label="anchor" href="#set-screen-reply"></a>
 </h3>
 <p><strong>What it controls.</strong> <code>criteria_schema</code> sets
 what each screening reply holds. <code>"decision"</code> asks for a
@@ -1583,9 +1588,17 @@ separate draws, and <code>sample_rule</code> combines them.
 <code>"include_if_any"</code> includes a document any draw included and
 excludes one only when every draw excluded it, so a study one draw would
 keep is not lost to the others. <code>"majority"</code> takes the
-decision most draws gave. The table then records each draw’s decision
+decision most draws gave. <code>"k_of_n"</code> includes a document when
+at least <code>sample_k</code> draws included it and, like
+<code>"include_if_any"</code>, excludes one only when every draw
+excluded it; the rest go to a person as <code>"unclear"</code>. At
+<code>sample_k = 1</code> it decides as <code>"include_if_any"</code>
+does. The table then records each draw’s decision
 (<code>sample_decisions</code>) and the share that included
-(<code>include_share</code>).</p>
+(<code>include_share</code>), and the result’s <code>sampling</code>
+field names the rule. <code><a href="../reference/gr_reference.html">gr_reference()</a></code> and
+<code><a href="../reference/gr_calibrate.html">gr_calibrate()</a></code> read the combined <code>decision</code>, so
+recall is measured on what the rule kept.</p>
 <p><strong>Signs it needs changing.</strong> Exclusions whose reasons
 say the excerpt does not mention something (“the age of participants is
 not given”) are exclusions for missing information, which is how
@@ -1600,7 +1613,9 @@ requests.</p>
 not been compared with <code>"per_criterion"</code>.
 <code>samples = 1</code> sends one request per document, as before, and
 <code>"include_if_any"</code> was chosen so that no study a draw would
-keep is lost; neither has been compared (<code>untested</code>).</p>
+keep is lost; neither has been compared (<code>untested</code>).
+<code>sample_k</code> has no default: you choose it, and no value has
+been compared.</p>
 <p><strong>How to test it.</strong> <code>criteria_schema</code> changes
 the request (a schema and one more instruction), so first test what it
 does to the same reply. This stand-in excludes the southern report for a
@@ -1644,11 +1659,29 @@ stand-in that includes the southern report once in three show
 <span><span class="co">#&gt;    document decision          sample_decisions include_share</span></span>
 <span><span class="co">#&gt; 1 north.txt  include include, include, include     1.0000000</span></span>
 <span><span class="co">#&gt; 2 south.txt  include exclude, include, exclude     0.3333333</span></span></code></pre></div>
+<p>Asking for two of the three draws to include holds the southern
+report back for a person:</p>
+<div class="sourceCode" id="cb47"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">two</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_screen.html">gr_screen</a></span><span class="op">(</span><span class="va">reports</span>, <span class="va">protocol</span>, client <span class="op">=</span> <span class="va">draws</span>, samples <span class="op">=</span> <span class="fl">3</span>,</span>
+<span>                 sample_rule <span class="op">=</span> <span class="st">"k_of_n"</span>, sample_k <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">two</span><span class="op">$</span><span class="va">table</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"document"</span>, <span class="st">"decision"</span>, <span class="st">"sample_decisions"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;    document decision          sample_decisions</span></span>
+<span><span class="co">#&gt; 1 north.txt  include include, include, include</span></span>
+<span><span class="co">#&gt; 2 south.txt  unclear exclude, include, exclude</span></span>
+<span><span class="va">two</span><span class="op">$</span><span class="va">sampling</span></span>
+<span><span class="co">#&gt; $samples</span></span>
+<span><span class="co">#&gt; [1] 3</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $sample_rule</span></span>
+<span><span class="co">#&gt; [1] "k_of_n"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $sample_k</span></span>
+<span><span class="co">#&gt; [1] 2</span></span></code></pre></div>
 <p>On your own records, compare the two values against labels, one arm
 per value, as in “Knowing how good the screening is” above. Here
 <code>labelled</code> is an <code><a href="../reference/hr_reference.html">hr_reference()</a></code> of a person’s
 decisions:</p>
-<div class="sourceCode" id="cb47"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb48"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">criteria_schema</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/hr_arm.html">hr_arm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"screen-"</span>, <span class="va">criteria_schema</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">item</span>, <span class="va">ctx</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="fu"><a href="../reference/gr_screen.html">gr_screen</a></span><span class="op">(</span><span class="va">item</span>, <span class="va">protocol</span>, client <span class="op">=</span> <span class="va">ctx</span><span class="op">$</span><span class="va">client</span>, criteria_schema <span class="op">=</span> <span class="va">criteria_schema</span>,</span>
@@ -1678,7 +1711,9 @@ cost; a tie goes to the earliest value, as under
 <code>"first"</code>.</li>
 <li>
 <code>"model"</code> spends one request per disagreeing field to
-choose.</li>
+choose, and names each field it chose in a <code>model_picks</code>
+column. Treat those values as advisory and check them against their
+quotes.</li>
 </ul>
 <p><code>agreement_columns = TRUE</code> adds a
 <code>&lt;field&gt;_agreement</code> column (how many of the chunks that
@@ -1705,7 +1740,7 @@ thrown away unasked; <code>n_unverified</code> counts the same values
 without dropping them. All three are <code>untested</code>.</p>
 <p><strong>How to test them.</strong> <code>require_quote</code> changes
 no request, only which values are kept, so one run shows its effect:</p>
-<div class="sourceCode" id="cb48"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb49"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">strict</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_extract.html">gr_extract</a></span><span class="op">(</span><span class="va">screened</span>, <span class="va">protocol</span>, client <span class="op">=</span> <span class="va">extractor</span>, recipe <span class="op">=</span> <span class="st">"fast"</span>,</span>
 <span>                     require_quote <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>kept_all <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">table</span><span class="op">$</span><span class="va">table</span><span class="op">$</span><span class="va">revenue</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -1720,7 +1755,7 @@ chunks disagree, so test it as arms on a labelled reference, one arm per
 value. With <code>fields_ref</code> an <code><a href="../reference/hr_reference.html">hr_reference()</a></code> of
 documents labelled with a person’s value for one field and
 <code>my_client</code> your client:</p>
-<div class="sourceCode" id="cb49"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb50"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">resolve</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/hr_arm.html">hr_arm</a></span><span class="op">(</span><span class="st">"extract"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">item</span>, <span class="va">ctx</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="fu"><a href="../reference/gr_extract.html">gr_extract</a></span><span class="op">(</span><span class="va">item</span>, <span class="va">protocol</span>, client <span class="op">=</span> <span class="va">ctx</span><span class="op">$</span><span class="va">client</span>, resolve <span class="op">=</span> <span class="va">resolve</span>,</span>
@@ -1734,7 +1769,7 @@ so <code>hr_sweep_check(bench)</code> lists the <code>"vote"</code> arm
 as sending what <code>"first"</code> sent: only the value kept differs.
 <code>agreement_columns</code> changes no request either, so one run
 shows it:</p>
-<div class="sourceCode" id="cb50"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb51"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">agreed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_extract.html">gr_extract</a></span><span class="op">(</span><span class="va">screened</span>, <span class="va">protocol</span>, client <span class="op">=</span> <span class="va">extractor</span>, recipe <span class="op">=</span> <span class="st">"fast"</span>,</span>
 <span>                     agreement_columns <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">agreed</span><span class="op">$</span><span class="va">table</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"document"</span>, <span class="st">"revenue"</span>, <span class="st">"revenue_agreement"</span>, <span class="st">"revenue_conflict"</span><span class="op">)</span><span class="op">]</span></span>
@@ -1812,7 +1847,7 @@ are <code>untested</code>.</p>
 <p><strong>How to test them.</strong> Test <code>figure_bands</code> on
 a draft; it sends no request. Here the writer rounds 51.8 to “about
 50”:</p>
-<div class="sourceCode" id="cb51"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb52"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rounder</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="st">"Revenue was about 50 million dollars in the south [study 2]."</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
@@ -1837,7 +1872,7 @@ warns.</p>
 <p>Test <code>revision_check</code> on one revision. Here the revising
 model turns the draft’s “was higher in” into “caused”, and a stand-in
 judge calls that stronger:</p>
-<div class="sourceCode" id="cb52"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb53"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">strengthen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"You grade one response"</span>, <span class="va">messages</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">stronger</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"caused"</span>, <span class="va">messages</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
@@ -1872,7 +1907,7 @@ is sent, so test them as arms. Here <code>review_ref</code> is an
 <code>my_scorer</code> an <code><a href="../reference/hr_scorer.html">hr_scorer()</a></code> (or a judge validated
 as in <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code>) and <code>my_client</code> your
 client:</p>
-<div class="sourceCode" id="cb53"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb54"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">rounds</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/hr_arm.html">hr_arm</a></span><span class="op">(</span><span class="st">"write"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">item</span>, <span class="va">ctx</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="fu"><a href="../reference/gr_synthesise.html">gr_synthesise</a></span><span class="op">(</span><span class="va">item</span><span class="op">$</span><span class="va">table</span>, <span class="va">item</span><span class="op">$</span><span class="va">protocol</span>, client <span class="op">=</span> <span class="va">ctx</span><span class="op">$</span><span class="va">client</span>, coherence <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -1883,7 +1918,7 @@ client:</p>
 <span><span class="fu"><a href="../reference/hr_report.html">hr_report</a></span><span class="op">(</span><span class="va">bench</span><span class="op">)</span></span></code></pre></div>
 <p><code>revision_check</code> is swept the same way, one arm per
 check:</p>
-<div class="sourceCode" id="cb54"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb55"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">check_arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">check</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/hr_arm.html">hr_arm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"write-"</span>, <span class="va">check</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">item</span>, <span class="va">ctx</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="fu"><a href="../reference/gr_synthesise.html">gr_synthesise</a></span><span class="op">(</span><span class="va">item</span><span class="op">$</span><span class="va">table</span>, <span class="va">item</span><span class="op">$</span><span class="va">protocol</span>, client <span class="op">=</span> <span class="va">ctx</span><span class="op">$</span><span class="va">client</span>, coherence <span class="op">=</span> <span class="st">"register"</span>,</span>
@@ -1892,9 +1927,82 @@ check:</p>
 <span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>check <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lexicon"</span>, <span class="st">"judge"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">check_arms</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 2</span></span></code></pre></div>
-<div class="sourceCode" id="cb55"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb56"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">check_arms</span>, <span class="va">review_ref</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">my_client</span>,</span>
 <span>                      scorer <span class="op">=</span> <span class="va">my_scorer</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/hr_report.html">hr_report</a></span><span class="op">(</span><span class="va">bench</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="set-synthesis-context">Synthesis: <code>context_policy</code> and
+<code>context_order</code><a class="anchor" aria-label="anchor" href="#set-synthesis-context"></a>
+</h3>
+<p><strong>What they control.</strong> A write-up never leaves a study
+out to fit a prompt: a section too large for one is drafted in batches
+and merged. It cuts two things. The gaps are cut to a quarter of the
+model’s input room, and a batch draft too long for a merge is cut before
+the merge.</p>
+<ul>
+<li>
+<code>context_policy</code> takes an
+<code><a href="../reference/hr_context_policy.html">hr_context_policy()</a></code> for both cuts. The gaps are fitted line
+by line, each line a piece named <code>"gap 1"</code>,
+<code>"gap 2"</code> and so on, with its kind and dimension as its
+title. <code>overflow = "stubs"</code> lists the lines cut away under
+the gaps the closing section is given, and <code>disclose_subset</code>
+adds a line such as “40 of 300 gaps shown; do not state totals”. A batch
+draft cut for a merge is the piece <code>"findings"</code>: its
+<code>keep</code> rule and the policy’s <code>marker</code> apply, and
+<code>order_merges = TRUE</code> places the drafts by
+<code>context_order</code>. <code><a href="../articles/context.html">vignette("context")</a></code> covers the
+marker, the stubs and the subset line.</li>
+<li>
+<code>context_order</code> places a section’s claims in its prompt:
+in their rank (<code>"relevance"</code>), by claim number
+(<code>"document"</code>), or with the highest ranked at the start, the
+next at the end and the lowest in the middle (<code>"edges"</code>).
+Each claim keeps the sentence budget its rank gave it.</li>
+</ul>
+<p><strong>Signs they need changing.</strong> A closing section that
+states a count of gaps after a <code>gr_gaps_truncated</code> warning
+points to <code>disclose_subset</code>. One that leaves out a kind of
+gap you can see in <code>$gaps</code> points to
+<code>overflow = "stubs"</code>. A section that misses claims from the
+middle of a long list (<code>claims_missed</code>) points to
+<code>context_order = "edges"</code>, which leaves the lowest ranked
+claims there, or to <code>"document"</code> when the claims follow an
+order of their own.</p>
+<p><strong>Where the defaults came from.</strong>
+<code>context_policy = NULL</code> makes the cuts the write-up made
+before the setting existed: the gaps cut at a line, and drafts cut at
+their start with <code>" ...[truncated]"</code>.
+<code>context_order = "relevance"</code> keeps the rank order the
+sections were written in. Neither is compared with the alternatives;
+both are <code>untested</code>.</p>
+<p><strong>How to test them.</strong> With a policy set, the write-up
+runs as before when nothing needs cutting. The gaps here are short, so
+this policy changes no request:</p>
+<div class="sourceCode" id="cb57"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">told</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_synthesise.html">gr_synthesise</a></span><span class="op">(</span><span class="va">table</span>, outline <span class="op">=</span> <span class="va">outline</span>, question <span class="op">=</span> <span class="va">protocol</span><span class="op">$</span><span class="va">question</span>,</span>
+<span>                      client <span class="op">=</span> <span class="va">claim_writer</span>, claims <span class="op">=</span> <span class="va">cm</span>,</span>
+<span>                      gaps <span class="op">=</span> <span class="fu"><a href="../reference/gr_gaps.html">gr_gaps</a></span><span class="op">(</span><span class="va">cm</span>, extraction <span class="op">=</span> <span class="va">table</span><span class="op">)</span>, context_order <span class="op">=</span> <span class="st">"document"</span>,</span>
+<span>                      context_policy <span class="op">=</span> <span class="fu"><a href="../reference/hr_context_policy.html">hr_context_policy</a></span><span class="op">(</span></span>
+<span>                        overflow <span class="op">=</span> <span class="st">"stubs"</span>,</span>
+<span>                        disclose_subset <span class="op">=</span> <span class="st">"{shown} of {total} gaps shown; do not state totals."</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">told</span><span class="op">$</span><span class="va">sections</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"section"</span>, <span class="st">"n_claims"</span>, <span class="st">"partial"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;                   section n_claims partial</span></span>
+<span><span class="co">#&gt; 1 Where revenue is higher        2   FALSE</span></span>
+<span><span class="co">#&gt; 2         What is missing        0    TRUE</span></span></code></pre></div>
+<p>Both change what is sent when they act, so test them as arms on a
+corpus large enough to need the cuts:</p>
+<div class="sourceCode" id="cb58"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">order</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="../reference/hr_arm.html">hr_arm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"order-"</span>, <span class="va">order</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">item</span>, <span class="va">ctx</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="../reference/gr_synthesise.html">gr_synthesise</a></span><span class="op">(</span><span class="va">item</span><span class="op">$</span><span class="va">table</span>, outline <span class="op">=</span> <span class="va">item</span><span class="op">$</span><span class="va">outline</span>, question <span class="op">=</span> <span class="va">item</span><span class="op">$</span><span class="va">question</span>,</span>
+<span>                  client <span class="op">=</span> <span class="va">ctx</span><span class="op">$</span><span class="va">client</span>, claims <span class="op">=</span> <span class="va">item</span><span class="op">$</span><span class="va">claims</span>, context_order <span class="op">=</span> <span class="va">order</span>,</span>
+<span>                  trace <span class="op">=</span> <span class="va">ctx</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">$</span><span class="va">text</span></span>
+<span>  <span class="op">}</span>, params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>context_order <span class="op">=</span> <span class="va">order</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>order <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"relevance"</span>, <span class="st">"document"</span>, <span class="st">"edges"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">arms</span>, <span class="va">review_ref</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">my_client</span>, scorer <span class="op">=</span> <span class="va">my_scorer</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/hr_report.html">hr_report</a></span><span class="op">(</span><span class="va">bench</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
@@ -1904,7 +2012,7 @@ check:</p>
 <p><code><a href="../reference/gr_flow.html">gr_flow()</a></code> returns the numbers a flow diagram is made of,
 from what the run already recorded. Every source is accounted for at
 every stage it reached, so the arithmetic closes:</p>
-<div class="sourceCode" id="cb56"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb59"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_flow.html">gr_flow</a></span><span class="op">(</span><span class="va">screened</span>, <span class="va">table</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"stage"</span>, <span class="st">"n"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;                      stage n</span></span>
 <span><span class="co">#&gt; 1            sources given 2</span></span>
@@ -1947,7 +2055,7 @@ ended up;</li>
 <li>what it cost.</li>
 </ul>
 <p>It takes the objects the run already produced:</p>
-<div class="sourceCode" id="cb57"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb60"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_audit_report.html">gr_audit_report</a></span><span class="op">(</span><span class="st">"audit.html"</span>, screening <span class="op">=</span> <span class="va">screened</span>, extraction <span class="op">=</span> <span class="va">table</span>,</span>
 <span>                synthesis <span class="op">=</span> <span class="va">from_claims</span>, claims <span class="op">=</span> <span class="va">cm</span>, protocol <span class="op">=</span> <span class="va">protocol</span>,</span>
 <span>                calibration <span class="op">=</span> <span class="va">cal</span><span class="op">)</span></span></code></pre></div>
@@ -1962,12 +2070,12 @@ The times sit side by side without comparison, so a report written
 months after the run shows both times and nothing more. Only the version
 is checked: a stage run on a version other than the report’s is
 flagged:</p>
-<div class="sourceCode" id="cb58"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb61"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">page</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_audit_report.html">gr_audit_report</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".html"</span><span class="op">)</span>, screening <span class="op">=</span> <span class="va">screened</span>,</span>
 <span>                        extraction <span class="op">=</span> <span class="va">table</span>, open <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"UTC&lt;/td&gt;"</span>, <span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="va">page</span><span class="op">)</span>, value <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "&lt;tr&gt;&lt;td&gt;screening&lt;/td&gt;&lt;td&gt;2026-11-27 17:17:34 UTC&lt;/td&gt;&lt;td&gt;0.7.0.9000&lt;/td&gt;&lt;/tr&gt;" </span></span>
-<span><span class="co">#&gt; [2] "&lt;tr&gt;&lt;td&gt;extraction&lt;/td&gt;&lt;td&gt;2026-11-27 17:17:36 UTC&lt;/td&gt;&lt;td&gt;0.7.0.9000&lt;/td&gt;&lt;/tr&gt;"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "&lt;tr&gt;&lt;td&gt;screening&lt;/td&gt;&lt;td&gt;2026-11-27 17:45:59 UTC&lt;/td&gt;&lt;td&gt;0.7.0.9000&lt;/td&gt;&lt;/tr&gt;" </span></span>
+<span><span class="co">#&gt; [2] "&lt;tr&gt;&lt;td&gt;extraction&lt;/td&gt;&lt;td&gt;2026-11-27 17:46:00 UTC&lt;/td&gt;&lt;td&gt;0.7.0.9000&lt;/td&gt;&lt;/tr&gt;"</span></span></code></pre></div>
 <p>The report puts the failures near the top and counts them there:
 unverified quotes, documents that could not be read, screening calls
 that failed or came back in the wrong form, and citations pointing at

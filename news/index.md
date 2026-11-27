@@ -2,6 +2,81 @@
 
 ## harnessr 0.7.0.9000
 
+### Model picks marked as advisory
+
+- **`gr_extract(resolve = "model")` names the values a model chose.**
+  The table gains a `model_picks` column after `error`, listing the
+  fields whose value the adjudicating call chose, or `NA` when it chose
+  none. The print counts these values and the audit report flags them. A
+  model’s pick is advisory: no validation against people’s judgements
+  backs it, so check each one against its quote. Under `"first"` and
+  `"vote"` the table keeps its columns. `model_picks` is now a reserved
+  field name.
+
+### Balanced packing when the even cuts overflow
+
+- **`packing = "balanced"` evens chunks in more documents.** It cuts
+  units at the boundaries nearest to each equal share of the tokens.
+  When one of those runs went over `max_tokens`, it kept the greedy
+  chunks, short last chunk and all. It now falls back to the cuts that
+  make the largest chunk as small as possible, and keeps them when their
+  sizes are closer together than the greedy chunks’. On one 33-paragraph
+  document the spread between the largest and smallest chunk fell from
+  139 tokens to 64.
+- **Balanced chunks with overlap report pages as greedy chunks do.** A
+  chunk whose overlap tail reached back past the last unit of the chunk
+  before reported the page of that unit alone; its page, section and
+  block now count every unit the tail came from, so a chunk opening with
+  text from page 1 and going on to page 2 reports `NA`.
+- Greedy packing, the default, and `runt_merge` pack as before.
+
+### Screening draws combined by k_of_n
+
+- **[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
+  gains `sample_rule = "k_of_n"` and `sample_k`.** With `samples` above
+  1, a document is included when at least `sample_k` draws included it,
+  excluded only when every draw excluded it, and otherwise left
+  `"unclear"` for a person. `sample_k = 1` decides as `"include_if_any"`
+  does. `sample_k` is required under `"k_of_n"` and refused under the
+  other rules.
+- **A sampled screening names its rule.** With `samples` above 1, the
+  result gains a `sampling` field (`samples`, `sample_rule` and, under
+  `"k_of_n"`, `sample_k`), the print says how each decision was made,
+  and under `"k_of_n"` each answer’s notes carry `sample_k`. At
+  `samples = 1` the request, the cache key, the table and the result’s
+  fields are as before.
+
+### A context policy for synthesis, and cuts that say what they removed
+
+- **[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
+  gains `context_policy` and `context_order`.** A policy from
+  [`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md)
+  sets the two cuts a write-up makes: the gaps, now fitted line by line
+  with
+  [`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md),
+  and batch drafts too long for a merge. `context_order` places a
+  section’s claims by rank, by claim number or at the edges, and each
+  claim keeps its sentence budget. Both default to what the write-up did
+  before, so its requests and cache keys do not change.
+- **A marker can count what a cut removed.**
+  [`hr_truncate()`](https://elkronos.github.io/harnessr/reference/hr_truncate.md),
+  and
+  [`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md)
+  through a policy’s new `marker`, fill `{tokens_dropped}` and
+  `{units_dropped}`, as in `"[{tokens_dropped} tokens cut]"`. The
+  readers use a policy’s marker for the cuts they make under it.
+- **[`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md)
+  gains `overflow = "stubs"` and `disclose_subset`.** Stubs list the
+  pieces cut away entirely, by name and with the titles passed to
+  [`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md),
+  in at most `stub_tokens` tokens, or as a count alone when that cannot
+  hold one. `disclose_subset` adds one line such as “12 of 40 studies
+  shown; do not state totals”.
+  [`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md)
+  returns both as `notice`, with the names cut away in `omitted`, and
+  sets room aside for them before it cuts. A policy that sets none of
+  the new arguments is the object it was.
+
 ### Run time in the trace
 
 - **[`hr_trace_summary()`](https://elkronos.github.io/harnessr/reference/hr_trace_summary.md)

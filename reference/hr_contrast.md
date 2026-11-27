@@ -161,11 +161,11 @@ reg <- hr_register_contrasts(ref, list(
   hr_contrast("short", "long", margin = 0.10),
   hr_contrast("skim", "long", margin = 0.05, confirmatory = FALSE)), design)
 reg
-#> <hr_contrast_registration> 2 contrast(s), 1 confirmatory; registered 2026-11-27T17:12:54.687Z
+#> <hr_contrast_registration> 2 contrast(s), 1 confirmatory; registered 2026-11-27T17:42:28.010Z
 #>  contrast      label        margin mdd cost_test
 #>  short vs long confirmatory 10.0   8.2 yes      
 #>  skim vs long  exploratory  5.0    8.2 yes      
-#>   Margins and MDD in points; reference db69600f91ae; hash a29fbab36a4c
+#>   Margins and MDD in points; reference db69600f91ae; hash 202d8c132f69
 try(hr_register_contrasts(ref, hr_contrast("skim", "long", margin = 0.05), design))
 #> Error in hr_register_contrasts(ref, hr_contrast("skim", "long", margin = 0.05),  : 
 #>   The margin of skim vs long (5.0 points) is below the design MDD of 8.2 points (80% power, one-sided alpha 0.025 after Holm over 1 contrast(s)), so the design cannot support a non-inferiority claim at it. Widen the margin, enlarge the design, or register the contrast with confirmatory = FALSE as exploratory.

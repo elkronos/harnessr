@@ -567,13 +567,13 @@ a <- hr_call(cl, "What was revenue in 2024?", model = "priced-mock",
 b <- hr_call(cl, "Check the draft against the report.", model = "priced-mock",
              trace = tr, label = "check")
 tr
-#> <gr_trace run_20261127171546.057_30d83c>  2 steps, 2 model calls, 23 in / 26 out tokens, 0 error(s)
+#> <gr_trace run_20261127174437.222_338a22>  2 steps, 2 model calls, 23 in / 26 out tokens, 0 error(s)
 #>   steps: check x1, draft x1 
 #>   cost: $0.0003 across priced-mock, prices as of 2026-11
-#>   time: 0.01 s (requests 35%, local 0%, overhead 65%)
+#>   time: 0.00 s (requests 54%, local 0%, overhead 46%)
 #>   usage: estimated locally for 100% of requests (the provider reported none)
 #>   actor: purpose = core guide 
-#>   started: 2026-11-27T17:15:46.058Z
+#>   started: 2026-11-27T17:44:37.222Z
 ```
 
 The trace is an environment, so every call that is passed it records
@@ -654,7 +654,7 @@ The summary also says how long the run took and where the time went:
 hr_trace_summary(tr)[, c("elapsed_s", "request_s", "local_s", "overhead_s",
                          "request_share", "overhead_share")]
 #>   elapsed_s request_s local_s overhead_s request_share overhead_share
-#> 1      0.01         0       0          0        0.3479         0.6521
+#> 1         0         0       0          0        0.5384         0.4616
 ```
 
 `elapsed_s` runs from the trace’s start to the end of its last step,

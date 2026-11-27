@@ -27,9 +27,9 @@ table(settings$stage, settings$tier)[stages, ]
 #>   ingest           18     3
 #>   segment          17     3
 #>   read             42     8
-#>   screen           22    11
+#>   screen           23    11
 #>   extract           7     3
-#>   synthesise       24     5
+#>   synthesise       26     5
 ```
 
 ## Reading the tables
@@ -386,6 +386,7 @@ covers:
 | [`criteria_schema`](https://elkronos.github.io/harnessr/articles/review.html#set-screen-reply) | [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md) | `decision` | advanced | untested | What each screening reply holds. |
 | [`samples`](https://elkronos.github.io/harnessr/articles/review.html#set-screen-reply) | [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md) | `1` | advanced | untested | How many times each document’s screening request is sent, from 1 to 20. |
 | [`sample_rule`](https://elkronos.github.io/harnessr/articles/review.html#set-screen-reply) | [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md) | `include_if_any` | advanced | untested | How draws are combined when samples is above 1. |
+| [`sample_k`](https://elkronos.github.io/harnessr/articles/review.html#set-screen-reply) | [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md) | `NULL` | advanced | untested | Under sample_rule = “k_of_n”, how many draws must include a document for it to be included: a whole number from 1 to samples. |
 | `n` | [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md) | `50` | basic |  | How many to draw: a whole number of at least 1. |
 | `of` | [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md) | `excluded` | basic |  | Which rows to sample from: “excluded”, “kept” (include and unclear), “all”, or “stacked” (every kept record and a sample of the excluded ones). |
 | `seed` | [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md) | `NULL` | advanced |  | A seed for the draw, so it is reproducible: the sample is drawn after set.seed(seed) and your session’s random number stream is put back afterwards. |
@@ -469,6 +470,8 @@ and
 | [`prominence`](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) | [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) | `c(top = 1/3, middle = 1/3)` | advanced | untested | How much of the writing prompt’s sentence budget the claims of a section get, by rank: c(top = , middle = ), the shares of a section’s claims (ranked by the sign test of their direction tally, lowest p first, with a claim more of whose studies contradict it than support it last, then by the weight of the studies behind them; see gr_claims(), “Direction of effect”) asked for “two or three sentences” and “one or two sentences”; the rest get “one sentence”, and a section of three claims or fewer gives each “two or three”. |
 | `study_weights` | [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) | `NULL` | advanced |  | How much each study counts when claims are ranked, among claims whose sign tests tie (and so which tier each claim gets, see prominence): NULL (the default) for the package’s weight, 0.5 + 0.5 \* size + 0.5 \* filled, where size is log1p(n) over its largest value (the mean of the known ones when n is missing) and filled the share of a row’s filled cells whose quotations verified (0.5 when unknown). |
 | [`revision_check`](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) | [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) | `lexicon` | advanced | untested | What checks a kept revision pass beyond the citation, figure and length checks. |
+| [`context_policy`](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis-context) | [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) | `NULL` | advanced | untested | NULL (the default), or an hr_context_policy() (or a named list of its arguments) for what the write-up cuts when its text does not fit: the gaps, and batch drafts too long for a merge. |
+| [`context_order`](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis-context) | [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) | `relevance` | advanced | untested | Where a section’s claims sit in its prompt, with claims: “relevance” (the default) in their rank, as before; “document” by claim number; “edges” with the highest ranked at the start and the next at the end, the lowest in the middle. |
 
 ## Building blocks
 

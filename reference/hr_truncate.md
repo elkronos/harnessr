@@ -55,7 +55,11 @@ hr_truncate(
 
   The text that marks a cut; `""` for none. As in
   [`hr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/hr_truncate_tokens.md),
-  it is dropped when it would cost half the budget or more.
+  it is dropped when it would cost half the budget or more. A marker may
+  hold `{tokens_dropped}` and `{units_dropped}`, which are replaced by
+  the tokens of `text` the cut removed and the units it did not keep
+  whole (the elements of `text` when it has more than one, else its
+  paragraphs), as in `"[{tokens_dropped} tokens cut]"`.
 
 - trace:
 
@@ -119,6 +123,9 @@ cat(hr_truncate(txt, 20, keep = "scored", scores = c(1, 9, 2, 8, 3, 4)))
 #> Para 2 says something about revenue.
 #> 
 #> ...[truncated]
+# A marker that says how much was cut.
+hr_truncate(txt, 20, marker = " [{tokens_dropped} tokens cut]")
+#> [1] "Para 1 says something about revenue. [43 tokens cut]"
 
 # The cut is written to a trace.
 tr <- hr_trace()

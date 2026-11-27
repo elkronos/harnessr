@@ -21,7 +21,11 @@ hr_context_policy(
   pin = c("question", "instructions"),
   cut_order = character(0),
   keep = "head",
-  order_merges = FALSE
+  order_merges = FALSE,
+  marker = NULL,
+  overflow = c("marker", "stubs"),
+  stub_tokens = 200L,
+  disclose_subset = FALSE
 )
 
 # S3 method for class 'hr_context_policy'
@@ -47,6 +51,29 @@ print(x, ...)
 
   Whether merge packers follow `context_order`.
 
+- marker:
+
+  `NULL` (the default) for each packer's own marker, or the text that
+  marks a cut, with `{tokens_dropped}` and `{units_dropped}` filled in.
+
+- overflow:
+
+  `"marker"` (the default): a piece cut away entirely leaves nothing
+  behind. `"stubs"`: such pieces are listed by name and title in the
+  fit's `notice`.
+
+- stub_tokens:
+
+  The most tokens the list of stubs may take; 200 by default. When that
+  cannot hold one stub, the list is the header and `"- and N more"`
+  alone.
+
+- disclose_subset:
+
+  `FALSE` (the default), `TRUE`, or a template with `{shown}` and
+  `{total}`: the line added to the fit's `notice` when pieces were cut
+  away.
+
 - x:
 
   An `hr_context_policy`.
@@ -58,9 +85,29 @@ print(x, ...)
 ## Value
 
 An object of class `hr_context_policy`: a list of `pin`, `cut_order`,
-`keep` and `order_merges`.
+`keep` and `order_merges`, followed by `marker`, `overflow`,
+`stub_tokens` and `disclose_subset` for those set away from their
+defaults.
 
 ## Details
+
+Three settings make a cut say what it removed. `marker` replaces the
+text that marks a cut piece, and may hold `{tokens_dropped}` and
+`{units_dropped}` (see
+[`hr_truncate()`](https://elkronos.github.io/harnessr/reference/hr_truncate.md)).
+`overflow = "stubs"` lists the pieces cut away entirely by name, with
+the titles the caller gives
+[`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md),
+in at most `stub_tokens` tokens, or as a count alone when that cannot
+hold one; fetching one by its name is left to the caller.
+`disclose_subset` adds one line when pieces were cut away, such as "12
+of 40 studies shown; do not state totals": `TRUE` writes "`{shown}` of
+`{total}` items shown; do not state totals.", and a string is used as
+the template.
+[`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md)
+returns the list and the line as its `notice`, for the caller to place
+in the request. A policy that leaves these three at their defaults is
+the same object it was before they existed.
 
 A pinned piece is never cut by the policy. When the pinned pieces alone
 do not fit,
@@ -70,8 +117,10 @@ says so (`fits = FALSE`) and leaves the decision to its caller.
 [`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md)
 applies a policy to a set of pieces. In the document layer, a read takes
 one as the `context_policy` setting of
-[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md);
-`NULL`, the default, keeps each reader's own cuts.
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
+and a write-up as the `context_policy` argument of
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md);
+`NULL`, the default, keeps each packer's own cuts.
 
 ## See also
 
@@ -105,4 +154,15 @@ p
 #>   cut first:    -
 #>   keep:         excerpt = both, head
 #>   order merges: FALSE
+# A policy that names what it leaves out.
+hr_context_policy(marker = " [{tokens_dropped} tokens cut]", overflow = "stubs",
+                  disclose_subset = "{shown} of {total} studies shown; do not state totals.")
+#> <hr_context_policy>
+#>   pin:          question, instructions
+#>   cut first:    -
+#>   keep:         head
+#>   order merges: FALSE
+#>   marker:       " [{tokens_dropped} tokens cut]"
+#>   overflow:     stubs, in at most 200 tokens
+#>   subset line:  "{shown} of {total} studies shown; do not state totals."
 ```
