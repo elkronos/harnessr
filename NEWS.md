@@ -10,6 +10,22 @@
   each one against its quote. Under `"first"` and `"vote"` the table keeps
   its columns. `model_picks` is now a reserved field name.
 
+## Balanced packing when the even cuts overflow
+
+* **`packing = "balanced"` evens chunks in more documents.** It cuts units
+  at the boundaries nearest to each equal share of the tokens. When one of
+  those runs went over `max_tokens`, it kept the greedy chunks, short last
+  chunk and all. It now falls back to the cuts that make the largest chunk
+  as small as possible, and keeps them when their sizes are closer together
+  than the greedy chunks'. On one 33-paragraph document the spread between
+  the largest and smallest chunk fell from 139 tokens to 64.
+* **Balanced chunks with overlap report pages as greedy chunks do.** A chunk
+  whose overlap tail reached back past the last unit of the chunk before
+  reported the page of that unit alone; its page, section and block now
+  count every unit the tail came from, so a chunk opening with text from page
+  1 and going on to page 2 reports `NA`.
+* Greedy packing, the default, and `runt_merge` pack as before.
+
 ## Run time in the trace
 
 * **`hr_trace_summary()` reads `elapsed_s` from the steps.** It was the time
