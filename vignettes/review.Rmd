@@ -1558,6 +1558,70 @@ bench <- hr_benchmark(check_arms, review_ref, runs = 5, client = my_client,
 hr_report(bench)
 ```
 
+### Synthesis: `context_policy` and `context_order` {#set-synthesis-context}
+
+**What they control.** A write-up never leaves a study out to fit a prompt:
+a section too large for one is drafted in batches and merged. It cuts two
+things. The gaps are cut to a quarter of the model's input room, and a batch
+draft too long for a merge is cut before the merge.
+
+- `context_policy` takes an `hr_context_policy()` for both cuts. The gaps
+  are fitted line by line, each line a piece named `"gap 1"`, `"gap 2"` and
+  so on, with its kind and dimension as its title. `overflow = "stubs"`
+  lists the lines cut away under the gaps the closing section is given, and
+  `disclose_subset` adds a line such as "40 of 300 gaps shown; do not state
+  totals". A batch draft cut for a merge is the piece `"findings"`: its
+  `keep` rule and the policy's `marker` apply, and `order_merges = TRUE`
+  places the drafts by `context_order`. `vignette("context")` covers the
+  marker, the stubs and the subset line.
+- `context_order` places a section's claims in its prompt: in their rank
+  (`"relevance"`), by claim number (`"document"`), or with the highest
+  ranked at the start, the next at the end and the lowest in the middle
+  (`"edges"`). Each claim keeps the sentence budget its rank gave it.
+
+**Signs they need changing.** A closing section that states a count of gaps
+after a `gr_gaps_truncated` warning points to `disclose_subset`. One that
+leaves out a kind of gap you can see in `$gaps` points to `overflow =
+"stubs"`. A section that misses claims from the middle of a long list
+(`claims_missed`) points to `context_order = "edges"`, which leaves the
+lowest ranked claims there, or to `"document"` when the claims follow an
+order of their own.
+
+**Where the defaults came from.** `context_policy = NULL` makes the cuts the
+write-up made before the setting existed: the gaps cut at a line, and drafts
+cut at their start with `" ...[truncated]"`. `context_order = "relevance"`
+keeps the rank order the sections were written in. Neither is compared with
+the alternatives; both are `untested`.
+
+**How to test them.** With a policy set, the write-up runs as before when
+nothing needs cutting. The gaps here are short, so this policy changes no
+request:
+
+```{r}
+told <- gr_synthesise(table, outline = outline, question = protocol$question,
+                      client = claim_writer, claims = cm,
+                      gaps = gr_gaps(cm, extraction = table), context_order = "document",
+                      context_policy = hr_context_policy(
+                        overflow = "stubs",
+                        disclose_subset = "{shown} of {total} gaps shown; do not state totals."))
+told$sections[, c("section", "n_claims", "partial")]
+```
+
+Both change what is sent when they act, so test them as arms on a corpus
+large enough to need the cuts:
+
+```{r eval = FALSE}
+arms <- hr_sweep(function(order) {
+  hr_arm(paste0("order-", order), function(item, ctx) {
+    gr_synthesise(item$table, outline = item$outline, question = item$question,
+                  client = ctx$client, claims = item$claims, context_order = order,
+                  trace = ctx$trace)$text
+  }, params = list(context_order = order))
+}, list(order = c("relevance", "document", "edges")))
+bench <- hr_benchmark(arms, review_ref, runs = 5, client = my_client, scorer = my_scorer)
+hr_report(bench)
+```
+
 ## Counting and reporting the run
 
 `gr_flow()` returns the numbers a flow diagram is made of, from what the run

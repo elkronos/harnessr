@@ -139,6 +139,8 @@
 #'   such section they reach none, and a warning (`gr_gaps_unused`) says so.
 #'   They are cut, at a line, to a quarter of the model's input room, with a
 #'   warning (`gr_gaps_truncated`), and the closing section is then partial.
+#'   Under a `context_policy` the policy makes that cut instead (see
+#'   "Context policy").
 #' @param trace An [hr_trace()] to fold this write-up's accounting into, as in
 #'   [gr_read_many()]. It is a parent, not this stage's counter: `$trace` is
 #'   still the write-up's own, so `hr_options(max_calls =)` bounds the write-up
@@ -206,6 +208,17 @@
 #'   revision is kept as it was. The judge is not validated against people's
 #'   labels (see [hr_judge_validate()]), so its flags are for a person to
 #'   read. Untested.
+#' @param context_policy `NULL` (the default), or an [hr_context_policy()]
+#'   (or a named list of its arguments) for what the write-up cuts when its
+#'   text does not fit: the gaps, and batch drafts too long for a merge. See
+#'   "Context policy". `NULL` makes the cuts described above, as before.
+#' @param context_order Where a section's claims sit in its prompt, with
+#'   `claims`: `"relevance"` (the default) in their rank, as before;
+#'   `"document"` by claim number; `"edges"` with the highest ranked at the
+#'   start and the next at the end, the lowest in the middle. The rank and
+#'   the sentence budget each claim gets do not change. Under a
+#'   `context_policy` with `order_merges = TRUE`, the batch drafts a merge
+#'   combines are placed by it as well, with or without `claims`.
 #' @param effort Reasoning effort, or `NULL` (the default) to send none: one
 #'   string, or a character vector named by stage, as `effort` in
 #'   [gr_read_spec()]. The calls here are labelled `synthesise.section`,
@@ -360,6 +373,26 @@
 #' reported (`gr_synth_batch_dropped`) and marks it partial. Raise
 #' `max_section_tokens`, or divide the table between narrower sections.
 #'
+#' @section Context policy:
+#' A write-up never leaves a study out to fit a prompt: a section too large
+#' for one is drafted in batches and merged. Two things are cut. The gaps
+#' are cut to a quarter of the model's input room, and a batch draft longer
+#' than a merge's room is cut before the merge. `context_policy` sets both
+#' cuts (see [hr_context_policy()] and `vignette("context")`):
+#'
+#' * The gaps are fitted line by line by [hr_context_fit()], each line a
+#'   piece named `"gap 1"`, `"gap 2"` and so on, its title the gap's kind
+#'   and dimension. The last lines are cut first, unless `cut_order` names
+#'   others, and a line is cut by its `keep` rule. With `overflow = "stubs"`
+#'   the lines cut away are listed by name and title under the gaps the
+#'   section is given, and `disclose_subset` adds a line such as "40 of 300
+#'   gaps shown; do not state totals". A cut still warns
+#'   (`gr_gaps_truncated`) and marks the closing section partial.
+#' * A batch draft too long for a merge is a piece named `"findings"`: the
+#'   policy's `keep` rule for it, and its `marker`, apply.
+#'
+#' `context_order`, with or without a policy, places each section's claims.
+#'
 #' @section Figures:
 #' The citation check says which rows a sentence rests on, not what it says
 #' they found, and the numbers are what a reader copies out of a review. So
@@ -464,9 +497,12 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
                           trace = NULL, effort = NULL, coherence_rounds = 1L,
                           figure_bands = c(about = 0.10, over = 0.25, under = 0.25),
                           prominence = c(top = 1/3, middle = 1/3), study_weights = NULL,
-                          revision_check = c("lexicon", "judge")) {
+                          revision_check = c("lexicon", "judge"), context_policy = NULL,
+                          context_order = c("relevance", "document", "edges")) {
   cite_style <- match.arg(cite_style)
   revision_check <- match.arg(revision_check)
+  context_order <- match.arg(context_order)
+  context_policy <- check_context_policy(context_policy)
   coherence_rounds <- clamp_warn(na_default(coherence_rounds, 1L, "coherence_rounds"),
                                  1, 10, "coherence_rounds")
   figure_bands <- check_figure_bands(figure_bands)
@@ -642,6 +678,10 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
   spec <- resolve_read_model(spec, client)
   # Only when asked, so a default write-up's spec is the one it always was.
   if (identical(revision_check, "judge")) spec$revision_check <- "judge"
+  # The merges read both from the spec (cut_piece(), merge_order()), and
+  # synth_section() reads the order of the claims from it.
+  if (!is.null(context_policy)) spec$context_policy <- context_policy
+  if (!identical(context_order, "relevance")) spec$context_order <- context_order
   # The parent, not the counter (see as_parent_trace()). Running the write-up on
   # a trace that screening had already spent meant the call cap refused
   # every section and the review came back as a list of empty headings.
@@ -701,7 +741,9 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
   if (!is.null(gaps)) {
     room <- tryCatch(hr_budget(spec$model, reserve_output = spec$max_answer_tokens)$input,
                      gr_budget_error = function(e) NA_integer_)
-    fit <- if (is.na(room)) gaps else cap_gap_lines(gaps, max(1L, room %/% 4L))
+    fit <- if (is.na(room)) gaps else if (is.null(context_policy))
+      cap_gap_lines(gaps, max(1L, room %/% 4L)) else
+        fit_gap_lines(gaps, max(1L, room %/% 4L), context_policy)
     if (!identical(fit, gaps)) {
       gr_warn(sprintf(paste0("The gaps were cut to %d of %d line(s) to fit the model's window, so ",
                              "section '%s' states only those. It is marked partial."),
@@ -709,7 +751,7 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
               class = "gr_gaps_truncated")
       # A cut inside the first line ends in the default marker, which is not
       # text kept; a cut at a line boundary has none and the guard skips it.
-      trace_truncation(trace, "synthesise.gaps", gaps, as.character(fit),
+      trace_truncation(trace, "synthesise.gaps", gaps, attr(fit, "body") %||% as.character(fit),
                        limit = max(1L, room %/% 4L), marker = " ...[truncated]",
                        section = closing)
       gaps <- as.character(fit)
@@ -1103,6 +1145,28 @@ cap_gap_lines <- function(gaps, n) {
   keep <- cumsum(hr_count_tokens(lines) + 1L) <= n
   out <- if (any(keep)) paste(lines[keep], collapse = "\n") else hr_truncate_tokens(lines[1], n)
   structure(out, kept = max(1L, sum(keep)), of = length(lines))
+}
+
+#' cap_gap_lines() under a context policy: each line of `gaps` a piece named
+#' "gap <n>", titled with its kind and dimension, fitted to `n` tokens by
+#' hr_context_fit(), and followed by the fit's notice (the subset line and
+#' stubs the policy asks for). `gaps` itself when it fits. The cut is written
+#' to the trace once, by the caller, as cap_gap_lines()'s is.
+#'
+#' Each line is counted on its own, so the lines kept add up to fewer tokens
+#' than `n`: the fit errs towards cutting more, never towards a prompt that
+#' overruns.
+#' @noRd
+fit_gap_lines <- function(gaps, n, policy) {
+  if (hr_count_tokens(gaps) <= n) return(gaps)
+  lines <- strsplit(as_chr1(gaps), "\n", fixed = TRUE)[[1]]
+  ids <- paste("gap", seq_along(lines))
+  titles <- stats::setNames(trimws(sub(":.*$", "", sub("^- ", "", lines))), ids)
+  fit <- hr_context_fit(stats::setNames(lines, ids), n, policy, where = "synthesise.gaps",
+                        titles = titles)
+  kept <- unname(fit$pieces[nzchar(fit$pieces)])
+  out <- paste(c(kept, if (nzchar(fit$notice)) fit$notice), collapse = "\n")
+  structure(out, kept = length(kept), of = length(lines), body = paste(kept, collapse = "\n"))
 }
 
 #' A section that could not be written at all, with the warning that says so.

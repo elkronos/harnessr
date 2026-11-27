@@ -27,7 +27,9 @@ gr_synthesise(
   figure_bands = c(about = 0.1, over = 0.25, under = 0.25),
   prominence = c(top = 1/3, middle = 1/3),
   study_weights = NULL,
-  revision_check = c("lexicon", "judge")
+  revision_check = c("lexicon", "judge"),
+  context_policy = NULL,
+  context_order = c("relevance", "document", "edges")
 )
 }
 \arguments{
@@ -161,7 +163,9 @@ section \code{\link[=gr_outline]{gr_outline()}} named, \code{attr(outline, "clos
 instruction to state those gaps and no others. When the outline has no
 such section they reach none, and a warning (\code{gr_gaps_unused}) says so.
 They are cut, at a line, to a quarter of the model's input room, with a
-warning (\code{gr_gaps_truncated}), and the closing section is then partial.}
+warning (\code{gr_gaps_truncated}), and the closing section is then partial.
+Under a \code{context_policy} the policy makes that cut instead (see
+"Context policy").}
 
 \item{trace}{An \code{\link[=hr_trace]{hr_trace()}} to fold this write-up's accounting into, as in
 \code{\link[=gr_read_many]{gr_read_many()}}. It is a parent, not this stage's counter: \verb{$trace} is
@@ -233,6 +237,19 @@ sentence is warned about (\code{gr_revision_flagged}), counted in the
 revision is kept as it was. The judge is not validated against people's
 labels (see \code{\link[=hr_judge_validate]{hr_judge_validate()}}), so its flags are for a person to
 read. Untested.}
+
+\item{context_policy}{\code{NULL} (the default), or an \code{\link[=hr_context_policy]{hr_context_policy()}}
+(or a named list of its arguments) for what the write-up cuts when its
+text does not fit: the gaps, and batch drafts too long for a merge. See
+"Context policy". \code{NULL} makes the cuts described above, as before.}
+
+\item{context_order}{Where a section's claims sit in its prompt, with
+\code{claims}: \code{"relevance"} (the default) in their rank, as before;
+\code{"document"} by claim number; \code{"edges"} with the highest ranked at the
+start and the next at the end, the lowest in the middle. The rank and
+the sentence budget each claim gets do not change. Under a
+\code{context_policy} with \code{order_merges = TRUE}, the batch drafts a merge
+combines are placed by it as well, with or without \code{claims}.}
 }
 \value{
 An object of class \code{gr_synthesis}:
@@ -385,6 +402,29 @@ checks that it cites every study (a section need not), but without
 \code{claims} a batch none of whose studies the merged section cites is
 reported (\code{gr_synth_batch_dropped}) and marks it partial. Raise
 \code{max_section_tokens}, or divide the table between narrower sections.
+}
+
+\section{Context policy}{
+
+A write-up never leaves a study out to fit a prompt: a section too large
+for one is drafted in batches and merged. Two things are cut. The gaps
+are cut to a quarter of the model's input room, and a batch draft longer
+than a merge's room is cut before the merge. \code{context_policy} sets both
+cuts (see \code{\link[=hr_context_policy]{hr_context_policy()}} and \code{vignette("context")}):
+\itemize{
+\item The gaps are fitted line by line by \code{\link[=hr_context_fit]{hr_context_fit()}}, each line a
+piece named \code{"gap 1"}, \code{"gap 2"} and so on, its title the gap's kind
+and dimension. The last lines are cut first, unless \code{cut_order} names
+others, and a line is cut by its \code{keep} rule. With \code{overflow = "stubs"}
+the lines cut away are listed by name and title under the gaps the
+section is given, and \code{disclose_subset} adds a line such as "40 of 300
+gaps shown; do not state totals". A cut still warns
+(\code{gr_gaps_truncated}) and marks the closing section partial.
+\item A batch draft too long for a merge is a piece named \code{"findings"}: the
+policy's \code{keep} rule for it, and its \code{marker}, apply.
+}
+
+\code{context_order}, with or without a policy, places each section's claims.
 }
 
 \section{Figures}{
