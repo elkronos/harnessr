@@ -319,8 +319,12 @@ test_that("README and the guides show the diagrams, each with alt text", {
   # The alt text names what each layer holds, as the diagram does.
   alt <- regmatches(readme, regexpr("!\\[Two stacked layers[^]]+\\]", readme))
   expect_length(alt, 1)
-  for (item in c(svg_class_text("layers.svg", "core-item"),
-                 svg_class_text("layers.svg", "doc-item"))) {
+  # An empty scan would skip the loop, so check first that each layer has items.
+  core_items <- svg_class_text("layers.svg", "core-item")
+  doc_items <- svg_class_text("layers.svg", "doc-item")
+  expect_gt(length(core_items), 0)
+  expect_gt(length(doc_items), 0)
+  for (item in c(core_items, doc_items)) {
     expect_match(alt, item, fixed = TRUE, info = item)
   }
 
