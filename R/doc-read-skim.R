@@ -94,7 +94,7 @@ read_skim <- function(chunks, question, client, spec, trace) {
                  # The request was shown the passages, or their consolidation,
                  # not the chunks: a quote counts when it is in what was shown
                  # and in the document.
-                 sources = body, document = reader_source_text(d))
+                 sources = body, document = reader_source_text(d), closing = TRUE)
   if (usable_text(res2) && reply_cut_off(res2)) cut <- cut + 1L
   out <- premise_reply(if (usable_text(res2)) res2$text else .NOT_FOUND, spec$premise)
   # No answer, no evidence; see stuff. The passages found are counted in the

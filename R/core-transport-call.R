@@ -185,6 +185,13 @@ print.gr_result <- function(x, ...) {
 #'   it in `params$draw_index`, and the trace records it in the step's
 #'   `params`; at 0 neither carries it, so an unsampled call is unchanged.
 #'   Must be named in full, since it follows `...`.
+#' @param closing `TRUE` for a run's closing request, such as the final
+#'   answer after rounds of reading, which may spend the calls and dollars a
+#'   governor holds back with `reserve_calls` and `reserve_usd` (see
+#'   [hr_governor()]). `FALSE` (the default) for any other request, which is
+#'   refused once it would reach into them. It changes nothing else: not the
+#'   request, the trace, or a cache or replay key. Must be named in full,
+#'   since it follows `...`.
 #' @return A [gr_result]. **Never** `NULL`; `$text` is always a single string,
 #'   `""` on failure. A successful HTTP call that returned no text (a refusal, a
 #'   content filter) is reported as `ok = FALSE`, so an empty completion is never
@@ -231,7 +238,8 @@ print.gr_result <- function(x, ...) {
 #' vapply(1:3, function(k) hr_call(sampler, "Pick one.", draw_index = k)$text, "")  # cached
 hr_call <- function(client, messages, model = NULL, max_output = NULL,
                     temperature = NULL, schema = NULL, schema_name = "result",
-                    trace = NULL, label = "call", ..., effort = NULL, draw_index = 0L) {
+                    trace = NULL, label = "call", ..., effort = NULL, draw_index = 0L,
+                    closing = FALSE) {
   # Checked here too, so the error names the function the user called.
   if (!inherits(client, "gr_client")) gr_abort("`client` must come from hr_client() or hr_mock_client().")
   # After `...`, so it is matched only by its full name: `...` is the request
@@ -240,7 +248,16 @@ hr_call <- function(client, messages, model = NULL, max_output = NULL,
   model_call(client, messages, model = model, max_output = max_output,
              temperature = temperature, schema = schema, schema_name = schema_name,
              trace = trace, label = label, extra = list(...), effort = check_effort(effort),
-             draw_index = check_draw_index(draw_index))
+             draw_index = check_draw_index(draw_index), closing = check_closing(closing))
+}
+
+#' A request's `closing` flag, checked: TRUE or FALSE.
+#' @noRd
+check_closing <- function(closing) {
+  if (!is.logical(closing) || length(closing) != 1L || is.na(closing)) {
+    gr_abort("`closing` must be TRUE or FALSE.", class = "gr_bad_setting")
+  }
+  closing
 }
 
 #' A draw index as one non-negative integer, or a classed error.
@@ -270,7 +287,7 @@ check_draw_index <- function(draw_index) {
 model_call <- function(client, messages, model = NULL, max_output = NULL,
                        temperature = NULL, schema = NULL, schema_name = "result",
                        trace = NULL, label = "call", extra = list(), accept = NULL,
-                       effort = NULL, draw_index = 0L) {
+                       effort = NULL, draw_index = 0L, closing = FALSE) {
   if (!inherits(client, "gr_client")) gr_abort("`client` must come from hr_client() or hr_mock_client().")
   messages <- normalise_messages(messages)
   model <- as_chr1(model %||% client$model)
@@ -357,6 +374,9 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
   # model with no price) is checked by the client's dispatch once a cache has
   # missed, through `admit`. A refused request is not sent and is no step.
   gate <- governor_request(client, req, sent)
+  # Kept out of `req`, `params` and every key: it changes only which limit
+  # the governor holds the request to.
+  if (isTRUE(closing)) gate$closing <- TRUE
   refusal <- governor_check(trace, gate, "call")
   if (is.null(refusal)) {
     req$admit <- function() governor_check(trace, gate, "send")
@@ -943,11 +963,12 @@ gr_call_json <- function(client, messages, schema, schema_name = "result",
   # hr_call()'s own arguments, so `...` is matched exactly as it was.
   send <- function(client, messages, model = NULL, max_output = NULL, temperature = NULL,
                    schema = NULL, schema_name = "result", trace = NULL, label = "call", ...,
-                   effort = NULL, draw_index = 0L) {
+                   effort = NULL, draw_index = 0L, closing = FALSE) {
     model_call(client, messages, model = model, max_output = max_output,
                temperature = temperature, schema = schema, schema_name = schema_name,
                trace = trace, label = label, extra = list(...), accept = accept,
-               effort = effort, draw_index = check_draw_index(draw_index))
+               effort = effort, draw_index = check_draw_index(draw_index),
+               closing = check_closing(closing))
   }
   res <- send(client, messages, schema = schema, schema_name = schema_name, ...)
   if (!res$ok) return(list(ok = FALSE, value = NULL, result = res, problem = NULL))

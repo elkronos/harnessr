@@ -483,7 +483,8 @@ batch_shortfall <- function(trace, n, item_usd = NULL) {
 }
 
 #' The governor each item of a batch of `n` is held to: an equal share of the
-#' calls and dollars the run has left, with the run's other limits. NULL when
+#' calls and dollars the run has left outside its reserve (a batch's requests
+#' are never closing ones), with the run's other limits and no reserve. NULL when
 #' there is no run trace, so the items read the options as the run does.
 #' @noRd
 batch_share <- function(trace, n) {
@@ -495,7 +496,7 @@ batch_share <- function(trace, n) {
               max_cost_usd = if (is.finite(room$usd)) room$usd / n else Inf,
               max_tokens_total = if (is.finite(room$tokens)) floor(room$tokens / n) else Inf,
               max_output_tokens = gov$max_output_tokens, allowed_models = gov$allowed_models,
-              allow_unpriced = gov$allow_unpriced)
+              allow_unpriced = gov$allow_unpriced, reserve_calls = 0, reserve_usd = 0)
 }
 
 # The limits batch_share() narrows. A refusal for any other is the run's own.

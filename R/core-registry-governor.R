@@ -94,10 +94,49 @@
 #'   for no limit.
 #' @param allowed_models Character vector of the model ids the run may call
 #'   (chat and embedding models alike), or `NULL` for any.
+#' @section A reserve for the closing call:
+#' A reader that works in rounds (the `iterative` reader's steps, the
+#' `map_reduce` reader's chunks) makes its answer in one last request. When
+#' the rounds use up `max_calls` or `max_cost_usd`, that request is refused,
+#' and the rounds already paid for end as not found. `reserve_calls` and
+#' `reserve_usd` hold part of each limit back for such a request. An ordinary
+#' request is refused once it would reach into the reserve: with
+#' `max_calls = 10` and `reserve_calls = 1`, ordinary requests stop at 9
+#' calls. A request marked as closing may spend the reserve, up to the limit
+#' itself.
+#'
+#' A request is marked closing by the code that sends it, with
+#' `hr_call(closing = TRUE)`. The readers mark their final request: the
+#' `iterative` reader's final answer (`iterative.final`), the `map_reduce`
+#' reader's last merge (`reduce`), the answer request of the
+#' `hierarchical`, `skim`, `preview` and `rerank` readers and of the `refine`
+#' reader under `refine_state = "ledger"`, and the `ensemble` reader's
+#' adjudication. The `stuff` and `retrieve` readers make one model call each,
+#' and the `refine` reader's last revision is its answer otherwise; they mark
+#' none. In an ensemble each member's closing
+#' request may spend the reserve too, so hold back one call per member and
+#' one for the adjudication. You set the reserve; nothing a model returns
+#' changes it or marks a request.
+#'
+#' Both reserves default to 0, which holds nothing back: requests, refusals
+#' and cache keys are then what they were before the reserve existed. A
+#' reserve larger than its limit is refused with an error of class
+#' `hr_bad_reserve`. A reserve with no limit to hold back from (`max_calls`
+#' or `max_cost_usd` `NULL`) has no effect. The requests of a parallel batch
+#' are ordinary: each worker's share is taken from what is left outside the
+#' reserve. Two governors combined (a judge's own and the run's) hold an
+#' ordinary request to the lower of the two limits less their reserves, and a
+#' closing request to the lower of the two limits.
+#'
 #' @param allow_unpriced `TRUE` to send requests to models with no registered
 #'   price under a spending limit, with a warning once per model per session;
 #'   `FALSE` to refuse them.
-#' @return An object of class `hr_governor`: a list of the six limits.
+#' @param reserve_calls Calls held back from `max_calls` for closing requests,
+#'   a whole number of 0 or more, at most `max_calls`. 0 holds none back.
+#' @param reserve_usd Dollars held back from `max_cost_usd` for closing
+#'   requests, 0 or more, at most `max_cost_usd`. 0 holds none back.
+#' @return An object of class `hr_governor`: a list of the six limits, plus
+#'   `reserve_calls` and `reserve_usd` when either is above 0.
 #' @seealso [hr_options()] for the session defaults, [hr_trace()],
 #'   [hr_register_model()] to give a model its prices
 #' @export
@@ -117,21 +156,56 @@
 #' res <- hr_call(cl, "hi", model = "my-priced-model", trace = tr)
 #' res$refused
 #' res$error
+#'
+#' # A reserve keeps one call for the closing request.
+#' tr <- hr_trace(governor = hr_governor(max_calls = 3, reserve_calls = 1))
+#' vapply(1:3, function(i) hr_call(cl, "hi", trace = tr)$ok, logical(1))
+#' hr_call(cl, "answer", trace = tr, closing = TRUE)$ok
+#' tr$calls
 hr_governor <- function(max_calls = hr_options("max_calls"),
                         max_cost_usd = hr_options("max_cost_usd"),
                         max_tokens_total = hr_options("max_tokens_total"),
                         max_output_tokens = hr_options("max_output_tokens"),
                         allowed_models = hr_options("allowed_models"),
-                        allow_unpriced = hr_options("allow_unpriced")) {
+                        allow_unpriced = hr_options("allow_unpriced"),
+                        reserve_calls = hr_options("reserve_calls"),
+                        reserve_usd = hr_options("reserve_usd")) {
   # The same checks as the options, so a governor cannot hold a limit the
   # options would refuse.
-  structure(list(max_calls = check_option("max_calls", max_calls),
-                 max_cost_usd = check_option("max_cost_usd", max_cost_usd),
-                 max_tokens_total = check_option("max_tokens_total", max_tokens_total),
-                 max_output_tokens = check_option("max_output_tokens", max_output_tokens),
-                 allowed_models = check_option("allowed_models", allowed_models),
-                 allow_unpriced = check_option("allow_unpriced", allow_unpriced)),
-            class = "hr_governor")
+  gov <- structure(list(max_calls = check_option("max_calls", max_calls),
+                        max_cost_usd = check_option("max_cost_usd", max_cost_usd),
+                        max_tokens_total = check_option("max_tokens_total", max_tokens_total),
+                        max_output_tokens = check_option("max_output_tokens", max_output_tokens),
+                        allowed_models = check_option("allowed_models", allowed_models),
+                        allow_unpriced = check_option("allow_unpriced", allow_unpriced)),
+                   class = "hr_governor")
+  rc <- check_option("reserve_calls", reserve_calls)
+  ru <- check_option("reserve_usd", reserve_usd)
+  over <- function(reserve, limit, what) {
+    lim <- finite_limit(limit)
+    if (!is.null(lim) && reserve > lim) {
+      gr_abort(sprintf("%s (%s) is larger than %s (%s), so no limit would be left to hold it back from.",
+                       what[1], format(reserve, scientific = FALSE), what[2],
+                       format(lim, scientific = FALSE)),
+               class = c("hr_bad_reserve", "gr_bad_setting"))
+    }
+  }
+  over(rc, gov$max_calls, c("reserve_calls", "max_calls"))
+  over(ru, gov$max_cost_usd, c("reserve_usd", "max_cost_usd"))
+  # Only when set, so a governor without a reserve, and a trace that saves
+  # one, are what they were before the reserve existed.
+  if (rc > 0) gov$reserve_calls <- rc
+  if (ru > 0) gov$reserve_usd <- ru
+  gov
+}
+
+#' What a governor holds back for closing requests from one limit: its
+#' reserve, at most the limit itself; 0 without one.
+#' @noRd
+governor_hold <- function(gov, field, limit) {
+  r <- as_num1(gov[[field]], 0)
+  if (!is.finite(r) || r <= 0 || is.null(limit)) return(0)
+  min(r, limit)
 }
 
 #' @export
@@ -146,6 +220,8 @@ print.hr_governor <- function(x, ...) {
   cat(sprintf("  allowed_models:    %s\n",
               if (is.null(x$allowed_models)) "any" else paste(x$allowed_models, collapse = ", ")))
   cat(sprintf("  allow_unpriced:    %s\n", isTRUE(x$allow_unpriced)))
+  if (!is.null(x$reserve_calls)) cat(sprintf("  reserve_calls:     %s\n", lim(x$reserve_calls)))
+  if (!is.null(x$reserve_usd)) cat(sprintf("  reserve_usd:       %s\n", lim(x$reserve_usd, "$")))
   invisible(x)
 }
 
@@ -203,6 +279,10 @@ fork_governor <- function(parent) {
 #' A governor that holds a request to both `a` and `b`: the lower of each
 #' limit, only the models both allow, and unpriced models only when both
 #' allow them. Either may be NULL, and then the other is returned as it is.
+#'
+#' A reserve is combined so that an ordinary request is held to the lower of
+#' the two limits less their reserves, and a closing request to the lower of
+#' the two limits: the combined reserve is the difference.
 #' @noRd
 governor_tighter <- function(a, b) {
   if (!inherits(a, "hr_governor")) return(if (inherits(b, "hr_governor")) b)
@@ -211,6 +291,19 @@ governor_tighter <- function(a, b) {
   for (f in c("max_calls", "max_cost_usd", "max_tokens_total", "max_output_tokens")) {
     lim <- c(finite_limit(a[[f]]), finite_limit(b[[f]]))
     if (length(lim)) out[f] <- list(min(lim))
+  }
+  for (f in c("calls", "usd")) {
+    lf <- if (f == "calls") "max_calls" else "max_cost_usd"
+    rf <- paste0("reserve_", f)
+    out[rf] <- list(NULL)
+    full <- c(finite_limit(a[[lf]]), finite_limit(b[[lf]]))
+    if (!length(full)) next
+    ordinary <- c(if (!is.null(finite_limit(a[[lf]])))
+                    finite_limit(a[[lf]]) - governor_hold(a, rf, finite_limit(a[[lf]])),
+                  if (!is.null(finite_limit(b[[lf]])))
+                    finite_limit(b[[lf]]) - governor_hold(b, rf, finite_limit(b[[lf]])))
+    hold <- min(full) - min(ordinary)
+    if (hold > 0) out[rf] <- list(hold)
   }
   models <- list(a$allowed_models, b$allowed_models)
   models <- models[!vapply(models, is.null, logical(1))]
@@ -253,6 +346,8 @@ governor_check <- function(trace, request, stage = c("both", "call", "send")) {
   model <- as_chr1(request$model, "unknown")
   label <- as_chr1(request$label, "call")
   out_tokens <- as_num1(request$output_tokens, 0)
+  # A closing request may spend the reserve; any other stops short of it.
+  closing <- isTRUE(request$closing)
   refuse <- function(limit, msg, worst = NA_real_) {
     cls <- c(if (identical(limit, "unpriced")) "hr_unpriced_model",
              if (identical(limit, "model")) "hr_model_not_allowed",
@@ -278,6 +373,15 @@ governor_check <- function(trace, request, stage = c("both", "call", "send")) {
     }
     cap <- finite_limit(gov$max_calls)
     calls <- if (inherits(trace, "gr_trace")) as_num1(trace$calls, 0) else 0
+    hold <- if (closing) 0 else governor_hold(gov, "reserve_calls", cap)
+    if (!is.null(cap) && hold > 0 && calls + 1 > cap - hold) {
+      return(refuse("calls", sprintf(paste0(
+        "call cap reached: the run has made %s of the %s calls it may make, with %s kept ",
+        "for closing requests, so the '%s' request was not sent; raise ",
+        "hr_options(max_calls =) or lower reserve_calls"),
+        format(calls, scientific = FALSE), format(cap, scientific = FALSE),
+        format(hold, scientific = FALSE), label)))
+    }
     if (!is.null(cap) && calls + 1 > cap) {
       # %s, not %d: max_calls is a whole DOUBLE, and %d refuses one beyond the
       # integer range.
@@ -315,6 +419,15 @@ governor_check <- function(trace, request, stage = c("both", "call", "send")) {
         model, label, format(limit, scientific = FALSE))))
     }
     spent <- budget_spent(trace)
+    hold <- if (closing) 0 else governor_hold(gov, "reserve_usd", limit)
+    if (hold > 0 && spent + worst > limit - hold + 1e-9) {
+      return(refuse("cost", sprintf(paste0(
+        "spending limit reached: the '%s' request could cost up to $%s, and the run has spent ",
+        "$%s of its $%s limit, with $%s kept for closing requests, so it was not ",
+        "sent; raise hr_options(max_cost_usd =) or lower reserve_usd"),
+        label, fmt_usd(worst), fmt_usd(spent), format(limit, scientific = FALSE),
+        format(hold, scientific = FALSE)), worst = worst))
+    }
     # A billionth of a dollar of slack: what a run has spent is a sum of
     # figures rounded to 12 significant digits (usd12()), so a request that
     # fits the limit exactly could otherwise be refused for the rounding.
@@ -367,16 +480,19 @@ refused_result <- function(cnd, model) {
 is_refused <- function(res) is.list(res) && isTRUE(res[["refused", exact = TRUE]])
 
 #' How much of the run's limits is left: calls, dollars and tokens, Inf where
-#' there is no limit.
+#' there is no limit. What is left for ordinary requests, outside the reserve,
+#' unless `closing` is TRUE.
 #' @noRd
-governor_headroom <- function(trace) {
+governor_headroom <- function(trace, closing = FALSE) {
   gov <- trace_governor(trace)
   cap <- finite_limit(gov$max_calls)
   limit <- finite_limit(gov$max_cost_usd)
   tokens <- finite_limit(gov$max_tokens_total)
   calls <- if (inherits(trace, "gr_trace")) as_num1(trace$calls, 0) else 0
-  list(calls = if (is.null(cap)) Inf else max(cap - calls, 0),
-       usd = if (is.null(limit)) Inf else max(limit - budget_spent(trace), 0),
+  hold_calls <- if (closing) 0 else governor_hold(gov, "reserve_calls", cap)
+  hold_usd <- if (closing) 0 else governor_hold(gov, "reserve_usd", limit)
+  list(calls = if (is.null(cap)) Inf else max(cap - hold_calls - calls, 0),
+       usd = if (is.null(limit)) Inf else max(limit - hold_usd - budget_spent(trace), 0),
        tokens = if (is.null(tokens)) Inf else max(tokens - tokens_used(trace), 0))
 }
 

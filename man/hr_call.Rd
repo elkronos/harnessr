@@ -16,7 +16,8 @@ hr_call(
   label = "call",
   ...,
   effort = NULL,
-  draw_index = 0L
+  draw_index = 0L,
+  closing = FALSE
 )
 }
 \arguments{
@@ -70,6 +71,14 @@ the request. An \code{\link[=hr_mock_client]{hr_mock_client()}} or \code{\link[=
 it in \code{params$draw_index}, and the trace records it in the step's
 \code{params}; at 0 neither carries it, so an unsampled call is unchanged.
 Must be named in full, since it follows \code{...}.}
+
+\item{closing}{\code{TRUE} for a run's closing request, such as the final
+answer after rounds of reading, which may spend the calls and dollars a
+governor holds back with \code{reserve_calls} and \code{reserve_usd} (see
+\code{\link[=hr_governor]{hr_governor()}}). \code{FALSE} (the default) for any other request, which is
+refused once it would reach into them. It changes nothing else: not the
+request, the trace, or a cache or replay key. Must be named in full,
+since it follows \code{...}.}
 }
 \value{
 A \link{gr_result}. \strong{Never} \code{NULL}; \verb{$text} is always a single string,

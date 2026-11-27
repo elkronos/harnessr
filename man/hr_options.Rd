@@ -123,6 +123,16 @@ such model in a session warns with class \code{hr_unpriced_model}. Off, it is
 refused with a condition of that class. Untested: harnessr ships no
 prices, so off would refuse every built-in model until you set its
 prices with \code{\link[=hr_register_model]{hr_register_model()}} or \code{\link[=hr_load_models]{hr_load_models()}}.}
+\item{\code{reserve_calls} (0)}{Calls held back from \code{max_calls} for a
+run's closing requests, such as a reader's final answer. An ordinary
+request is refused once it would reach into them; a request sent with
+\code{hr_call(closing = TRUE)} may use them (see \code{\link[=hr_governor]{hr_governor()}}). 0 holds
+none back. A value above \code{max_calls} is refused when a governor is
+made, with class \code{hr_bad_reserve}. Untested: a choice, not a tuned
+value.}
+\item{\code{reserve_usd} (0)}{Dollars held back from \code{max_cost_usd} for a
+run's closing requests, in the same way. 0 holds none back.
+Untested: a choice, not a tuned value.}
 \item{\code{price_max_age_days} (120)}{How old a price may be, in days, before
 a cost computed from it warns with class \code{hr_stale_price}. A price's age
 is counted from the first day of its \code{as_of} month (see \code{\link[=hr_models]{hr_models()}}),
@@ -180,12 +190,13 @@ than the default joins the store key of \code{\link[=gr_read_many]{gr_read_many(
 
 The settings listed last above were constants in the code until they were
 options; each keeps the constant's value. A trace records them, and
-\code{price_max_age_days}, (in its options snapshot) only when one is not its
-default, so a trace made at the defaults reads as it did before they
-existed. Each tuning setting's entry above (\code{temperature}, \code{max_retries},
-\code{retry_pause_base}, \code{request_timeout}, \code{safety_margin},
-\code{min_output_tokens}, \code{workers}, \code{price_max_age_days} and the settings
-listed last) says where its default came from, as does \code{allow_unpriced}'s;
+\code{price_max_age_days}, \code{reserve_calls} and \code{reserve_usd}, (in its options
+snapshot) only when one is not its default, so a trace made at the
+defaults reads as it did before they existed. Each tuning setting's entry
+above (\code{temperature}, \code{max_retries}, \code{retry_pause_base},
+\code{request_timeout}, \code{safety_margin}, \code{min_output_tokens}, \code{workers},
+\code{price_max_age_days} and the settings listed last) says where its default
+came from, as do \code{allow_unpriced}'s and the reserves';
 "untested" means no measurement backs the value. The other entries are
 switches, limits and names, which are choices rather than tuned values.
 }
@@ -201,7 +212,10 @@ more (one or more for \code{max_output_tokens}), with an error of class
 \code{gr_bad_option}: a limit that cannot be compared is not a limit, and
 ignoring it spends money. \code{NULL} and \code{Inf} both mean "no limit".
 \code{allowed_models} must be \code{NULL} or a character
-vector of ids, and \code{allow_unpriced} \code{TRUE} or \code{FALSE}.
+vector of ids, and \code{allow_unpriced} \code{TRUE} or \code{FALSE}. The reserves,
+\code{reserve_calls} and \code{reserve_usd}, must be a single finite number of 0 or
+more, and are refused otherwise with the same class; \code{reserve_calls} is
+rounded down.
 
 The tuning settings (\code{safety_margin} [0, 0.5], \code{min_output_tokens}
 [0, 1e6], \code{max_retries} [0, 10], \code{retry_pause_base} [0, 60],

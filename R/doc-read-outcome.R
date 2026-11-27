@@ -89,17 +89,18 @@ answer_schema <- function(structure) {
 #' parsed path reads it, and `$structured$parsed` is FALSE.
 #' @noRd
 answer_request <- function(client, messages, spec, trace, label, max_output,
-                           model = spec$model, sources = character(0), document = NULL) {
+                           model = spec$model, sources = character(0), document = NULL,
+                           closing = FALSE) {
   structure <- answer_structure(spec)
   if (is.null(structure)) {
     return(hr_call(client, messages, model = model, max_output = max_output,
                    temperature = spec$temperature, trace = trace, label = label,
-                   effort = spec$effort))
+                   effort = spec$effort, closing = closing))
   }
   out <- gr_call_json(client, messages, schema = answer_schema(structure),
                       schema_name = "answer", model = model, max_output = max_output,
                       temperature = spec$temperature, trace = trace, label = label,
-                      effort = spec$effort)
+                      effort = spec$effort, closing = closing)
   res <- out$result
   if (!isTRUE(res$ok)) return(res)
   if (!isTRUE(out$ok)) {

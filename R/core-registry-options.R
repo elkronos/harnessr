@@ -56,6 +56,10 @@ gr_defaults <- list(
   # a built-in model until its prices are set. Each such model is warned
   # about once per session (warn_unpriced_model()).
   allow_unpriced      = TRUE,
+  # Calls and dollars held back from max_calls and max_cost_usd for closing
+  # requests (see hr_governor()). 0 = none.
+  reserve_calls       = 0L,
+  reserve_usd         = 0,
   # Prices older than this many days, counted from the first day of their
   # as_of month, warn once per model when a cost is computed from them. NULL =
   # never.
@@ -84,7 +88,8 @@ gr_defaults <- list(
 #' @noRd
 .gr_late_options <- c("auto_max_tokens", "auto_room_share", "reasoning_floor",
                       "output_reserve_share", "near_verbatim_sim", "near_verbatim_sim_short",
-                      "near_verbatim_short_chars", "price_max_age_days")
+                      "near_verbatim_short_chars", "price_max_age_days", "reserve_calls",
+                      "reserve_usd")
 
 #' The options among `names` that are not their default, as a named list.
 #' Empty at the defaults, so a key built with it is the key built without it.
@@ -192,6 +197,16 @@ nondefault_options <- function(names = .gr_late_options) {
                             evidence = list(status = "untested", source = paste0(
                               "A choice, not a measured value: about four months, so prices ",
                               "set once are checked again a few times a year."))),
+  # Held back from a ceiling, so a number of 0 or more; NULL, NA and Inf are
+  # refused, since none of them says how much to hold back.
+  reserve_calls     = list(kind = "reserve", lo = 0, whole = TRUE,
+                           evidence = list(status = "untested", source = paste0(
+                             "0 holds nothing back, so runs are what they were; a choice, ",
+                             "not a tuned value."))),
+  reserve_usd       = list(kind = "reserve", lo = 0, whole = FALSE,
+                           evidence = list(status = "untested", source = paste0(
+                             "0 holds nothing back, so runs are what they were; a choice, ",
+                             "not a tuned value."))),
   # A switch, checked by check_option() itself; listed for its evidence.
   allow_unpriced    = list(kind = "switch",
                            evidence = list(status = "untested", source = paste0(
@@ -223,6 +238,16 @@ check_option <- function(name, value) {
     sprintf("a length-%d value", length(v)) else if (is.na(v)) "NA" else
     sprintf("a %s", class(v)[1])
   usable <- !is.null(value) && length(value) == 1L && is.numeric(value) && !is.na(value)
+
+  if (identical(rule$kind, "reserve")) {
+    if (!usable || !is.finite(value) || value < 0) {
+      gr_abort(sprintf(paste0("hr_options(%s = ) must be a single finite number of 0 or more, ",
+                              "not %s."), name,
+                       if (usable) format(value) else what(value)),
+               class = "gr_bad_option")
+    }
+    return(if (isTRUE(rule$whole)) floor(value) else value)
+  }
 
   if (identical(rule$kind, "ceiling")) {
     if (is.null(value)) return(NULL)
@@ -387,6 +412,16 @@ check_option <- function(name, value) {
 #'     refused with a condition of that class. Untested: harnessr ships no
 #'     prices, so off would refuse every built-in model until you set its
 #'     prices with [hr_register_model()] or [hr_load_models()].}
+#'   \item{`reserve_calls` (0)}{Calls held back from `max_calls` for a
+#'     run's closing requests, such as a reader's final answer. An ordinary
+#'     request is refused once it would reach into them; a request sent with
+#'     `hr_call(closing = TRUE)` may use them (see [hr_governor()]). 0 holds
+#'     none back. A value above `max_calls` is refused when a governor is
+#'     made, with class `hr_bad_reserve`. Untested: a choice, not a tuned
+#'     value.}
+#'   \item{`reserve_usd` (0)}{Dollars held back from `max_cost_usd` for a
+#'     run's closing requests, in the same way. 0 holds none back.
+#'     Untested: a choice, not a tuned value.}
 #'   \item{`price_max_age_days` (120)}{How old a price may be, in days, before
 #'     a cost computed from it warns with class `hr_stale_price`. A price's age
 #'     is counted from the first day of its `as_of` month (see [hr_models()]),
@@ -442,12 +477,13 @@ check_option <- function(name, value) {
 #' @section Where the defaults come from:
 #' The settings listed last above were constants in the code until they were
 #' options; each keeps the constant's value. A trace records them, and
-#' `price_max_age_days`, (in its options snapshot) only when one is not its
-#' default, so a trace made at the defaults reads as it did before they
-#' existed. Each tuning setting's entry above (`temperature`, `max_retries`,
-#' `retry_pause_base`, `request_timeout`, `safety_margin`,
-#' `min_output_tokens`, `workers`, `price_max_age_days` and the settings
-#' listed last) says where its default came from, as does `allow_unpriced`'s;
+#' `price_max_age_days`, `reserve_calls` and `reserve_usd`, (in its options
+#' snapshot) only when one is not its default, so a trace made at the
+#' defaults reads as it did before they existed. Each tuning setting's entry
+#' above (`temperature`, `max_retries`, `retry_pause_base`,
+#' `request_timeout`, `safety_margin`, `min_output_tokens`, `workers`,
+#' `price_max_age_days` and the settings listed last) says where its default
+#' came from, as do `allow_unpriced`'s and the reserves';
 #' "untested" means no measurement backs the value. The other entries are
 #' switches, limits and names, which are choices rather than tuned values.
 #'
@@ -461,7 +497,10 @@ check_option <- function(name, value) {
 #' `gr_bad_option`: a limit that cannot be compared is not a limit, and
 #' ignoring it spends money. `NULL` and `Inf` both mean "no limit".
 #' `allowed_models` must be `NULL` or a character
-#' vector of ids, and `allow_unpriced` `TRUE` or `FALSE`.
+#' vector of ids, and `allow_unpriced` `TRUE` or `FALSE`. The reserves,
+#' `reserve_calls` and `reserve_usd`, must be a single finite number of 0 or
+#' more, and are refused otherwise with the same class; `reserve_calls` is
+#' rounded down.
 #'
 #' The tuning settings (`safety_margin` \[0, 0.5\], `min_output_tokens`
 #' \[0, 1e6\], `max_retries` \[0, 10\], `retry_pause_base` \[0, 60\],

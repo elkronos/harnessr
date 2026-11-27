@@ -10,7 +10,9 @@ hr_governor(
   max_tokens_total = hr_options("max_tokens_total"),
   max_output_tokens = hr_options("max_output_tokens"),
   allowed_models = hr_options("allowed_models"),
-  allow_unpriced = hr_options("allow_unpriced")
+  allow_unpriced = hr_options("allow_unpriced"),
+  reserve_calls = hr_options("reserve_calls"),
+  reserve_usd = hr_options("reserve_usd")
 )
 }
 \arguments{
@@ -33,9 +35,16 @@ for no limit.}
 \item{allow_unpriced}{\code{TRUE} to send requests to models with no registered
 price under a spending limit, with a warning once per model per session;
 \code{FALSE} to refuse them.}
+
+\item{reserve_calls}{Calls held back from \code{max_calls} for closing requests,
+a whole number of 0 or more, at most \code{max_calls}. 0 holds none back.}
+
+\item{reserve_usd}{Dollars held back from \code{max_cost_usd} for closing
+requests, 0 or more, at most \code{max_cost_usd}. 0 holds none back.}
 }
 \value{
-An object of class \code{hr_governor}: a list of the six limits.
+An object of class \code{hr_governor}: a list of the six limits, plus
+\code{reserve_calls} and \code{reserve_usd} when either is above 0.
 }
 \description{
 A governor holds the limits that every request a run makes is checked
@@ -109,6 +118,42 @@ trace made without one, including those the package makes for itself,
 reads the limits from \code{\link[=hr_options]{hr_options()}} each time it checks, so changing an
 option affects runs that are already going, as it always has.
 }
+\section{A reserve for the closing call}{
+
+A reader that works in rounds (the \code{iterative} reader's steps, the
+\code{map_reduce} reader's chunks) makes its answer in one last request. When
+the rounds use up \code{max_calls} or \code{max_cost_usd}, that request is refused,
+and the rounds already paid for end as not found. \code{reserve_calls} and
+\code{reserve_usd} hold part of each limit back for such a request. An ordinary
+request is refused once it would reach into the reserve: with
+\code{max_calls = 10} and \code{reserve_calls = 1}, ordinary requests stop at 9
+calls. A request marked as closing may spend the reserve, up to the limit
+itself.
+
+A request is marked closing by the code that sends it, with
+\code{hr_call(closing = TRUE)}. The readers mark their final request: the
+\code{iterative} reader's final answer (\code{iterative.final}), the \code{map_reduce}
+reader's last merge (\code{reduce}), the answer request of the
+\code{hierarchical}, \code{skim}, \code{preview} and \code{rerank} readers and of the \code{refine}
+reader under \code{refine_state = "ledger"}, and the \code{ensemble} reader's
+adjudication. The \code{stuff} and \code{retrieve} readers make one model call each,
+and the \code{refine} reader's last revision is its answer otherwise; they mark
+none. In an ensemble each member's closing
+request may spend the reserve too, so hold back one call per member and
+one for the adjudication. You set the reserve; nothing a model returns
+changes it or marks a request.
+
+Both reserves default to 0, which holds nothing back: requests, refusals
+and cache keys are then what they were before the reserve existed. A
+reserve larger than its limit is refused with an error of class
+\code{hr_bad_reserve}. A reserve with no limit to hold back from (\code{max_calls}
+or \code{max_cost_usd} \code{NULL}) has no effect. The requests of a parallel batch
+are ordinary: each worker's share is taken from what is left outside the
+reserve. Two governors combined (a judge's own and the run's) hold an
+ordinary request to the lower of the two limits less their reserves, and a
+closing request to the lower of the two limits.
+}
+
 \examples{
 cl <- hr_mock_client(function(m, p) "ok")
 tr <- hr_trace(governor = hr_governor(max_calls = 2))
@@ -125,6 +170,12 @@ tr <- hr_trace(governor = hr_governor(max_cost_usd = 0.001))
 res <- hr_call(cl, "hi", model = "my-priced-model", trace = tr)
 res$refused
 res$error
+
+# A reserve keeps one call for the closing request.
+tr <- hr_trace(governor = hr_governor(max_calls = 3, reserve_calls = 1))
+vapply(1:3, function(i) hr_call(cl, "hi", trace = tr)$ok, logical(1))
+hr_call(cl, "answer", trace = tr, closing = TRUE)$ok
+tr$calls
 }
 \seealso{
 \code{\link[=hr_options]{hr_options()}} for the session defaults, \code{\link[=hr_trace]{hr_trace()}},

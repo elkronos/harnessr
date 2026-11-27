@@ -387,7 +387,7 @@ read_preview <- function(chunks, question, client, spec, trace) {
                  # reached no request.
                  sources = c(reader_source_text(d[keep_rows, , drop = FALSE]),
                              if (!is.null(ev_skim)) ev_skim$text),
-                 document = reader_source_text(d))
+                 document = reader_source_text(d), closing = TRUE)
   if (usable_text(res2) && reply_cut_off(res2)) cut <- cut + 1L
 
   used <- unique(c(d$chunk_id[keep_rows], if (!is.null(ev_skim)) ev_skim$chunk_id))

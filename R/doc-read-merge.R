@@ -10,9 +10,13 @@
 #' so the final merge can be whole and still rest on one that was not. So is a
 #' group whose merge failed, joined unmerged: `ok` says whether the LAST merge
 #' worked, and `failed` counts every level, the last included.
+#'
+#' `closing = TRUE` marks the last merge, the one that makes the answer, as a
+#' closing request, which may spend a governor's reserve (see hr_governor());
+#' the merges of the levels below it are ordinary.
 #' @noRd
 tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
-                       system_prompt = NULL, kind = "findings") {
+                       system_prompt = NULL, kind = "findings", closing = FALSE) {
   system_prompt <- system_prompt %||% .gr_prompts$merge_system
   # The same model for the budget and the request: gr_read() fills a spec's
   # model from the client, but a caller that builds its own spec may leave it
@@ -88,7 +92,7 @@ tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
         list(role = "user", content = body),
         list(role = "user", content = paste0("Question: ", question))
       ), model = spec$model, max_output = spec$max_answer_tokens, temperature = spec$temperature,
-         trace = trace, label = label, effort = spec$effort)
+         trace = trace, label = label, effort = spec$effort, closing = closing)
       if (is_refused(res)) {
         # A limit stopped us before the final merge. This path used to
         # return unbounded concatenation, an "answer" the size of every
