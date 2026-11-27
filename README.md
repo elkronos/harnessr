@@ -69,11 +69,11 @@ as.data.frame(tr)[, c("stage", "model", "tokens_in", "tokens_out", "usd")]
 
 `res$text` holds the reply and `res$ok` says whether the call succeeded.
 `hr_call()` checked the request against the run's limits before sending it:
-by default 400 calls and $5, set with `hr_options()` or `hr_governor()`. `hr_trace_save()` writes the
-trace to a file, and `hr_replay_client()` answers the same requests from that
-file with no key and no network. `vignette("core")` covers every kind of
-client, what a result holds, the trace, structured replies and checks on a
-reply.
+by default 400 calls and $5, set with `hr_options()` or `hr_governor()`.
+`hr_trace_save()` writes the trace to a file, and `hr_replay_client()` answers
+the same requests from that file with no key and no network.
+`vignette("core")` covers every kind of client, what a result holds, the
+trace, structured replies and checks on a reply.
 
 ## The document layer
 
@@ -90,9 +90,11 @@ ans$answer
 
 `ans$trace` records every step of the run, and `ans$evidence` the chunks the
 answer rests on. A recipe such as `"needle"` names one choice for each stage.
-`vignette("readers")` explains how to choose one, and `gr_compare()` runs
-several recipes over one document so you can compare them. For a folder of
-documents, `vignette("review")` covers screening, extraction and synthesis.
+`vignette("readers")` explains how to choose one. `gr_compare()` runs several
+recipes over one document, extracting it once, and reports what each recipe
+cost and answered, so you can choose a pipeline before committing to it. For a
+folder of documents, `vignette("review")` covers screening, extraction and
+synthesis.
 
 ## Connecting a model
 
@@ -117,11 +119,10 @@ hr_register_model("gpt-5.6-terra", input_usd = 2, output_usd = 12)
 
 Then `answer_document()` runs against the real model when you leave out
 `client`, and `hr_call()` does too when you give it `hr_client()` in place of
-the stand-in.
-`vignette("harnessr")` covers the other ways to give a key, company gateways,
-other providers and local models through ellmer, and any other backend.
-`vignette("models")` shows how to set many prices from a file and keep them
-current.
+the stand-in. `vignette("harnessr")` covers the other ways to give a key,
+company gateways, other providers and local models through ellmer, and any
+other backend. `vignette("models")` shows how to set many prices from a file
+and keep them current.
 
 ## Guides
 

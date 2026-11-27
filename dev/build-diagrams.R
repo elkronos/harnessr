@@ -350,7 +350,7 @@ draw_layers <- function() {
   txt(cv, 540, 344, "never: core to document layer", 13, bold = TRUE, color = pal$accent$ink)
   txt(cv, 540, 362, "test-boundary.R checks it", 13, color = muted)
 
-  # The core, one box per core guide.
+  # The core, one box per area, in the order of the core guides.
   rows <- ceiling(length(core_items) / 4)
   core_h <- 36 + rows * 76 + 4
   rect(cv, 24, 378, 852, core_h, "core", cls = "core-layer")

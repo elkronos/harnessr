@@ -117,8 +117,9 @@
   `hr_call()` request in order: the count and cap, the governor before the
   cache, the cache, the governor on a miss with the reserves, the client and
   its retries, the trace step and a context overflow. The layers diagram on
-  the README now has one box per core guide, and the document run diagram
-  lists `reserve_calls` and `reserve_usd` with the other limits.
+  the README now names ten areas of the core, in the order of the core
+  guides, and the document run diagram lists `reserve_calls` and
+  `reserve_usd` with the other limits.
 
 * **A shorter README.** It installs the 0.7.0 release or the development
   version, makes a first call and shows its trace, then answers a question
