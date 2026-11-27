@@ -19,6 +19,26 @@
   cache, the share of input tokens it served. The `summary` that
   `as_json()` and `hr_trace_save()` write carries the new columns.
 
+## A reserve for the closing call
+
+* **`hr_governor()` and `hr_options()` gain `reserve_calls` and
+  `reserve_usd`.** A run that used up `max_calls` or `max_cost_usd` in its
+  rounds had its final request refused, so the rounds already paid for ended
+  as not found. A reserve holds part of each limit back: an ordinary request
+  is refused once it would reach into it, and a request sent with the new
+  `hr_call(closing = TRUE)` may spend it. The readers mark their final
+  request as closing: the `iterative` reader's final answer, the
+  `map_reduce` reader's last merge, the answer of the `hierarchical`,
+  `skim`, `preview` and `rerank` readers and of the `refine` reader under
+  `refine_state = "ledger"`, and the `ensemble` reader's adjudication. Both
+  reserves default to 0, which leaves requests, refusals, cache keys and
+  traces as they were. A reserve larger than its limit is refused with class
+  `hr_bad_reserve`, by `hr_governor()` and by `hr_options()`. The requests
+  of a parallel batch share what is left outside the reserve, and two
+  combined governors hold an ordinary request to the lower of their limits
+  less their reserves. See "A reserve for the closing request" in
+  `vignette("runs")`.
+
 # harnessr 0.7.0
 
 harnessr 0.7.0 is the first release under the name harnessr. It reframes
