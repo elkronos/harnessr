@@ -692,10 +692,12 @@ as_parent_trace <- function(trace, arg = "trace") {
 #'
 #'   `elapsed_s` is the time from the run's start (`trace$started`) to the end
 #'   of its last step: a request's `ended_utc`, or the `at` time of a local
-#'   step, which is in the session's time zone. It is read from the steps, so
-#'   a summary taken an hour after the run, or of a trace saved with
-#'   [saveRDS()] and read back, gives the same figure. A trace with no steps
-#'   gives 0.
+#'   step. `at` is local time with no offset, so it is placed using the offset
+#'   the trace's requests show (their `at` beside their `ended_utc`), or in
+#'   the current session's time zone when the trace holds no request. It is
+#'   read from the steps, so a summary taken an hour after the run, or of a
+#'   trace saved with [saveRDS()] and read back in another time zone, gives
+#'   the same figure. A trace with no steps gives 0.
 #'
 #'   The last six columns split that time. `request_s` is the seconds the
 #'   requests took (model calls and embeddings requests, retries included),
@@ -755,19 +757,47 @@ hr_trace_summary <- function(trace) {
 }
 
 #' When a step ended: its `ended_utc`, or for a step without one (a local
-#' step, or one written before the field existed) its `at`, which is local
-#' time. NA when neither can be read.
+#' step, or one written before the field existed) its `at`. `at` is the
+#' recording session's local time with no offset; `offset` is that session's
+#' offset from UTC in seconds, read by at_offset(), or NA to read `at` in this
+#' session's time zone. NA when neither field can be read.
 #' @noRd
-step_end_time <- function(st) {
+step_end_time <- function(st, offset = NA_real_) {
   if (!is.list(st)) return(NA_real_)
-  utc <- as_chr1(st[["ended_utc", exact = TRUE]], NA_character_)
-  if (!is.na(utc)) {
-    t <- as.POSIXct(utc, format = "%Y-%m-%dT%H:%M:%OSZ", tz = "UTC")
-    if (!is.na(t)) return(as.numeric(t))
-  }
+  utc <- parse_utc_stamp(st[["ended_utc", exact = TRUE]])
+  if (!is.na(utc)) return(utc)
   at <- as_chr1(st[["at", exact = TRUE]], NA_character_)
   if (is.na(at)) return(NA_real_)
+  if (!is.na(offset)) {
+    return(as.numeric(as.POSIXct(at, format = "%Y-%m-%dT%H:%M:%OS", tz = "UTC")) - offset)
+  }
   as.numeric(as.POSIXct(at, format = "%Y-%m-%dT%H:%M:%OS", tz = ""))
+}
+
+#' A UTC stamp written by utc_stamp() as seconds since the epoch, or NA.
+#' @noRd
+parse_utc_stamp <- function(x) {
+  x <- as_chr1(x, NA_character_)
+  if (is.na(x)) return(NA_real_)
+  as.numeric(as.POSIXct(x, format = "%Y-%m-%dT%H:%M:%OSZ", tz = "UTC"))
+}
+
+#' The offset from UTC, in seconds, of the session that recorded a trace's
+#' steps. A request step holds both `at`, local time taken as it was
+#' recorded, and `ended_utc`, taken just before; their smallest difference,
+#' rounded to a quarter hour, is the offset. NA when no step holds both, and
+#' local steps are then read in this session's time zone.
+#' @noRd
+at_offset <- function(steps) {
+  lag <- vapply(steps, function(st) {
+    at <- as_chr1(st[["at", exact = TRUE]], NA_character_)
+    end <- parse_utc_stamp(st[["ended_utc", exact = TRUE]])
+    if (is.na(at) || is.na(end)) return(NA_real_)
+    as.numeric(as.POSIXct(at, format = "%Y-%m-%dT%H:%M:%OS", tz = "UTC")) - end
+  }, numeric(1))
+  lag <- lag[is.finite(lag)]
+  if (!length(lag)) return(NA_real_)
+  round(min(lag) / 900) * 900
 }
 
 #' The seconds a step took, as it recorded them: `seconds` on a request, and
@@ -798,7 +828,7 @@ trace_time_parts <- function(trace) {
   secs <- vapply(steps, step_seconds, numeric(1))
   request <- sum(secs[!local])
   local_s <- sum(secs[local])
-  ends <- vapply(steps, step_end_time, numeric(1))
+  ends <- vapply(steps, step_end_time, numeric(1), offset = at_offset(steps))
   started <- if (inherits(trace$started, "POSIXct")) as.numeric(trace$started) else NA_real_
   elapsed <- if (all(is.na(ends)) || is.na(started)) request + local_s
              else max(max(ends, na.rm = TRUE) - started, 0)

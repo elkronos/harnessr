@@ -67,6 +67,26 @@ test_that("local steps that time themselves count as local time", {
   expect_identical(s$request_share + s$local_share + s$overhead_share, 1)
 })
 
+test_that("a local step recorded in another time zone is placed by the requests' offset", {
+  # Recorded at UTC+5: each request's `at` is five hours ahead of its
+  # `ended_utc`. Read here in UTC, the local step's `at` must not count as
+  # five hours later than it was.
+  withr::local_timezone("UTC")
+  tr <- hr_trace()
+  tr$started <- as.POSIXct("2026-01-01 10:00:00", tz = "UTC")
+  trace_push_steps(tr, list(
+    list(step = 1L, label = "a", ok = TRUE, at = "2026-01-01T15:00:02.040",
+         ended_utc = "2026-01-01T10:00:02.000Z", seconds = 2,
+         tokens = list(input = 1L, output = 1L)),
+    list(step = 2L, label = "step.command", ok = TRUE, kind = "local",
+         at = "2026-01-01T15:00:10.000", detail = list(seconds = 6))))
+  s <- hr_trace_summary(tr)
+  expect_identical(s$elapsed_s, 10)
+  expect_identical(s$overhead_s, 2)
+  withr::local_timezone("Asia/Tokyo")
+  expect_identical(hr_trace_summary(tr)$elapsed_s, 10)
+})
+
 test_that("parallel requests whose seconds pass the run time leave no negative overhead", {
   tr <- hr_trace()
   tr$started <- as.POSIXct("2026-01-01 10:00:00", tz = "UTC")
