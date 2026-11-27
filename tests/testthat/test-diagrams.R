@@ -165,27 +165,33 @@ test_that("document-run.svg shows the stages of a run, in order, and what each h
 })
 
 # Which limits governor_check() reads in its call stage and in its send
-# stage, in the order it reads them.
+# stage, in the order it reads them: a field read as gov$name, or a reserve
+# read through governor_hold(gov, "name").
 governor_stage_limits <- function() {
   src <- paste(deparse(body(harnessr:::governor_check), width.cutoff = 500L), collapse = "\n")
   parts <- strsplit(src, "if (stage %in% c(\"both\", \"send\"))", fixed = TRUE)[[1]]
   expect_length(parts, 2)
   lapply(parts, function(part) {
-    unique(sub("^gov\\$", "", regmatches(part, gregexpr("gov\\$[a-z_]+", part))[[1]]))
+    hits <- regmatches(part, gregexpr("gov\\$[a-z_]+|governor_hold\\(gov, \"[a-z_]+\"", part))[[1]]
+    unique(gsub("^gov\\$|^governor_hold\\(gov, \"|\"$", "", hits))
   })
 }
+
+# A diagram wraps a long list of limits at spaces, so its lines joined with
+# a space give the list back.
+limits_shown <- function(doc, cls) paste(diagram_text(doc, cls), collapse = " ")
 
 test_that("document-run.svg puts each governor limit under the stage that checks it", {
   doc <- read_diagram("document-run.svg")
   limits <- governor_stage_limits()
-  expect_true(all(c("allowed_models", "max_calls") %in% limits[[1]]))
-  expect_true(all(c("max_tokens_total", "max_cost_usd") %in% limits[[2]]))
-  expect_identical(diagram_text(doc, "limits-call"), paste(limits[[1]], collapse = ", "))
-  expect_identical(diagram_text(doc, "limits-send"), paste(limits[[2]], collapse = ", "))
+  expect_true(all(c("allowed_models", "max_calls", "reserve_calls") %in% limits[[1]]))
+  expect_true(all(c("max_tokens_total", "max_cost_usd", "reserve_usd") %in% limits[[2]]))
+  expect_identical(limits_shown(doc, "limits-call"), paste(limits[[1]], collapse = ", "))
+  expect_identical(limits_shown(doc, "limits-send"), paste(limits[[2]], collapse = ", "))
   txt <- diagram_text(doc)
   at <- function(s) which(txt == s)
-  expect_identical(at(diagram_text(doc, "limits-call")), at("1. governor, before the cache") + 1L)
-  expect_identical(at(diagram_text(doc, "limits-send")), at("3. governor, on a cache miss") + 1L)
+  expect_identical(at(diagram_text(doc, "limits-call")[1]), at("1. governor, before the cache") + 1L)
+  expect_identical(at(diagram_text(doc, "limits-send")[1]), at("3. governor, on a cache miss") + 1L)
 })
 
 test_that("registry.svg shows every kind and both contract versions", {

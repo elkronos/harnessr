@@ -422,14 +422,17 @@ must(calls_in_order(ns$model_call, c("governor_check(trace, gate, \"call\")",
 must(calls_in_order(get("client_dispatch.gr_client", envir = ns),
                     c("cache_get(", "req$admit()", "client_send(client, req)", "cache_put(")),
      "a client looks in its cache before the spend check and sends only on a miss")
-# The limits governor_check() reads before the cache and after a miss.
+# The limits governor_check() reads before the cache and after a miss: a
+# field read as gov$name, or a reserve read through governor_hold(gov, "name").
 gov_body <- paste(deparse(body(ns$governor_check), width.cutoff = 500L), collapse = "\n")
 gov_split <- strsplit(gov_body, "if (stage %in% c(\"both\", \"send\"))", fixed = TRUE)[[1]]
 must(length(gov_split) == 2, "governor_check() has a call stage and a send stage")
 gov_limits <- lapply(gov_split, function(part) {
-  hits <- regmatches(part, gregexpr("gov\\$[a-z_]+", part))[[1]]
-  unique(sub("^gov\\$", "", hits))
+  hits <- regmatches(part, gregexpr("gov\\$[a-z_]+|governor_hold\\(gov, \"[a-z_]+\"", part))[[1]]
+  unique(gsub("^gov\\$|^governor_hold\\(gov, \"|\"$", "", hits))
 })
+must(all(c("reserve_calls", "reserve_usd") %in% unlist(gov_limits)),
+     "governor_check() holds back reserve_calls and reserve_usd for closing requests")
 must(all(unlist(gov_limits) %in% names(formals(ns$hr_governor))),
      "each limit governor_check() reads is an argument of hr_governor()")
 readers_budget <- basename(r_files[startsWith(basename(r_files), "doc-read-") &
@@ -439,7 +442,7 @@ must(length(readers_budget) > 0, "readers size prompts with hr_budget()")
 cache_documents <- isTRUE(ns$hr_options("cache_documents"))
 
 draw_document_run <- function() {
-  cv <- canvas("document-run", 736)
+  cv <- canvas("document-run", 752)
   heading(cv, "A document run",
           sprintf("%s() runs the stages of %s() in order: %s.", fn("answer_document", "doc"),
                   fn("gr_recipe", "doc"), paste(stages, collapse = ", ")))
@@ -482,13 +485,18 @@ draw_document_run <- function() {
                                   14, bold = TRUE, cls = "fn")), "core")
   arrow(cv, c(lx + lw, segment_mid, 444, segment_mid), head = FALSE)
   arrow(cv, c(lx + lw, read_mid, 444, read_mid, 444, 104, rx, 104))
+  # The limits of each stage, wrapped to the box at spaces; the test joins
+  # the lines again.
+  limit_lines <- function(limits, cls) {
+    lapply(wrap(paste(limits, collapse = ", "), rw - 24, 13), function(s) ln(s, 13, cls = cls))
+  }
   steps <- list(
-    list(list(ln("1. governor, before the cache", 14, bold = TRUE),
-              ln(paste(gov_limits[[1]], collapse = ", "), 13, cls = "limits-call")), "core"),
+    list(c(list(ln("1. governor, before the cache", 14, bold = TRUE)),
+           limit_lines(gov_limits[[1]], "limits-call")), "core"),
     list(list(ln(sprintf("2. cache: %s()", fn("hr_cache_client", "core")), 14, bold = TRUE),
               ln("a hit is returned; nothing is sent", 13)), "core"),
-    list(list(ln("3. governor, on a cache miss", 14, bold = TRUE),
-              ln(paste(gov_limits[[2]], collapse = ", "), 13, cls = "limits-send")), "core"),
+    list(c(list(ln("3. governor, on a cache miss", 14, bold = TRUE)),
+           limit_lines(gov_limits[[2]], "limits-send")), "core"),
     list(list(ln("4. the client answers it", 14, bold = TRUE),
               ln("a provider over HTTP, a mock or a replay", 13)), "neutral"),
     list(list(ln(sprintf("5. %s()", fn("trace_record", "core", internal = TRUE)), 14,
@@ -498,8 +506,9 @@ draw_document_run <- function() {
   for (s in steps) {
     arrow(cv, c(rx + rw / 2, y, rx + rw / 2, y + 20))
     y <- y + 20
-    box(cv, rx, y, rw, 56, s[[1]], s[[2]])
-    y <- y + 56
+    h <- max(56, 12 + sum(vapply(s[[1]], function(l) l$size * 1.3, numeric(1))))
+    box(cv, rx, y, rw, h, s[[1]], s[[2]])
+    y <- y + h
   }
   txt(cv, rx, y + 26, sprintf("A refused request is not sent; %s()", fn("hr_governor", "core")),
       13, color = muted)
