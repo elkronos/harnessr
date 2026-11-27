@@ -937,6 +937,8 @@
 "audit_unverified","doc","function"
 "auto_candidate","doc","function"
 "auto_shared_warnings","doc","function"
+"balanced_min_max_ends","doc","function"
+"balanced_nearest_ends","doc","function"
 "batch_item_usd","doc","function"
 "best_supported_hit","doc","function"
 "bib_acronyms","doc","function"

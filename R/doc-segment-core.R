@@ -307,10 +307,12 @@ pack_units <- function(units, max_tokens, overlap_tokens = 0L, min_tokens = 0L,
 #' the last, so 1,250 tokens under a 500 cap become 500, 500 and 250. This
 #' keeps the number of chunks the greedy packer makes, k, and evens their
 #' sizes: units are cut into k runs at the unit boundaries nearest to each
-#' k-th of the total, and each run is one chunk. With overlap, each chunk
-#' after the first opens with the tail of the one before when it still fits,
-#' as the greedy packer does. When a run does not fit the cap as one chunk,
-#' or a unit had to be split for the cap, the greedy chunks are kept.
+#' k-th of the total, and each run is one chunk. When one of those runs does
+#' not fit the cap, the runs come from balanced_min_max_ends() instead, and
+#' are kept only when their sizes are closer together than the greedy
+#' chunks'. With overlap, each chunk after the first opens with the tail of
+#' the one before when it still fits, as the greedy packer does. When a unit
+#' had to be split for the cap, or no k runs fit, the greedy chunks are kept.
 #' @noRd
 pack_units_balanced <- function(units, max_tokens, overlap_tokens, min_tokens, joiner, meta,
                                 can_split, runt_forward) {
@@ -318,6 +320,7 @@ pack_units_balanced <- function(units, max_tokens, overlap_tokens, min_tokens, j
                      meta = meta, can_split = can_split, runt_forward = runt_forward)
   k <- length(base$text)
   if (k <= 1L) return(base)
+  max_tokens <- as.integer(clamp(max_tokens, 16, Inf))
   u <- vapply(units %||% character(0), as_chr1, character(1), USE.NAMES = FALSE)
   keep <- has_content(u)
   origin <- which(keep)
@@ -325,44 +328,110 @@ pack_units_balanced <- function(units, max_tokens, overlap_tokens, min_tokens, j
   m <- if (is.null(meta)) NULL else meta[keep, , drop = FALSE]
   utk <- hr_count_tokens(u)
   if (any(utk > max_tokens) || length(u) < k) return(base)
+  overlap_tokens <- as.integer(clamp(overlap_tokens, 0, max_tokens - 1L))
+  # The chunks for runs that end at `ends`, or NULL when a run does not fit.
+  build <- function(ends) {
+    if (is.null(ends)) return(NULL)
+    starts <- c(1L, utils::head(ends, -1L) + 1L)
+    own <- vapply(seq_len(k), function(g) paste(u[starts[g]:ends[g]], collapse = joiner),
+                  character(1))
+    if (any(hr_count_tokens(own) > max_tokens)) return(NULL)
+    text <- own
+    from <- starts
+    if (overlap_tokens > 0L) {
+      for (g in seq_len(k)[-1L]) {
+        want <- min(overlap_tokens, max(max_tokens - hr_count_tokens(own[g]), 0L))
+        tail_txt <- if (want > 0L) tail_by_tokens(own[g - 1L], want) else ""
+        while (nzchar(tail_txt) &&
+               hr_count_tokens(paste(tail_txt, own[g], sep = joiner)) > max_tokens) {
+          want <- want - 1L
+          tail_txt <- if (want > 0L) tail_by_tokens(own[g - 1L], want) else ""
+        }
+        if (nzchar(tail_txt)) {
+          text[g] <- paste(tail_txt, own[g], sep = joiner)
+          # Provenance runs from the first unit the tail reaches back into, as
+          # in pack_units(): a tail longer than the last unit of the run before
+          # carries text from the units ahead of it, which may be another page.
+          need <- length(words_of(tail_txt))
+          j <- ends[g - 1L]; have <- length(words_of(u[j]))
+          while (j > starts[g - 1L] && have < need) {
+            j <- j - 1L; have <- have + length(words_of(u[j]))
+          }
+          from[g] <- j
+        }
+      }
+    }
+    out_meta <- if (is.null(m)) NULL else
+      do.call(rbind, lapply(seq_len(k), function(g) meta_over(m, from[g], ends[g])))
+    list(text = text, meta = out_meta,
+         span = data.frame(first = origin[starts], last = origin[ends]))
+  }
+  out <- build(balanced_nearest_ends(utk, k))
+  if (!is.null(out)) return(out)
+  out <- build(balanced_min_max_ends(utk, k))
+  spread <- function(x) diff(range(hr_count_tokens(x$text)))
+  if (!is.null(out) && spread(out) < spread(base)) out else base
+}
+
+#' Where k runs of units end when each cut is the unit boundary nearest to
+#' its share of the total tokens.
+#'
+#' The cut after run g is the boundary nearest to g/k of the total, kept in
+#' order and leaving each run at least one unit. NULL when no such cut is
+#' left.
+#' @noRd
+balanced_nearest_ends <- function(utk, k) {
   cum <- cumsum(utk)
-  # The unit each of the first k - 1 chunks ends at: the boundary nearest to
-  # j/k of the total, kept in order and leaving each run at least one unit.
   ends <- integer(0)
   for (g in seq_len(k - 1L)) {
     lo <- if (length(ends)) ends[length(ends)] + 1L else 1L
-    hi <- length(u) - (k - g)
-    if (lo > hi) return(base)
+    hi <- length(utk) - (k - g)
+    if (lo > hi) return(NULL)
     cand <- lo:hi
     ends <- c(ends, cand[which.min(abs(cum[cand] - g * cum[length(cum)] / k))])
   }
-  ends <- c(ends, length(u))
-  starts <- c(1L, utils::head(ends, -1L) + 1L)
-  own <- vapply(seq_len(k), function(g) paste(u[starts[g]:ends[g]], collapse = joiner),
-                character(1))
-  if (any(hr_count_tokens(own) > max_tokens)) return(base)
-  text <- own
-  from <- starts
-  overlap_tokens <- as.integer(clamp(overlap_tokens, 0, max_tokens - 1L))
-  if (overlap_tokens > 0L) {
-    for (g in seq_len(k)[-1L]) {
-      want <- min(overlap_tokens, max(max_tokens - hr_count_tokens(own[g]), 0L))
-      tail_txt <- if (want > 0L) tail_by_tokens(own[g - 1L], want) else ""
-      while (nzchar(tail_txt) &&
-             hr_count_tokens(paste(tail_txt, own[g], sep = joiner)) > max_tokens) {
-        want <- want - 1L
-        tail_txt <- if (want > 0L) tail_by_tokens(own[g - 1L], want) else ""
-      }
-      if (nzchar(tail_txt)) {
-        text[g] <- paste(tail_txt, own[g], sep = joiner)
-        from[g] <- ends[g - 1L]
-      }
+  c(ends, length(utk))
+}
+
+#' Where k runs of units end when the largest run is as small as it can be.
+#'
+#' The cuts at the nearest share of the total can leave one run over the cap
+#' when units are large next to it, so the greedy chunks were kept, last
+#' chunk short and all. This finds the smallest size, by the units' summed
+#' counts, at which filling runs in order makes at most k of them (a binary
+#' search: the number of runs only falls as the size grows), then splits the
+#' largest run that holds two or more units until there are k. Splitting
+#' never makes the largest run larger. NULL when the units cannot make k
+#' runs.
+#' @noRd
+balanced_min_max_ends <- function(utk, k) {
+  n <- length(utk)
+  if (n < k) return(NULL)
+  fill <- function(cap) {
+    ends <- integer(0); run <- 0
+    for (i in seq_len(n)) {
+      if (run > 0 && run + utk[i] > cap) { ends <- c(ends, i - 1L); run <- 0 }
+      run <- run + utk[i]
     }
+    c(ends, n)
   }
-  out_meta <- if (is.null(m)) NULL else
-    do.call(rbind, lapply(seq_len(k), function(g) meta_over(m, from[g], ends[g])))
-  list(text = text, meta = out_meta,
-       span = data.frame(first = origin[starts], last = origin[ends]))
+  lo <- max(utk); hi <- sum(utk)
+  while (lo < hi) {
+    mid <- (lo + hi) %/% 2
+    if (length(fill(mid)) <= k) hi <- mid else lo <- mid + 1
+  }
+  ends <- fill(lo)
+  cum <- c(0, cumsum(utk))
+  while (length(ends) < k) {
+    starts <- c(1L, utils::head(ends, -1L) + 1L)
+    size <- cum[ends + 1L] - cum[starts]
+    size[ends == starts] <- -Inf
+    g <- which.max(size)
+    cand <- starts[g]:(ends[g] - 1L)
+    cut <- cand[which.min(abs(cum[cand + 1L] - cum[starts[g]] - size[g] / 2))]
+    ends <- sort(c(ends, cut))
+  }
+  ends
 }
 
 #' Provenance for a chunk built from units `from:to`.

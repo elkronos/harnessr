@@ -747,6 +747,56 @@ test_that("runt_merge = 'both' merges a leading runt forward; 'backward' leaves 
   expect_identical(none$chunks$text[1], "Short title.")
 })
 
+po_words <- function(n) paste(rep("word", n), collapse = " ")
+
+test_that("balanced packing evens chunks when the nearest cuts overflow the cap", {
+  # Cut at each seventh of the total, a run here goes over the 300-token cap,
+  # and greedy packing leaves a short last chunk. The runs that keep the
+  # largest chunk smallest fit, and are much closer in size.
+  n <- c(28, 46, 52, 80, 43, 28, 57, 90, 44, 87, 39, 47, 5, 33, 82, 26, 74, 32, 41, 65, 50,
+         71, 90, 75, 55, 48, 53, 64, 60, 53, 54, 11, 24)
+  u <- vapply(n, po_words, character(1))
+  g <- harnessr:::pack_units(u, 300)
+  b <- harnessr:::pack_units(u, 300, balanced = TRUE)
+  expect_identical(length(b$text), length(g$text))
+  expect_lt(diff(range(hr_count_tokens(b$text))), diff(range(hr_count_tokens(g$text))) / 2)
+  expect_true(all(hr_count_tokens(b$text) <= 300))
+  # Order kept, no unit split or lost.
+  expect_identical(paste(b$text, collapse = "\n\n"), paste(u, collapse = "\n\n"))
+  expect_identical(b$span$first, c(1L, utils::head(b$span$last, -1L) + 1L))
+})
+
+test_that("balanced packing keeps the cap and the order over many unit mixes", {
+  set.seed(417)
+  for (r in 1:40) {
+    u <- vapply(sample(5:90, sample(5:30, 1), replace = TRUE), po_words, character(1))
+    for (ov in c(0L, 25L)) {
+      b <- harnessr:::pack_units(u, 300, overlap_tokens = ov, balanced = TRUE)
+      g <- harnessr:::pack_units(u, 300, overlap_tokens = ov)
+      expect_identical(length(b$text), length(g$text))
+      expect_true(all(hr_count_tokens(b$text) <= 300))
+      expect_identical(b$span$first[1], 1L)
+      expect_identical(utils::tail(b$span$last, 1L), length(u))
+      expect_identical(b$span$first[-1L], utils::head(b$span$last, -1L) + 1L)
+    }
+  }
+})
+
+test_that("balanced packing's provenance counts the units its overlap comes from", {
+  s <- function(n, tag) paste(sprintf("%s sentence %d ends here.", tag, seq_len(n)),
+                              collapse = " ")
+  u <- c(s(8, "Alpha"), "Ok.", s(8, "Beta"), "Ok.", s(8, "Gamma"))
+  meta <- data.frame(page = c(1L, 2L, 2L, 3L, 3L))
+  b <- harnessr:::pack_units(u, 80, overlap_tokens = 15, meta = meta, balanced = TRUE)
+  # The second chunk opens with Alpha's last sentence (page 1), so it is not
+  # wholly from page 2. The greedy packer says the same.
+  expect_true(startsWith(b$text[2], "Alpha sentence 8"))
+  expect_true(is.na(b$meta$page[2]))
+  g <- harnessr:::pack_units(u, 80, overlap_tokens = 15, meta = meta)
+  expect_true(startsWith(g$text[2], "Alpha sentence 8"))
+  expect_true(is.na(g$meta$page[2]))
+})
+
 test_that("packing and runt_merge are swept as recipe arms", {
   arms <- hr_sweep(gr_arm("needle", list(method = "paragraph", max_tokens = 120)),
                    list(packing = c("greedy", "balanced")))
