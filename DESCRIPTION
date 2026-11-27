@@ -1,6 +1,6 @@
 Package: harnessr
 Title: Compose, Budget, Cache, Record and Check Model Calls
-Version: 0.6.0.9000
+Version: 0.7.0
 Authors@R:
     person("Justin", "Chase", email = "jchase.msu@gmail.com",
            role = c("aut", "cre", "cph"))

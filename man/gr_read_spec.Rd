@@ -509,7 +509,7 @@ keeps the store and cache keys it had before they existed.
 \item \code{summary_model} (default \code{NULL}, advanced): untested. Not a tuned value: NULL uses \code{model}.
 \item \code{parallel} (default \code{NULL}, advanced): untested. Not a tuned value: NULL follows hr_options("parallel"). It does not change output.
 \item \code{delay_between_calls} (default \code{0}, advanced): untested. No pause. It does not change output.
-\item \code{accept_near_verbatim} (default \code{FALSE}, advanced): untested. Off, as the code behaved before the setting existed. Not measured as a stopping rule; on the labelled quotation set, 25 of 46 quotations with one content word swapped score near_verbatim (NEWS, 0.6.0.9000).
+\item \code{accept_near_verbatim} (default \code{FALSE}, advanced): untested. Off, as the code behaved before the setting existed. Not measured as a stopping rule; on the labelled quotation set, 25 of 46 quotations with one content word swapped score near_verbatim (NEWS, 0.7.0).
 \item \code{max_merge_levels} (default \code{6}, advanced): untested. The cap the merge code had as a constant; not tuned.
 \item \code{restate_tokens} (default \code{1200}, advanced): untested. An arbitrary number, as its comment said when it was a constant; not measured.
 \item \code{bm25_k1} (default \code{1.5}, advanced): cited. Robertson and Zaragoza (2009), "The Probabilistic Relevance Framework: BM25 and Beyond", give k1 between 1.2 and 2.0 as usual; not tuned here.

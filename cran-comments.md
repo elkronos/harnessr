@@ -14,10 +14,7 @@ NOTE and skipped the CRAN incoming check. That check gives the second NOTE.
 
 * checking CRAN incoming feasibility ... NOTE
 
-  This is a new submission: harnessr has not been on CRAN before. With
-  `Version: 0.6.0.9000` in DESCRIPTION the same NOTE also reports "Version
-  contains large components (0.6.0.9000)"; a release version such as 0.7.0
-  removes that line.
+  This is a new submission: harnessr has not been on CRAN before.
 
 * checking installed package size ... NOTE
 
@@ -26,7 +23,7 @@ NOTE and skipped the CRAN incoming check. That check gives the second NOTE.
   sub-directories of 1Mb or more:
     doc    2.5Mb
     help   1.1Mb
-    R      3.1Mb
+    R      3.0Mb
   ```
 
   The R code and the guides in `doc` make up most of it.

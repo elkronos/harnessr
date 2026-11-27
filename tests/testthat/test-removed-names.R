@@ -2,7 +2,7 @@
 #
 # Each row of that table names a removed function (`answer_question()`), an
 # option (`options(readgpt.api_key =)`), a field of a result
-# (gr_calibrate()'s `$kappa_legacy`) or a condition class (`gr_deprecated`).
+# (`f()`'s `$x`) or a condition class (`gr_deprecated`).
 # A function must not come back as an export or as a function defined in the
 # namespace. Every name, whatever it is, must not come back as an object of
 # the namespace or as a string, symbol or argument name in the code of any of
@@ -85,12 +85,16 @@ test_that("the code walk sees strings, symbols and argument names", {
 
 test_that("the Removed table of NEWS.md is read", {
   items <- removed_items()
-  expect_gte(nrow(items), 11L)
+  expect_gte(nrow(items), 10L)
   expect_true(all(nzchar(items$name) & !is.na(items$name)))
   expect_true("answer_question" %in% items$name[items$kind == "function"])
   expect_true("readgpt.api_key" %in% items$name[items$kind == "option"])
-  expect_true("kappa_legacy" %in% items$name[items$kind == "field"])
   expect_true("gr_deprecated" %in% items$name[items$kind == "name"])
+})
+
+test_that("a field of a result in the Removed table is read as a field", {
+  expect_identical(removed_item("`gr_calibrate()`'s `$old_field`"),
+                   c(kind = "field", name = "old_field"))
 })
 
 test_that("no removed function is exported or defined again", {
