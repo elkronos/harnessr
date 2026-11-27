@@ -110,9 +110,13 @@ with the same error text and \verb{$error_class = "hr_context_overflow"}, and
 \code{context_window}, the window registered for the model, and the HTTP
 \code{status}. The trace step
 records the same in its \code{overflow} field, and a condition of class
-\code{hr_context_overflow} is signalled. A 400 with any other body is left as
+\code{hr_context_overflow} is signalled. A refusal that reaches \code{hr_call()} as
+an error raised through \code{\link[=hr_ellmer_client]{hr_ellmer_client()}} or \code{\link[=hr_backend_client]{hr_backend_client()}} is
+named the same way when its message carries httr2's "HTTP 400" or "HTTP
+413" and one of those phrasings. A 400 with any other body is left as
 it was. \code{hr_options(on_overflow =)} can retry such a request once with a
-smaller prompt your own function makes; see \code{\link[=hr_options]{hr_options()}}.
+smaller prompt your own function makes; see \code{\link[=hr_options]{hr_options()}}. A replay
+retries a recorded refusal only where the recorded run did.
 }
 \description{
 Call a model

@@ -221,9 +221,13 @@ print.gr_result <- function(x, ...) {
 #'   `context_window`, the window registered for the model, and the HTTP
 #'   `status`. The trace step
 #'   records the same in its `overflow` field, and a condition of class
-#'   `hr_context_overflow` is signalled. A 400 with any other body is left as
+#'   `hr_context_overflow` is signalled. A refusal that reaches `hr_call()` as
+#'   an error raised through [hr_ellmer_client()] or [hr_backend_client()] is
+#'   named the same way when its message carries httr2's "HTTP 400" or "HTTP
+#'   413" and one of those phrasings. A 400 with any other body is left as
 #'   it was. `hr_options(on_overflow =)` can retry such a request once with a
-#'   smaller prompt your own function makes; see [hr_options()].
+#'   smaller prompt your own function makes; see [hr_options()]. A replay
+#'   retries a recorded refusal only where the recorded run did.
 #' @seealso [hr_client()], [hr_mock_client()], [gr_result], [hr_budget()],
 #'   [hr_cache_client()], [hr_replay_client()]
 #' @export
@@ -436,11 +440,16 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
     # it to name the refusal again (see replay_lookup()).
     overflow <- list(estimate_tokens = as_num1(prompt_tokens, NA_real_),
                      context_window = as_num1(info$context_window, NA_real_),
-                     status = as_int1(res$status, NA_integer_))
+                     status = overflow_status(res))
+    res$status <- overflow$status
     res$error_class <- "hr_context_overflow"
     res$overflow <- overflow
   }
   if (isTRUE(overflow_retry)) res$overflow_retry <- TRUE
+  # A replayed refusal says whether the recorded run retried it (see
+  # replay_lookup()). Kept off the result and the trace.
+  replayed_retry <- res[["overflow_retried", exact = TRUE]]
+  res$overflow_retried <- NULL
   trace_record(trace, label, messages, res, params,
                seconds = as.numeric(difftime(ended, started, units = "secs")),
                sent = sent, started = started, ended = ended, replay_key = rkey,
@@ -451,7 +460,23 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
     message = as_chr1(res$error, "context overflow"), call = NULL, label = label, model = model,
     status = res$status, estimate_tokens = overflow$estimate_tokens,
     context_window = overflow$context_window)))
-  smaller <- if (!isTRUE(overflow_retry)) overflow_refit(messages, label, model, overflow, res)
+  if (isTRUE(overflow_retry)) return(res)
+  # A replay retries where the recorded run did and nowhere else, so the
+  # replaying session's on_overflow cannot send a prompt the recording never
+  # held. A recorded retry with no function here to rebuild its prompt is a
+  # replay that has left the recorded run.
+  if (is.logical(replayed_retry)) {
+    if (!isTRUE(replayed_retry)) return(res)
+    if (!is.function(hr_options("on_overflow"))) {
+      if (!isTRUE(client[["strict", exact = TRUE]])) return(res)
+      gr_abort(sprintf(paste0(
+        "The recorded run retried the '%s' request the provider refused as too long, ",
+        "with an on_overflow function, and this session has none. Set ",
+        "hr_options(on_overflow =) as the recorded run did to replay it."), label),
+        class = "gr_replay_miss")
+    }
+  }
+  smaller <- overflow_refit(messages, label, model, overflow, res)
   if (is.null(smaller)) return(res)
   # One retry, as a request like any other: the governor checks it, the trace
   # records it, and it is never retried again.
@@ -492,10 +517,24 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
 #' @noRd
 is_context_overflow <- function(res) {
   if (!is.list(res) || isTRUE(res$ok) || isTRUE(res[["refused", exact = TRUE]])) return(FALSE)
-  status <- as_int1(res$status, NA_integer_)
+  status <- overflow_status(res)
   if (is.na(status) || !status %in% c(400L, 413L)) return(FALSE)
   err <- tolower(as_chr1(res$error, ""))
   any(vapply(.hr_overflow_phrases, grepl, logical(1), x = err, fixed = TRUE))
+}
+
+#' The HTTP status of a failed result: its `status`, or for a handler that
+#' raised (an hr_ellmer_client() or hr_backend_client() whose request httr2
+#' refused) the status httr2 put in the message, "HTTP 400 Bad Request". NA
+#' when neither says.
+#' @noRd
+overflow_status <- function(res) {
+  status <- as_int1(res$status, NA_integer_)
+  if (!is.na(status)) return(status)
+  m <- regmatches(as_chr1(res$error, ""),
+                  regexec("(?:^|[^0-9A-Za-z])HTTP (400|413)(?:[^0-9]|$)",
+                          as_chr1(res$error, ""), perl = TRUE))[[1]]
+  if (length(m) == 2L) as.integer(m[2]) else NA_integer_
 }
 
 #' The smaller prompt the caller's `on_overflow` function gives for an

@@ -192,6 +192,67 @@ test_that("the overflow record keeps the status, so a replay names the refusal a
   expect_true(tr2$steps[[2]]$overflow_retry)
 })
 
+test_that("a refusal a handler raises with httr2's HTTP 400 is named too", {
+  tr <- hr_trace()
+  cl <- hr_mock_client(function(m, p) {
+    stop("HTTP 400 Bad Request.\n* prompt is too long: 208310 tokens > 200000 maximum")
+  })
+  got <- NULL
+  r <- withCallingHandlers(hr_call(cl, "q", trace = tr),
+                           hr_context_overflow = function(c) got <<- c)
+  expect_false(r$ok)
+  expect_identical(r$error_class, "hr_context_overflow")
+  expect_identical(r$status, 400L)
+  expect_identical(tr$steps[[1]]$overflow$status, 400L)
+  expect_s3_class(got, "hr_context_overflow")
+  # 413 is read the same way; a raised 400 for another reason, a raised
+  # overflow phrase with no status, and a 429 are not.
+  big <- hr_mock_client(function(m, p) stop("HTTP 413 Payload Too Large: input is too long"))
+  expect_identical(hr_call(big, "q")$error_class, "hr_context_overflow")
+  for (msg in c("HTTP 400 Bad Request. invalid model",
+                "prompt is too long: 208310 tokens > 200000 maximum",
+                "HTTP 429 Too Many Requests. too many tokens per minute",
+                "HTTP 4000 prompt is too long")) {
+    r <- hr_call(hr_mock_client(function(m, p) stop(msg)), "q")
+    expect_null(r$error_class, info = msg)
+    expect_true(is.na(r$status), info = msg)
+  }
+})
+
+test_that("a replay retries a refusal only where the recorded run did", {
+  old <- hr_options()
+  on.exit(hr_options(old), add = TRUE)
+  shorter <- function(messages, info) {
+    messages[[length(messages)]]$content <- "short"
+    messages
+  }
+  f <- tempfile(fileext = ".json")
+  on.exit(unlink(f), add = TRUE)
+  # Recorded with no on_overflow: one refusal, no retry. A session that sets
+  # one replays the recorded failure and sends no retry.
+  tr <- hr_trace()
+  r <- hr_call(hr_mock_client(function(m, p) "fine", mode = "overflow"), "Q", trace = tr)
+  expect_identical(r$error_class, "hr_context_overflow")
+  hr_trace_save(tr, f)
+  hr_options(on_overflow = shorter)
+  tr2 <- hr_trace()
+  r2 <- hr_call(hr_replay_client(f), "Q", trace = tr2)
+  expect_false(r2$ok)
+  expect_identical(r2$error_class, "hr_context_overflow")
+  expect_identical(length(tr2$steps), 1L)
+  expect_null(r2$overflow_retried)
+  # Recorded with a retry: a session without the function cannot rebuild the
+  # retried prompt, and says which option to set.
+  tr <- hr_trace()
+  r <- hr_call(hr_mock_client(function(m, p) "fine", mode = "overflow"), "Q", trace = tr)
+  expect_true(r$ok)
+  hr_trace_save(tr, f)
+  hr_options(on_overflow = "error")
+  expect_error(hr_call(hr_replay_client(f), "Q"), "on_overflow", class = "gr_replay_miss")
+  r3 <- hr_call(hr_replay_client(f, strict = FALSE), "Q")
+  expect_identical(r3$error_class, "hr_context_overflow")
+})
+
 test_that("an on_overflow function travels to the workers of a parallel batch", {
   fn <- function(messages, info) messages
   got <- harnessr:::worker_functions(NULL, list(tokenizer = "heuristic", on_overflow = fn))

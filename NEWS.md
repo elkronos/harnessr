@@ -50,7 +50,9 @@
   Gemini's "exceeds the maximum number of tokens", and others listed in the
   source) used to come back as a plain HTTP 400. `hr_call()` now signals a
   condition of class `hr_context_overflow` and sets `$error_class` to the
-  same name. The result's `$overflow` and the trace step's `overflow` field
+  same name. A refusal raised as an error through `hr_ellmer_client()` or
+  `hr_backend_client()` gets the name too when its message carries httr2's
+  "HTTP 400" or "HTTP 413" and one of those phrasings. The result's `$overflow` and the trace step's `overflow` field
   hold the local count of the prompt, the window registered for the model
   and the status, so you can see how far the local count was off. The error
   text is unchanged, a 400 for any other reason is left as it was, and a
@@ -61,9 +63,11 @@
   `(messages, info)` that you write returns a smaller prompt, which is sent
   once as a new request: the governor checks it, the trace records it with
   `overflow_retry = TRUE`, and it is not retried again. harnessr never asks
-  a model to shorten a prompt. A function that fails or returns nothing
-  usable warns with class `hr_overflow_refit_failed`. In a parallel batch the
-  function runs in the worker, with what it uses from your workspace. See
+  a model to shorten a prompt. A function that fails, or returns messages
+  `hr_call()` cannot send, warns with class `hr_overflow_refit_failed`; one
+  that returns `NULL` sends nothing more. In a parallel batch the function
+  runs in the worker, with what it uses from your workspace. A replay
+  retries a refusal only where the recorded run did. See
   "When the provider says the prompt is too long" in `vignette("context")`.
 
 * **`hr_mock_client()` gains `mode = "overflow"`**, which refuses the first

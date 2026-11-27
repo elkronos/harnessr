@@ -449,6 +449,7 @@
 "output_failure","core","function"
 "output_text","core","function"
 "overflow_refit","core","function"
+"overflow_status","core","function"
 "paired_items_interval","core","function"
 "param_as_given","core","function"
 "param_resolve","core","function"

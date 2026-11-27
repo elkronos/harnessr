@@ -403,7 +403,8 @@ replay_steps <- function(source) {
   obj <- replay_read(source)
   steps <- obj$steps
   out <- list()
-  for (st in steps) {
+  for (i in seq_along(steps)) {
+    st <- steps[[i]]
     if (!is.list(st)) next
     if (identical(as_chr1(st$kind, ""), "local")) next   # segmentation, ranking, merges
     prompt <- replay_prompt(st$prompt)
@@ -452,6 +453,11 @@ replay_steps <- function(source) {
       # the one status a step keeps (see model_call()); NA for any other step.
       overflow_status = if (is.list(st$overflow)) as_int1(st$overflow$status, NA_integer_)
                         else NA_integer_,
+      # Whether the recorded run sent an on_overflow retry for that refusal:
+      # the step after it is the retry, with the same label.
+      overflow_retried = is.list(st$overflow) && i < length(steps) &&
+        is.list(steps[[i + 1L]]) && isTRUE(steps[[i + 1L]]$overflow_retry) &&
+        identical(as_chr1(steps[[i + 1L]]$label, ""), as_chr1(st$label, "")),
       label = as_chr1(st$label, "call"),
       # The harnessr-replay-v2 key the call recorded, or NA for a step made
       # before it existed, which is looked up by readgpt-replay-v1 instead.
@@ -869,8 +875,9 @@ replay_lookup <- function(client, req) {
   }
 
   # A step keeps no status, except a provider's refusal of a prompt longer
-  # than the window, which keeps it so that the replay names the refusal and
-  # an on_overflow function retries it as the recorded run did.
+  # than the window, which keeps it so that the replay names the refusal.
+  # Whether the recorded run retried it goes with it: model_call() retries
+  # only then, whatever on_overflow says in this session.
   res <- gr_result(
     ok = st$ok, text = st$response, error = st$error,
     status = as_int1(st[["overflow_status", exact = TRUE]], NA_integer_),
@@ -888,6 +895,9 @@ replay_lookup <- function(client, req) {
   # What the recorded call sent; model_call() records it in place of a record
   # of its own, since a replay sends nothing.
   if (is.list(st$params_sent)) res$params_sent <- st$params_sent
+  if (!is.na(as_int1(st[["overflow_status", exact = TRUE]], NA_integer_))) {
+    res$overflow_retried <- isTRUE(st[["overflow_retried", exact = TRUE]])
+  }
   # What the call cost when it was recorded, for a recording the spending
   # limit stopped. Nothing is spent, but the trace counts it against
   # max_cost_usd, so a replay stops where the recorded run did. Counted as
