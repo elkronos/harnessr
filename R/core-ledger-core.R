@@ -28,13 +28,15 @@
 #'   `run_id`, `started`, `meta`, `actor`, `config`, `steps`, `calls`,
 #'   `cached`, `tokens_in`, `tokens_out`, `embed_tokens`, `errors`,
 #'   `budget_stop`, `stop_reason`, `spent_usd`, `replayed_usd`, `refusals`,
-#'   `governor`.
+#'   `governor`, `utc_offset`.
 #'
 #'   `actor` holds the five fields above. `config` is a snapshot of the
 #'   options in force when the trace was made ([hr_options()], with the values
 #'   of `api_headers` left out, since they can hold credentials) and the R
 #'   version, so a saved trace says what it ran under. [as_json()] writes
-#'   `started` in UTC, as ISO 8601 with a trailing `Z`.
+#'   `started` in UTC, as ISO 8601 with a trailing `Z`. `utc_offset` is the
+#'   recording session's offset from UTC in seconds, which places a local
+#'   step's `at` (see [hr_trace_summary()]); [as_json()] leaves it out.
 #'   `cached` counts the calls answered from an [hr_cache()] or a
 #'   [hr_replay_client()] rather than the network, so `calls - cached` is what
 #'   the run paid for. `calls` includes requests to an embeddings endpoint,
@@ -109,6 +111,13 @@
 #'     included: 0 when a cache or a recording answered it.}
 #'   \item{`started_utc`, `ended_utc`}{When the request started and ended,
 #'     ISO 8601 in UTC with a trailing `Z`.}
+#'   \item{`overflow`, `overflow_retry`}{Only on a request the provider
+#'     refused as longer than the model's context window: `overflow` holds
+#'     `estimate_tokens`, the local count of the prompt,
+#'     `context_window`, the window registered for the model, and the HTTP
+#'     `status`, which a replay of the step reads. On the retry
+#'     that `hr_options(on_overflow =)` sent, `overflow_retry` is `TRUE` (see
+#'     [hr_call()]).}
 #' }
 #'
 #' @section One row per request:
@@ -170,6 +179,10 @@ hr_trace <- function(run_id = NULL, meta = list(), system = NULL, owner = NULL, 
   e <- new.env(parent = emptyenv())
   e$run_id <- as_chr1(run_id %||% gr_new_id("run"))
   e$started <- Sys.time()
+  # This session's offset from UTC in seconds, so a local step's `at`, local
+  # time with no offset, is placed the same way when the trace is read back
+  # in another time zone (see trace_time_parts()).
+  e$utc_offset <- session_utc_offset(e$started)
   # Who the run is for and who ran it, from the arguments, else the `actor`
   # option, else NA. Kept on the run, not in `meta`, so every trace has the
   # same five fields whether or not anyone filled them in.
@@ -279,6 +292,8 @@ config_snapshot <- function() {
   # defaults reads as one made before they existed.
   late <- setdiff(.gr_late_options, names(nondefault_options()))
   opts[late] <- NULL
+  # A function cannot be written as JSON, and its code is the caller's.
+  if (is.function(opts[["on_overflow", exact = TRUE]])) opts["on_overflow"] <- list("<function>")
   h <- opts[["api_headers", exact = TRUE]]
   if (length(h)) opts["api_headers"] <- list(stats::setNames(rep("<set>", length(h)), names(h)))
   list(options = opts, r_version = R.version$version.string)
@@ -339,7 +354,8 @@ usd12 <- function(x) {
 #' @noRd
 trace_record <- function(trace, label, messages, result, params = list(), seconds = NA_real_,
                          embedding = FALSE, sent = NULL, started = NULL, ended = NULL,
-                         replay_key = NULL, draw_scope = NULL) {
+                         replay_key = NULL, draw_scope = NULL, overflow = NULL,
+                         overflow_retry = FALSE) {
   if (is.null(trace) || !inherits(trace, "gr_trace")) return(invisible(NULL))
   trace$calls <- trace$calls + 1L
   if (isTRUE(result$cached)) trace$cached <- trace$cached + 1L
@@ -444,6 +460,11 @@ trace_record <- function(trace, label, messages, result, params = list(), second
   if (is.character(draw_scope) && length(draw_scope) == 1L && !is.na(draw_scope)) {
     step$draw_scope <- draw_scope
   }
+  # A provider's refusal of a prompt longer than the window: the local count
+  # of the prompt and the window registered for the model, side by side. And
+  # the retry an on_overflow function made. Only on such steps.
+  if (is.list(overflow)) step$overflow <- overflow
+  if (isTRUE(overflow_retry)) step$overflow_retry <- TRUE
   trace_push_steps(trace, list(step))
   invisible(NULL)
 }
@@ -644,7 +665,8 @@ as_parent_trace <- function(trace, arg = "trace") {
 #' @return A one-row data frame: `run_id`, `calls`, `cached`, `steps`,
 #'   `tokens_in`, `tokens_out`, `errors`, `elapsed_s`, `embed_calls`,
 #'   `embed_tokens`, `tokens_reasoning`, `tokens_cached_in`,
-#'   `usage_estimated`.
+#'   `usage_estimated`, `request_s`, `local_s`, `overhead_s`,
+#'   `request_share`, `local_share`, `overhead_share`.
 #'
 #'   `calls` counts every request, including the `embed_calls` of them made to
 #'   an embeddings endpoint. `tokens_in` and `tokens_out` are the size of the
@@ -671,7 +693,30 @@ as_parent_trace <- function(trace, arg = "trace") {
 #'   additions to them. `usage_estimated` is the share of requests whose token
 #'   counts were estimated locally because the provider reported none (see
 #'   `tokens` under "Steps" in [hr_trace()]), from 0 to 1, or `NA` when no
-#'   request says.
+#'   request says. The share of input tokens the provider served from its
+#'   cache is `tokens_cached_in / tokens_in`; the trace's print shows it when
+#'   it is above 0.
+#'
+#'   `elapsed_s` is the time from the run's start (`trace$started`) to the end
+#'   of its last step: a request's `ended_utc`, or the `at` time of a local
+#'   step. `at` is local time with no offset, so it is placed using the offset
+#'   the trace's requests show (their `at` beside their `ended_utc`), or the
+#'   `utc_offset` the trace recorded when it holds no request. It is read from
+#'   the steps, so a summary taken an hour after the run, or of a trace saved
+#'   with [saveRDS()] and read back in another time zone, gives the same
+#'   figure. A trace with local steps, no request and no `utc_offset` (one
+#'   made by harnessr 0.7.0) cannot place them: its `elapsed_s` is then
+#'   `request_s + local_s`. A trace with no steps gives 0.
+#'
+#'   The last six columns split that time. `request_s` is the seconds the
+#'   requests took (model calls and embeddings requests, retries included),
+#'   `local_s` the seconds local steps recorded (a command step from
+#'   [hr_step_command()] records its run time; segmentation, truncation and
+#'   other local steps record none, so their time falls into the overhead),
+#'   and `overhead_s` the rest of `elapsed_s`. Requests sent in parallel
+#'   overlap, so `request_s` can pass `elapsed_s`, and `overhead_s` is then 0.
+#'   The three shares are each part over the three together, so they add to
+#'   1, or `NA` when no time was measured.
 #' @seealso [hr_trace()], [as_json()], [hr_trace_cost()], [hr_estimate_cost()],
 #'   [hr_cache()]
 #' @export
@@ -689,6 +734,7 @@ as_parent_trace <- function(trace, arg = "trace") {
 #' hr_estimate_cost("gpt-4o", ans$trace$tokens_in, ans$trace$tokens_out)
 hr_trace_summary <- function(trace) {
   stopifnot(inherits(trace, "gr_trace"))
+  tm <- trace_time_parts(trace)
   data.frame(
     run_id = trace$run_id,
     calls = trace$calls,
@@ -697,7 +743,7 @@ hr_trace_summary <- function(trace) {
     tokens_in = trace$tokens_in,
     tokens_out = trace$tokens_out,
     errors = length(trace$errors),
-    elapsed_s = round(as.numeric(difftime(Sys.time(), trace$started, units = "secs")), 2),
+    elapsed_s = round(tm$elapsed, 2),
     # Last, so code that reads the columns by position finds the others where
     # they were.
     embed_calls = sum(vapply(trace$steps, function(st) identical(st$kind, "embedding"),
@@ -708,8 +754,125 @@ hr_trace_summary <- function(trace) {
     tokens_reasoning = sum_step_tokens(trace$steps, "reasoning"),
     tokens_cached_in = sum_step_tokens(trace$steps, "cached_input"),
     usage_estimated = usage_estimated_share(trace$steps),
+    # Where the time went, after every column above so none moves.
+    request_s = round(tm$request, 2),
+    local_s = round(tm$local, 2),
+    overhead_s = round(tm$overhead, 2),
+    request_share = time_share(tm$request, tm),
+    local_share = time_share(tm$local, tm),
+    overhead_share = time_share(tm$overhead, tm),
     stringsAsFactors = FALSE
   )
+}
+
+#' When a step ended: its `ended_utc`, or for a step without one (a local
+#' step, or one written before the field existed) its `at`. `at` is the
+#' recording session's local time with no offset; `offset` is that session's
+#' offset from UTC in seconds, read by at_offset(), or NA to read `at` in this
+#' session's time zone. NA when neither field can be read.
+#' @noRd
+step_end_time <- function(st, offset = NA_real_) {
+  if (!is.list(st)) return(NA_real_)
+  utc <- parse_utc_stamp(st[["ended_utc", exact = TRUE]])
+  if (!is.na(utc)) return(utc)
+  at <- as_chr1(st[["at", exact = TRUE]], NA_character_)
+  if (is.na(at)) return(NA_real_)
+  if (!is.na(offset)) {
+    return(as.numeric(as.POSIXct(at, format = "%Y-%m-%dT%H:%M:%OS", tz = "UTC")) - offset)
+  }
+  as.numeric(as.POSIXct(at, format = "%Y-%m-%dT%H:%M:%OS", tz = ""))
+}
+
+#' A UTC stamp written by utc_stamp() as seconds since the epoch, or NA.
+#' @noRd
+parse_utc_stamp <- function(x) {
+  x <- as_chr1(x, NA_character_)
+  if (is.na(x)) return(NA_real_)
+  as.numeric(as.POSIXct(x, format = "%Y-%m-%dT%H:%M:%OSZ", tz = "UTC"))
+}
+
+#' The offset from UTC, in seconds, of the session that recorded a trace's
+#' steps. A request step holds both `at`, local time taken as it was
+#' recorded, and `ended_utc`, taken just before; their smallest difference,
+#' rounded to a quarter hour, is the offset. NA when no step holds both;
+#' trace_time_parts() then uses the offset hr_trace() recorded.
+#' @noRd
+at_offset <- function(steps) {
+  lag <- vapply(steps, function(st) {
+    at <- as_chr1(st[["at", exact = TRUE]], NA_character_)
+    end <- parse_utc_stamp(st[["ended_utc", exact = TRUE]])
+    if (is.na(at) || is.na(end)) return(NA_real_)
+    as.numeric(as.POSIXct(at, format = "%Y-%m-%dT%H:%M:%OS", tz = "UTC")) - end
+  }, numeric(1))
+  lag <- lag[is.finite(lag)]
+  if (!length(lag)) return(NA_real_)
+  round(min(lag) / 900) * 900
+}
+
+#' This session's offset from UTC at time `t`, in seconds.
+#' @noRd
+session_utc_offset <- function(t = Sys.time()) {
+  as.numeric(as.POSIXct(format(t, "%Y-%m-%d %H:%M:%S"), tz = "UTC")) -
+    floor(as.numeric(t))
+}
+
+#' The seconds a step took, as it recorded them: `seconds` on a request, and
+#' `seconds` in the detail of a local step that timed itself (a command
+#' step). 0 when the step recorded none.
+#' @noRd
+step_seconds <- function(st) {
+  s <- if (identical(st$kind, "local")) {
+    if (is.list(st$detail)) st$detail[["seconds", exact = TRUE]]
+  } else {
+    st[["seconds", exact = TRUE]]
+  }
+  s <- as_num1(s, 0)
+  if (is.finite(s) && s > 0) s else 0
+}
+
+#' Where a run's time went: `elapsed` from the run's start to the end of its
+#' last step, the seconds its requests took, the seconds its local steps
+#' recorded, and the rest as `overhead`. Read from the steps alone, so a
+#' summary taken later, or of a trace read back from a file, gives the same
+#' figures. An empty trace has taken no time: every part is 0.
+#'
+#' A local step's `at` has no offset. It is placed by the offset the trace's
+#' requests show, else by the one hr_trace() recorded. A trace with neither
+#' (one made before the field existed) cannot place it: read in another time
+#' zone it would land hours early or late, so `elapsed` is then the measured
+#' parts, as when no end can be read.
+#' @noRd
+trace_time_parts <- function(trace) {
+  steps <- Filter(is.list, trace$steps)
+  zero <- list(elapsed = 0, request = 0, local = 0, overhead = 0)
+  if (!length(steps)) return(zero)
+  local <- vapply(steps, function(st) identical(st$kind, "local"), logical(1))
+  secs <- vapply(steps, step_seconds, numeric(1))
+  request <- sum(secs[!local])
+  local_s <- sum(secs[local])
+  offset <- at_offset(steps)
+  if (is.na(offset)) offset <- as_num1(trace$utc_offset, NA_real_)
+  ends <- vapply(steps, step_end_time, numeric(1), offset = offset)
+  unplaced <- is.na(offset) && any(vapply(steps, function(st) {
+    is.na(parse_utc_stamp(st[["ended_utc", exact = TRUE]])) &&
+      !is.na(as_chr1(st[["at", exact = TRUE]], NA_character_))
+  }, logical(1)))
+  started <- if (inherits(trace$started, "POSIXct")) as.numeric(trace$started) else NA_real_
+  elapsed <- if (unplaced || all(is.na(ends)) || is.na(started)) request + local_s
+             else max(max(ends, na.rm = TRUE) - started, 0)
+  # Requests sent in parallel overlap, so their seconds can add up to more
+  # than the run took. The overhead is then 0, not negative.
+  list(elapsed = elapsed, request = request, local = local_s,
+       overhead = max(elapsed - request - local_s, 0))
+}
+
+#' One part of a run's time as a share of the parts together, from 0 to 1,
+#' or NA when no time was measured.
+#' @noRd
+time_share <- function(part, tm) {
+  total <- tm$request + tm$local + tm$overhead
+  if (!is.finite(total) || total <= 0) return(NA_real_)
+  round(part / total, 4)
 }
 
 #' The requests of a trace whose usage is recorded: not local steps.
@@ -824,8 +987,32 @@ format_call_counts <- function(trace) {
          if (embed > 0L) sprintf(", %d embeddings request(s)", embed) else "")
 }
 
+#' The time line of a trace's print: how long the run took and where the
+#' time went, then the share of input tokens the provider served from its
+#' cache when it served any.
+#' @noRd
+format_trace_time <- function(s) {
+  pct <- function(v) if (is.na(v)) "NA" else sprintf("%.0f%%", 100 * v)
+  out <- sprintf("  time: %s s (requests %s, local %s, overhead %s)",
+                 format(s$elapsed_s, nsmall = 2), pct(s$request_share), pct(s$local_share),
+                 pct(s$overhead_share))
+  if (s$tokens_cached_in > 0L && s$tokens_in > 0L) {
+    out <- paste0(out, sprintf("; %s of input tokens from the provider's cache",
+                               pct(s$tokens_cached_in / s$tokens_in)))
+  }
+  out
+}
+
 #' @export
 print.gr_trace <- function(x, ...) {
+  # Under mask_secrets the lines are masked as a whole, and a last line says
+  # how many strings were replaced.
+  if (isTRUE(hr_options("mask_secrets")) && !isTRUE(list(...)[[".unmasked"]])) {
+    m <- mask_secrets(utils::capture.output(print.gr_trace(x, .unmasked = TRUE)))
+    cat(m$text, sep = "\n")
+    if (m$n > 0L) cat(sprintf("  masked: %d key-shaped string(s)\n", m$n))
+    return(invisible(x))
+  }
   s <- hr_trace_summary(x)
   recovered <- sum(vapply(x$errors, function(e) isTRUE(e$recovered), logical(1)))
   # Model calls and embeddings requests apart: both are requests the limits
@@ -845,6 +1032,7 @@ print.gr_trace <- function(x, ...) {
     cat("  steps:", paste(sprintf("%s x%d", names(tab), as.integer(tab)), collapse = ", "), "\n")
   }
   cat(sprintf("  cost: %s\n", format_trace_cost(x)))
+  if (s$steps > 0L) cat(format_trace_time(s), "\n", sep = "")
   # The usage, served-by and actor lines print only when there is something
   # to say, so a mock run prints what it did, plus where its token counts came
   # from. The start time and the first error follow them.

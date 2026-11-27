@@ -29,10 +29,25 @@
              "Off, so the result is visible to the steps after it; a choice for the ",
              "chain, not a tuned value."))))
 
-#' The environment variables a command never sees: the API key the package
-#' reads (see api_key_value()).
+#' The environment variables a command never sees, by name: a pattern list
+#' matched without regard to case, and the names harnessr and the common
+#' providers read in full. hr_options(command_hide_env =) adds patterns, and
+#' a variable whose value is one of hr_options("api_headers") is hidden as
+#' well (see command_hidden_env()).
 #' @noRd
-.hr_command_hidden_env <- "OPENAI_API_KEY"
+.hr_command_hidden_patterns <- c("_API_KEY$", "_TOKEN$", "_SECRET$", "_PASSWORD$", "_PAT$",
+                                 "_SECRET_ACCESS_KEY$")
+
+#' @noRd
+.hr_command_hidden_names <- c("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GOOGLE_API_KEY",
+                              "GEMINI_API_KEY", "AZURE_OPENAI_API_KEY", "GITHUB_PAT",
+                              "GITHUB_TOKEN", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN",
+                              "HF_TOKEN")
+
+#' The fewest characters an api_headers value needs before a variable that
+#' holds it is hidden: the length mask_secrets() needs to mask a value.
+#' @noRd
+.hr_command_header_min <- 8L
 
 #' The most of a command's output, in bytes, kept in its result.
 #' @noRd
@@ -50,10 +65,10 @@
 #' never split on spaces, so a `;` or a `$` in an argument reaches the
 #' program as it is written. There is no default command, and a command is
 #' never taken from a model's reply or a skill's text: write `argv` yourself.
-#' Nothing isolates the program: it can read and write what you can. The
-#' child process inherits the session's environment variables, except
-#' `OPENAI_API_KEY`, which is unset for the call and put back after it; R
-#' options never reach it. A program stopped at its time limit is ended,
+#' Nothing isolates the program: it can read and write what you can. It
+#' inherits the session's environment variables except the ones that look
+#' like credentials (see "Credentials" below); R options never reach it. A
+#' program stopped at its time limit is ended,
 #' but processes it started in the background (or that ignore the signal)
 #' can keep running, on any platform; on Windows, any process it started
 #' can.
@@ -88,7 +103,38 @@
 #'
 #' In a benchmark the step notes the run in the trace as a local step,
 #' `"step.command"`, with hashes of `argv` and of the output, never the output
-#' itself. It sends no request, so it costs nothing.
+#' itself, and `hidden_env`, the number of variables hidden from the program
+#' (never their names or values). It sends no request, so it costs nothing.
+#'
+#' @section Credentials:
+#' The child process inherits the session's environment variables except the
+#' ones that look like credentials, which are unset for the call and put back
+#' after it. A variable is hidden when its name ends in `_API_KEY`, `_TOKEN`,
+#' `_SECRET`, `_PASSWORD`, `_PAT` or `_SECRET_ACCESS_KEY` (in any case), when
+#' it is one of the provider variables `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`,
+#' `GOOGLE_API_KEY`, `GEMINI_API_KEY`, `AZURE_OPENAI_API_KEY`, `GITHUB_PAT`,
+#' `GITHUB_TOKEN`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` and
+#' `HF_TOKEN`, when its name matches a regular expression in
+#' `hr_options(command_hide_env =)`, or when its value is 8 characters or
+#' longer and is one of the values of `hr_options(api_headers =)` or the key
+#' set with `options(harnessr.api_key =)`, such as a gateway key read with
+#' [Sys.getenv()]; a shorter value, such as `"true"`, is no credential and
+#' hides nothing.
+#' A program that needs one of these variables cannot read it; pass what it
+#' needs another way. `hr_options(command_temp_home = TRUE)` also runs the
+#' program with `HOME` (and `USERPROFILE` on Windows) set to an empty folder
+#' made for the call and removed after it, so it does not read your
+#' configuration files and stored logins.
+#'
+#' With `hr_options(mask_secrets = TRUE)` the `stdout` and `stderr` kept in
+#' the result have key-shaped strings replaced with `<masked>`, and the step
+#' records how many in the trace as `masked`. The values of the hidden
+#' variables are masked as well. The hash of the output is taken before
+#' masking. The masked output is what the step passes on in `$check`, so a
+#' later step that builds a prompt from it sends the masked text.
+#' [hr_options()] lists the shapes masked. Neither setting
+#' confines the program: it still runs with your permissions and can read
+#' your files.
 #'
 #' @param name The step's name, one string.
 #' @param argv The command: a character vector whose first element is the
@@ -183,11 +229,15 @@ command_build <- function(name, argv, wd) {
       args <- if (is.function(argv)) command_check_argv(argv(input, ctx), what) else argv
       res <- command_exec(step, args, p$parse, p$timeout, wd)
       trace <- ctx[["trace"]]
-      trace_note(trace, "step.command", list(
+      note <- list(
         name = step, argv_hash = hr_hash(args), exit = res$exit, status = res$status,
         seconds = res$seconds, degradation = res$degradation,
-        stdout_hash = res$stdout_hash))
+        stdout_hash = res$stdout_hash, hidden_env = res$hidden_env)
+      if (!is.null(res$masked)) note$masked <- res$masked
+      trace_note(trace, "step.command", note)
       res$stdout_hash <- NULL
+      res$hidden_env <- NULL
+      res$masked <- NULL
       if (isTRUE(p$held)) {
         if (is.null(input)) {
           gr_abort(sprintf("%s is held, so it passes its input on, but its input is NULL.",
@@ -224,23 +274,37 @@ command_check_argv <- function(argv, what) {
   unname(argv)
 }
 
-#' Run a command and read its result. The API key is unset for the call,
-#' the working directory set and put back, and system2()'s warnings about a
-#' time limit or a failed start are turned into statuses.
+#' Run a command and read its result. The variables that look like
+#' credentials are unset for the call (and HOME pointed at an empty folder
+#' when asked), the working directory set and put back, and system2()'s
+#' warnings about a time limit or a failed start are turned into statuses.
 #' @noRd
 command_exec <- function(name, argv, parse, timeout, wd) {
   out <- tempfile("hr-cmd-out-")
   err <- tempfile("hr-cmd-err-")
   on.exit(unlink(c(out, err)), add = TRUE)
   started <- proc.time()[["elapsed"]]
+  hidden <- command_hidden_env()
+  mask <- isTRUE(hr_options("mask_secrets"))
   result <- function(status, exit, stdout = "", stderr = "", counts = NULL) {
+    # The hash is of what the program printed, before any masking.
+    hash <- hr_hash(stdout)
+    masked <- NULL
+    if (mask) {
+      m_out <- mask_secrets(stdout, values = hidden)
+      m_err <- mask_secrets(stderr, values = hidden)
+      stdout <- m_out$text
+      stderr <- m_err$text
+      masked <- m_out$n + m_err$n
+    }
     structure(list(
       name = name, argv = argv, status = status, exit = exit,
       seconds = round(proc.time()[["elapsed"]] - started, 3),
       degradation = if (identical(status, "timeout")) .hr_degradation_codes[["command_timeout"]]
                     else NA_character_,
       counts = counts, stdout = command_tail(stdout), stderr = command_tail(stderr),
-      stdout_hash = hr_hash(stdout)), class = "hr_command_result")
+      stdout_hash = hash, hidden_env = length(hidden), masked = masked),
+      class = "hr_command_result")
   }
   if (!is.null(wd) && !dir.exists(wd)) {
     return(result("error", NA_integer_, stderr = sprintf("The folder '%s' does not exist.", wd)))
@@ -255,11 +319,22 @@ command_exec <- function(name, argv, parse, timeout, wd) {
     return(result("error", NA_integer_,
                   stderr = sprintf("The program '%s' was not found.", argv[[1]])))
   }
-  saved <- Sys.getenv(.hr_command_hidden_env, unset = NA, names = TRUE)
-  saved <- saved[!is.na(saved)]
-  if (length(saved)) {
-    Sys.unsetenv(names(saved))
-    on.exit(do.call(Sys.setenv, as.list(saved)), add = TRUE)
+  if (length(hidden)) {
+    Sys.unsetenv(names(hidden))
+    on.exit(do.call(Sys.setenv, as.list(hidden)), add = TRUE)
+  }
+  if (isTRUE(hr_options("command_temp_home"))) {
+    home <- tempfile("hr-cmd-home-")
+    dir.create(home)
+    vars <- c("HOME", if (.Platform$OS.type == "windows") "USERPROFILE")
+    before <- Sys.getenv(vars, unset = NA, names = TRUE)
+    do.call(Sys.setenv, as.list(stats::setNames(rep(home, length(vars)), vars)))
+    on.exit({
+      set <- before[!is.na(before)]
+      if (length(set)) do.call(Sys.setenv, as.list(set))
+      if (any(is.na(before))) Sys.unsetenv(names(before)[is.na(before)])
+      unlink(home, recursive = TRUE)
+    }, add = TRUE)
   }
   timed_out <- FALSE
   # system2() quotes the program itself; the arguments are quoted here, as
@@ -287,6 +362,36 @@ command_exec <- function(name, argv, parse, timeout, wd) {
     return(result(status, exit, stdout, stderr, counts = counts))
   }
   result(if (exit == 0L) "passed" else "failed", exit, stdout, stderr)
+}
+
+#' The environment variables a command is not shown, as a named character
+#' vector of their values: those whose name matches
+#' .hr_command_hidden_patterns or the patterns of
+#' hr_options("command_hide_env"), those named in .hr_command_hidden_names,
+#' and those whose value is one of hr_options("api_headers"), or the key set
+#' with options(harnessr.api_key), and at least .hr_command_header_min bytes
+#' long.
+#' @noRd
+command_hidden_env <- function() {
+  env <- Sys.getenv()
+  env <- stats::setNames(as.character(env), names(env))
+  if (!length(env)) return(character(0))
+  nm <- names(env)
+  pats <- c(.hr_command_hidden_patterns, as.character(hr_options("command_hide_env")))
+  hit <- nm %in% .hr_command_hidden_names
+  for (p in pats) hit <- hit | grepl(p, nm, ignore.case = TRUE, perl = TRUE)
+  headers <- unlist(hr_options("api_headers") %||% list(), use.names = FALSE)
+  # The key harnessr sends, set from a variable of any name; OPENAI_API_KEY
+  # is hidden by its name above.
+  key <- tryCatch(trimws(as_chr1(getOption("harnessr.api_key", ""), "")),
+                  error = function(e) "")
+  values <- c(as.character(headers), key)
+  # A short header value, such as "true" or a team name, is no credential,
+  # and a variable that happens to hold it stays visible. Counted in bytes:
+  # a value that is not valid UTF-8 has no count in characters.
+  values <- values[!is.na(values) & nchar(values, type = "bytes") >= .hr_command_header_min]
+  if (length(values)) hit <- hit | (env %in% values & nzchar(env))
+  env[hit]
 }
 
 #' A file's text, or "" when it is missing; a nul byte is dropped.

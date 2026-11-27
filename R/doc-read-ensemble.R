@@ -118,7 +118,7 @@ read_ensemble <- function(chunks, question, client, spec, trace) {
     list(role = "user", content = body),
     list(role = "user", content = paste0("Question: ", question))
   ), model = spec$model, max_output = spec$max_answer_tokens, temperature = spec$temperature,
-     trace = trace, label = "ensemble.adjudicate", effort = spec$effort)
+     trace = trace, label = "ensemble.adjudicate", effort = spec$effort, closing = TRUE)
   # How the members were settled. The values name the outcome, not the
   # notes' older wording, and nothing below reads the signal back.
   hr_signal("gr.ensemble.adjudicate", if (res$ok) "model" else "concatenated", trace,

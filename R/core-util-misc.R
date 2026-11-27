@@ -500,3 +500,83 @@ format_bytes <- function(b) {
   while (b >= 1024 && i < length(u)) { b <- b / 1024; i <- i + 1L }
   sprintf("%.1f %s", b, u[i])
 }
+
+#' Key shapes masked in stored and printed copies under
+#' hr_options(mask_secrets = TRUE), as Perl regular expressions: OpenAI and
+#' Anthropic keys, GitHub tokens, AWS access key ids, Google API keys, Slack
+#' tokens, Hugging Face tokens, JSON web tokens and the token after "Bearer ".
+#' Each needs enough characters after its prefix that ordinary words do not
+#' match.
+#' @noRd
+.hr_secret_patterns <- c(
+  "(?<![A-Za-z0-9_-])sk-[A-Za-z0-9_-]{20,}",
+  "(?<![A-Za-z0-9_])gh[pousr]_[A-Za-z0-9]{30,}",
+  "(?<![A-Za-z0-9_])github_pat_[A-Za-z0-9_]{20,}",
+  "(?<![A-Za-z0-9])AKIA[0-9A-Z]{16}(?![0-9A-Za-z])",
+  "(?<![A-Za-z0-9_-])AIza[0-9A-Za-z_-]{35}",
+  "(?<![A-Za-z0-9])xox[abposr]-[A-Za-z0-9-]{10,}",
+  "(?<![A-Za-z0-9_])hf_[A-Za-z0-9]{30,}",
+  "(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}",
+  "(?<=[Bb]earer )[A-Za-z0-9._~+/=-]{20,}")
+
+#' What a masked string is replaced with.
+#' @noRd
+.hr_secret_marker <- "<masked>"
+
+#' Replace key-shaped strings in `text` with the marker: each value in
+#' `values` of 8 characters or more, as it is, then each of
+#' .hr_secret_patterns. Returns the text and how many were replaced.
+#' @noRd
+mask_secrets <- function(text, values = character(0)) {
+  if (!is.character(text) || !length(text)) return(list(text = text, n = 0L))
+  n <- 0L
+  count <- function(x, pat, fixed) {
+    hits <- gregexpr(pat, x, fixed = fixed, perl = !fixed)
+    # An NA string has no match; gregexpr() gives it NA.
+    sum(vapply(hits, function(h) sum(h > 0L, na.rm = TRUE), integer(1)))
+  }
+  values <- unique(as.character(values))
+  values <- values[!is.na(values) & nchar(values) >= 8L]
+  # Longest first, so a value that holds another is replaced whole.
+  for (v in values[order(-nchar(values))]) {
+    k <- count(text, v, TRUE)
+    if (k) {
+      n <- n + k
+      text <- gsub(v, .hr_secret_marker, text, fixed = TRUE)
+    }
+  }
+  for (p in .hr_secret_patterns) {
+    k <- count(text, p, FALSE)
+    if (k) {
+      n <- n + k
+      text <- gsub(p, .hr_secret_marker, text, perl = TRUE)
+    }
+  }
+  list(text = text, n = as.integer(n))
+}
+
+#' Mask every string in a nested list, as mask_secrets() does. Returns the
+#' list and how many were replaced.
+#' @noRd
+mask_secrets_walk <- function(x) {
+  n <- 0L
+  walk <- function(v) {
+    if (is.character(v)) {
+      m <- mask_secrets(v)
+      n <<- n + m$n
+      at <- attributes(v)
+      out <- m$text
+      attributes(out) <- at
+      return(out)
+    }
+    if (is.list(v)) {
+      at <- attributes(v)
+      out <- lapply(v, walk)
+      attributes(out) <- at
+      return(out)
+    }
+    v
+  }
+  out <- walk(x)
+  list(value = out, n = n)
+}

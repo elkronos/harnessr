@@ -123,6 +123,62 @@ such model in a session warns with class \code{hr_unpriced_model}. Off, it is
 refused with a condition of that class. Untested: harnessr ships no
 prices, so off would refuse every built-in model until you set its
 prices with \code{\link[=hr_register_model]{hr_register_model()}} or \code{\link[=hr_load_models]{hr_load_models()}}.}
+\item{\code{reserve_calls} (0)}{Calls held back from \code{max_calls} for a
+run's closing requests, such as a reader's final answer. An ordinary
+request is refused once it would reach into them; a request sent with
+\code{hr_call(closing = TRUE)} may use them (see \code{\link[=hr_governor]{hr_governor()}}). 0 holds
+none back. A value above \code{max_calls} is refused with class
+\code{hr_bad_reserve}, both here and in \code{\link[=hr_governor]{hr_governor()}}. Untested: a
+choice, not a tuned value.}
+\item{\code{reserve_usd} (0)}{Dollars held back from \code{max_cost_usd} for a
+run's closing requests, in the same way. 0 holds none back. A value
+above \code{max_cost_usd} is refused with class \code{hr_bad_reserve}.
+Untested: a choice, not a tuned value.}
+\item{\code{on_overflow} ("error")}{What a request does when the provider
+refuses its prompt as longer than the model's context window (an
+error of class \code{hr_context_overflow}; see \code{\link[=hr_call]{hr_call()}}). \code{"error"}
+returns the failed result. A function of \verb{(messages, info)} is called
+with the messages sent and a list of \code{label}, \code{model},
+\code{estimate_tokens} (the local count of the prompt), \code{context_window}
+and \code{error}, and returns smaller messages, which are sent once more as
+a new request: the governor checks it, the trace records it as a step
+with \code{overflow_retry = TRUE}, and it is not retried again. Return
+\code{NULL} to send nothing more. Write the function yourself, and keep it
+deterministic, such as one that cuts the longest message with
+\code{\link[=hr_truncate]{hr_truncate()}}; harnessr never asks a model to shorten a prompt.
+Untested: a choice, not a tuned value.}
+\item{\code{command_hide_env} (none)}{More variables to hide from the
+programs \code{\link[=hr_step_command]{hr_step_command()}} runs: a character vector of regular
+expressions matched against variable names, without regard to case,
+such as \code{"^MY_GATEWAY$"}. Added to the built-in list, which hides names
+ending in \verb{_API_KEY}, \verb{_TOKEN}, \verb{_SECRET}, \verb{_PASSWORD}, \verb{_PAT} or
+\verb{_SECRET_ACCESS_KEY}, the common provider variables, and variables
+whose value is one of the \code{api_headers} values, or the key set with
+\code{options(harnessr.api_key =)}, of 8 characters or more (see
+"Credentials" in
+\code{\link[=hr_step_command]{hr_step_command()}}). Untested: a choice.}
+\item{\code{command_temp_home} (FALSE)}{Whether \code{\link[=hr_step_command]{hr_step_command()}} runs its
+program with \code{HOME} (and \code{USERPROFILE} on Windows) set to an empty
+folder made for the call, so it does not read your configuration files
+and stored logins. Untested: a choice.}
+\item{\code{mask_secrets} (FALSE)}{Whether key-shaped strings are replaced
+with \verb{<masked>} in the copies harnessr stores or shows: the output a
+command step keeps, the file \code{\link[=hr_trace_save]{hr_trace_save()}} writes, and a printed
+trace. Turn it on before you share a trace or a step's output, since
+an HTTP error body or a program's output can echo a key. The shapes
+masked are OpenAI and Anthropic keys (\code{sk-...}), GitHub tokens
+(\code{ghp_...}, \code{github_pat_...}), AWS access key ids (\code{AKIA...}), Google
+API keys (\code{AIza...}), Slack tokens (\code{xox...}), Hugging Face tokens
+(\code{hf_...}), JSON web tokens and the token after \code{Bearer }. In a
+command step's output the values of the variables the step hides are
+masked too; in a saved or printed trace only the shapes are. The trace
+records how many were masked: \code{masked} in a command step's note and at
+the top of a saved trace, and a \verb{masked:} line in the print. The trace
+in your session, the cache and every cache and replay key keep the
+text as it was. A command step passes its masked output on in
+\verb{$check}, so a later step that builds a prompt from it sends the
+masked text, under another cache key. Off, nothing is masked and
+every copy is byte for byte what it was. Untested: a choice.}
 \item{\code{price_max_age_days} (120)}{How old a price may be, in days, before
 a cost computed from it warns with class \code{hr_stale_price}. A price's age
 is counted from the first day of its \code{as_of} month (see \code{\link[=hr_models]{hr_models()}}),
@@ -180,12 +236,16 @@ than the default joins the store key of \code{\link[=gr_read_many]{gr_read_many(
 
 The settings listed last above were constants in the code until they were
 options; each keeps the constant's value. A trace records them, and
-\code{price_max_age_days}, (in its options snapshot) only when one is not its
-default, so a trace made at the defaults reads as it did before they
-existed. Each tuning setting's entry above (\code{temperature}, \code{max_retries},
-\code{retry_pause_base}, \code{request_timeout}, \code{safety_margin},
-\code{min_output_tokens}, \code{workers}, \code{price_max_age_days} and the settings
-listed last) says where its default came from, as does \code{allow_unpriced}'s;
+\code{price_max_age_days}, \code{reserve_calls}, \code{reserve_usd}, \code{on_overflow},
+\code{command_hide_env}, \code{command_temp_home} and \code{mask_secrets}, (in its
+options snapshot) only when one is not its default, so a trace
+made at the defaults reads as it did before they existed. A function given
+as \code{on_overflow} is recorded as \code{"<function>"}. Each tuning setting's entry
+above (\code{temperature}, \code{max_retries}, \code{retry_pause_base},
+\code{request_timeout}, \code{safety_margin}, \code{min_output_tokens}, \code{workers},
+\code{price_max_age_days} and the settings listed last) says where its default
+came from, as do those of \code{allow_unpriced}, the reserves, \code{on_overflow}
+and the three credential settings;
 "untested" means no measurement backs the value. The other entries are
 switches, limits and names, which are choices rather than tuned values.
 }
@@ -201,7 +261,12 @@ more (one or more for \code{max_output_tokens}), with an error of class
 \code{gr_bad_option}: a limit that cannot be compared is not a limit, and
 ignoring it spends money. \code{NULL} and \code{Inf} both mean "no limit".
 \code{allowed_models} must be \code{NULL} or a character
-vector of ids, and \code{allow_unpriced} \code{TRUE} or \code{FALSE}.
+vector of ids, and \code{allow_unpriced} \code{TRUE} or \code{FALSE}. The reserves,
+\code{reserve_calls} and \code{reserve_usd}, must be a single finite number of 0 or
+more, and are refused otherwise with the same class; \code{reserve_calls} is
+rounded down. A reserve larger than its limit, as the two stand once every
+setting of the call is in, is refused with classes \code{hr_bad_reserve} and
+\code{gr_bad_option}, and the call changes nothing.
 
 The tuning settings (\code{safety_margin} [0, 0.5], \code{min_output_tokens}
 [0, 1e6], \code{max_retries} [0, 10], \code{retry_pause_base} [0, 60],

@@ -373,7 +373,7 @@
       "type": "function"
     },
     "hr_call": {
-      "formals": ["client", "messages", "model = NULL", "max_output = NULL", "temperature = NULL", "schema = NULL", "schema_name = \"result\"", "trace = NULL", "label = \"call\"", "...", "effort = NULL", "draw_index = 0L"],
+      "formals": ["client", "messages", "model = NULL", "max_output = NULL", "temperature = NULL", "schema = NULL", "schema_name = \"result\"", "trace = NULL", "label = \"call\"", "...", "effort = NULL", "draw_index = 0L", "closing = FALSE"],
       "type": "function"
     },
     "hr_chain": {
@@ -449,7 +449,7 @@
       "type": "function"
     },
     "hr_governor": {
-      "formals": ["max_calls = hr_options(\"max_calls\")", "max_cost_usd = hr_options(\"max_cost_usd\")", "max_tokens_total = hr_options(\"max_tokens_total\")", "max_output_tokens = hr_options(\"max_output_tokens\")", "allowed_models = hr_options(\"allowed_models\")", "allow_unpriced = hr_options(\"allow_unpriced\")"],
+      "formals": ["max_calls = hr_options(\"max_calls\")", "max_cost_usd = hr_options(\"max_cost_usd\")", "max_tokens_total = hr_options(\"max_tokens_total\")", "max_output_tokens = hr_options(\"max_output_tokens\")", "allowed_models = hr_options(\"allowed_models\")", "allow_unpriced = hr_options(\"allow_unpriced\")", "reserve_calls = hr_options(\"reserve_calls\")", "reserve_usd = hr_options(\"reserve_usd\")"],
       "type": "function"
     },
     "hr_ht_estimate": {

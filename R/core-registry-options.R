@@ -56,6 +56,20 @@ gr_defaults <- list(
   # a built-in model until its prices are set. Each such model is warned
   # about once per session (warn_unpriced_model()).
   allow_unpriced      = TRUE,
+  # Calls and dollars held back from max_calls and max_cost_usd for closing
+  # requests (see hr_governor()). 0 = none.
+  reserve_calls       = 0L,
+  reserve_usd         = 0,
+  # What a request does when the provider refuses its prompt as longer than
+  # the model's window: "error" returns the failure, or a function of
+  # (messages, info) returns a smaller prompt to send once more.
+  on_overflow         = "error",
+  # Credentials and command steps (see hr_step_command()): more variable-name
+  # patterns to hide from the program, a temporary HOME for it, and masking
+  # of key-shaped strings in stored and printed copies.
+  command_hide_env    = character(0),
+  command_temp_home   = FALSE,
+  mask_secrets        = FALSE,
   # Prices older than this many days, counted from the first day of their
   # as_of month, warn once per model when a cost is computed from them. NULL =
   # never.
@@ -84,7 +98,9 @@ gr_defaults <- list(
 #' @noRd
 .gr_late_options <- c("auto_max_tokens", "auto_room_share", "reasoning_floor",
                       "output_reserve_share", "near_verbatim_sim", "near_verbatim_sim_short",
-                      "near_verbatim_short_chars", "price_max_age_days")
+                      "near_verbatim_short_chars", "price_max_age_days", "reserve_calls",
+                      "reserve_usd", "on_overflow", "command_hide_env", "command_temp_home",
+                      "mask_secrets")
 
 #' The options among `names` that are not their default, as a named list.
 #' Empty at the defaults, so a key built with it is the key built without it.
@@ -192,6 +208,34 @@ nondefault_options <- function(names = .gr_late_options) {
                             evidence = list(status = "untested", source = paste0(
                               "A choice, not a measured value: about four months, so prices ",
                               "set once are checked again a few times a year."))),
+  # Held back from a ceiling, so a number of 0 or more; NULL, NA and Inf are
+  # refused, since none of them says how much to hold back.
+  reserve_calls     = list(kind = "reserve", lo = 0, whole = TRUE,
+                           evidence = list(status = "untested", source = paste0(
+                             "0 holds nothing back, so runs are what they were; a choice, ",
+                             "not a tuned value."))),
+  reserve_usd       = list(kind = "reserve", lo = 0, whole = FALSE,
+                           evidence = list(status = "untested", source = paste0(
+                             "0 holds nothing back, so runs are what they were; a choice, ",
+                             "not a tuned value."))),
+  # Choices, checked by check_option() itself; listed for their evidence.
+  command_hide_env  = list(kind = "switch",
+                           evidence = list(status = "untested", source = paste0(
+                             "None beyond the built-in list; the names your programs see are ",
+                             "yours to add."))),
+  command_temp_home = list(kind = "switch",
+                           evidence = list(status = "untested", source = paste0(
+                             "Off, so a program finds the files it found before; a choice, ",
+                             "not a tuned value."))),
+  mask_secrets      = list(kind = "switch",
+                           evidence = list(status = "untested", source = paste0(
+                             "Off, so traces and output are written as they were; a choice, ",
+                             "not a tuned value."))),
+  # A choice, checked by check_option() itself; listed for its evidence.
+  on_overflow       = list(kind = "switch",
+                           evidence = list(status = "untested", source = paste0(
+                             "\"error\" sends nothing more, so a run costs what it did; a ",
+                             "retry is an extra call, so it is yours to ask for."))),
   # A switch, checked by check_option() itself; listed for its evidence.
   allow_unpriced    = list(kind = "switch",
                            evidence = list(status = "untested", source = paste0(
@@ -211,6 +255,32 @@ check_option <- function(name, value) {
     }
     return(unique(unname(value)))
   }
+  if (identical(name, "command_hide_env")) {
+    if (is.null(value)) return(character(0))
+    compiles <- function(p) {
+      !inherits(tryCatch(suppressWarnings(grepl(p, "", perl = TRUE)), error = function(e) e),
+                "error")
+    }
+    ok <- is.character(value) && !anyNA(value) && all(nzchar(value)) &&
+      all(vapply(value, compiles, logical(1)))
+    if (!ok) {
+      gr_abort(paste0("hr_options(command_hide_env = ) must be a character vector of regular ",
+                      "expressions matched against variable names, or NULL for none."),
+               class = "gr_bad_option")
+    }
+    return(unname(value))
+  }
+  if (name %in% c("command_temp_home", "mask_secrets")) {
+    if (!is.logical(value) || length(value) != 1L || is.na(value)) {
+      gr_abort(sprintf("hr_options(%s = ) must be TRUE or FALSE.", name), class = "gr_bad_option")
+    }
+    return(value)
+  }
+  if (identical(name, "on_overflow")) {
+    if (is.function(value) || identical(value, "error")) return(value)
+    gr_abort(paste0("hr_options(on_overflow = ) must be \"error\" or a function of ",
+                    "(messages, info) that returns a smaller prompt."), class = "gr_bad_option")
+  }
   if (identical(name, "allow_unpriced")) {
     if (!is.logical(value) || length(value) != 1L || is.na(value)) {
       gr_abort("hr_options(allow_unpriced = ) must be TRUE or FALSE.", class = "gr_bad_option")
@@ -223,6 +293,16 @@ check_option <- function(name, value) {
     sprintf("a length-%d value", length(v)) else if (is.na(v)) "NA" else
     sprintf("a %s", class(v)[1])
   usable <- !is.null(value) && length(value) == 1L && is.numeric(value) && !is.na(value)
+
+  if (identical(rule$kind, "reserve")) {
+    if (!usable || !is.finite(value) || value < 0) {
+      gr_abort(sprintf(paste0("hr_options(%s = ) must be a single finite number of 0 or more, ",
+                              "not %s."), name,
+                       if (usable) format(value) else what(value)),
+               class = "gr_bad_option")
+    }
+    return(if (isTRUE(rule$whole)) floor(value) else value)
+  }
 
   if (identical(rule$kind, "ceiling")) {
     if (is.null(value)) return(NULL)
@@ -387,6 +467,62 @@ check_option <- function(name, value) {
 #'     refused with a condition of that class. Untested: harnessr ships no
 #'     prices, so off would refuse every built-in model until you set its
 #'     prices with [hr_register_model()] or [hr_load_models()].}
+#'   \item{`reserve_calls` (0)}{Calls held back from `max_calls` for a
+#'     run's closing requests, such as a reader's final answer. An ordinary
+#'     request is refused once it would reach into them; a request sent with
+#'     `hr_call(closing = TRUE)` may use them (see [hr_governor()]). 0 holds
+#'     none back. A value above `max_calls` is refused with class
+#'     `hr_bad_reserve`, both here and in [hr_governor()]. Untested: a
+#'     choice, not a tuned value.}
+#'   \item{`reserve_usd` (0)}{Dollars held back from `max_cost_usd` for a
+#'     run's closing requests, in the same way. 0 holds none back. A value
+#'     above `max_cost_usd` is refused with class `hr_bad_reserve`.
+#'     Untested: a choice, not a tuned value.}
+#'   \item{`on_overflow` ("error")}{What a request does when the provider
+#'     refuses its prompt as longer than the model's context window (an
+#'     error of class `hr_context_overflow`; see [hr_call()]). `"error"`
+#'     returns the failed result. A function of `(messages, info)` is called
+#'     with the messages sent and a list of `label`, `model`,
+#'     `estimate_tokens` (the local count of the prompt), `context_window`
+#'     and `error`, and returns smaller messages, which are sent once more as
+#'     a new request: the governor checks it, the trace records it as a step
+#'     with `overflow_retry = TRUE`, and it is not retried again. Return
+#'     `NULL` to send nothing more. Write the function yourself, and keep it
+#'     deterministic, such as one that cuts the longest message with
+#'     [hr_truncate()]; harnessr never asks a model to shorten a prompt.
+#'     Untested: a choice, not a tuned value.}
+#'   \item{`command_hide_env` (none)}{More variables to hide from the
+#'     programs [hr_step_command()] runs: a character vector of regular
+#'     expressions matched against variable names, without regard to case,
+#'     such as `"^MY_GATEWAY$"`. Added to the built-in list, which hides names
+#'     ending in `_API_KEY`, `_TOKEN`, `_SECRET`, `_PASSWORD`, `_PAT` or
+#'     `_SECRET_ACCESS_KEY`, the common provider variables, and variables
+#'     whose value is one of the `api_headers` values, or the key set with
+#'     `options(harnessr.api_key =)`, of 8 characters or more (see
+#'     "Credentials" in
+#'     [hr_step_command()]). Untested: a choice.}
+#'   \item{`command_temp_home` (FALSE)}{Whether [hr_step_command()] runs its
+#'     program with `HOME` (and `USERPROFILE` on Windows) set to an empty
+#'     folder made for the call, so it does not read your configuration files
+#'     and stored logins. Untested: a choice.}
+#'   \item{`mask_secrets` (FALSE)}{Whether key-shaped strings are replaced
+#'     with `<masked>` in the copies harnessr stores or shows: the output a
+#'     command step keeps, the file [hr_trace_save()] writes, and a printed
+#'     trace. Turn it on before you share a trace or a step's output, since
+#'     an HTTP error body or a program's output can echo a key. The shapes
+#'     masked are OpenAI and Anthropic keys (`sk-...`), GitHub tokens
+#'     (`ghp_...`, `github_pat_...`), AWS access key ids (`AKIA...`), Google
+#'     API keys (`AIza...`), Slack tokens (`xox...`), Hugging Face tokens
+#'     (`hf_...`), JSON web tokens and the token after `Bearer `. In a
+#'     command step's output the values of the variables the step hides are
+#'     masked too; in a saved or printed trace only the shapes are. The trace
+#'     records how many were masked: `masked` in a command step's note and at
+#'     the top of a saved trace, and a `masked:` line in the print. The trace
+#'     in your session, the cache and every cache and replay key keep the
+#'     text as it was. A command step passes its masked output on in
+#'     `$check`, so a later step that builds a prompt from it sends the
+#'     masked text, under another cache key. Off, nothing is masked and
+#'     every copy is byte for byte what it was. Untested: a choice.}
 #'   \item{`price_max_age_days` (120)}{How old a price may be, in days, before
 #'     a cost computed from it warns with class `hr_stale_price`. A price's age
 #'     is counted from the first day of its `as_of` month (see [hr_models()]),
@@ -442,12 +578,16 @@ check_option <- function(name, value) {
 #' @section Where the defaults come from:
 #' The settings listed last above were constants in the code until they were
 #' options; each keeps the constant's value. A trace records them, and
-#' `price_max_age_days`, (in its options snapshot) only when one is not its
-#' default, so a trace made at the defaults reads as it did before they
-#' existed. Each tuning setting's entry above (`temperature`, `max_retries`,
-#' `retry_pause_base`, `request_timeout`, `safety_margin`,
-#' `min_output_tokens`, `workers`, `price_max_age_days` and the settings
-#' listed last) says where its default came from, as does `allow_unpriced`'s;
+#' `price_max_age_days`, `reserve_calls`, `reserve_usd`, `on_overflow`,
+#' `command_hide_env`, `command_temp_home` and `mask_secrets`, (in its
+#' options snapshot) only when one is not its default, so a trace
+#' made at the defaults reads as it did before they existed. A function given
+#' as `on_overflow` is recorded as `"<function>"`. Each tuning setting's entry
+#' above (`temperature`, `max_retries`, `retry_pause_base`,
+#' `request_timeout`, `safety_margin`, `min_output_tokens`, `workers`,
+#' `price_max_age_days` and the settings listed last) says where its default
+#' came from, as do those of `allow_unpriced`, the reserves, `on_overflow`
+#' and the three credential settings;
 #' "untested" means no measurement backs the value. The other entries are
 #' switches, limits and names, which are choices rather than tuned values.
 #'
@@ -461,7 +601,12 @@ check_option <- function(name, value) {
 #' `gr_bad_option`: a limit that cannot be compared is not a limit, and
 #' ignoring it spends money. `NULL` and `Inf` both mean "no limit".
 #' `allowed_models` must be `NULL` or a character
-#' vector of ids, and `allow_unpriced` `TRUE` or `FALSE`.
+#' vector of ids, and `allow_unpriced` `TRUE` or `FALSE`. The reserves,
+#' `reserve_calls` and `reserve_usd`, must be a single finite number of 0 or
+#' more, and are refused otherwise with the same class; `reserve_calls` is
+#' rounded down. A reserve larger than its limit, as the two stand once every
+#' setting of the call is in, is refused with classes `hr_bad_reserve` and
+#' `gr_bad_option`, and the call changes nothing.
 #'
 #' The tuning settings (`safety_margin` \[0, 0.5\], `min_output_tokens`
 #' \[0, 1e6\], `max_retries` \[0, 10\], `retry_pause_base` \[0, 60\],
@@ -530,6 +675,16 @@ hr_options <- function(...) {
   # disabling the cost cap, quietly restored the $5 cap instead. Assign directly
   # so NULL is stored as a value.
   for (nm in names(args)) cur[nm] <- list(args[[nm]])
+  # A reserve is checked against its limit as the two stand once every
+  # setting of this call is in, so they may be set in either order.
+  if (any(names(args) %in% c("reserve_calls", "max_calls", "reserve_usd", "max_cost_usd"))) {
+    after <- gr_defaults
+    for (nm in names(cur)) after[nm] <- list(cur[[nm]])
+    check_reserve(after$reserve_calls, after$max_calls, c("reserve_calls", "max_calls"),
+                  "gr_bad_option")
+    check_reserve(after$reserve_usd, after$max_cost_usd, c("reserve_usd", "max_cost_usd"),
+                  "gr_bad_option")
+  }
   hr_state$options <- cur
   invisible(old)
 }

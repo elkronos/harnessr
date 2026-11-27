@@ -16,7 +16,8 @@ hr_call(
   label = "call",
   ...,
   effort = NULL,
-  draw_index = 0L
+  draw_index = 0L,
+  closing = FALSE
 )
 }
 \arguments{
@@ -70,6 +71,14 @@ the request. An \code{\link[=hr_mock_client]{hr_mock_client()}} or \code{\link[=
 it in \code{params$draw_index}, and the trace records it in the step's
 \code{params}; at 0 neither carries it, so an unsampled call is unchanged.
 Must be named in full, since it follows \code{...}.}
+
+\item{closing}{\code{TRUE} for a run's closing request, such as the final
+answer after rounds of reading, which may spend the calls and dollars a
+governor holds back with \code{reserve_calls} and \code{reserve_usd} (see
+\code{\link[=hr_governor]{hr_governor()}}). \code{FALSE} (the default) for any other request, which is
+refused once it would reach into them. It changes nothing else: not the
+request, the trace, or a cache or replay key. Must be named in full,
+since it follows \code{...}.}
 }
 \value{
 A \link{gr_result}. \strong{Never} \code{NULL}; \verb{$text} is always a single string,
@@ -91,6 +100,23 @@ is not sent: it comes back with \code{ok = FALSE}, \verb{$refused = TRUE}, an
 \verb{$error} naming the limit and the condition in \verb{$refusal}, after a
 condition of class \code{hr_budget_refused} is signalled. It is not recorded
 as a step of the trace.
+
+A request the provider refuses because its prompt is longer than the
+model's context window (a 400 or 413 whose error body says so in one of
+the phrasings providers use, such as \code{context_length_exceeded}, "maximum
+context length" or "prompt is too long") comes back as a failed result
+with the same error text and \verb{$error_class = "hr_context_overflow"}, and
+\verb{$overflow} holds \code{estimate_tokens}, the local count of the prompt,
+\code{context_window}, the window registered for the model, and the HTTP
+\code{status}. The trace step
+records the same in its \code{overflow} field, and a condition of class
+\code{hr_context_overflow} is signalled. A refusal that reaches \code{hr_call()} as
+an error raised through \code{\link[=hr_ellmer_client]{hr_ellmer_client()}} or \code{\link[=hr_backend_client]{hr_backend_client()}} is
+named the same way when its message carries httr2's "HTTP 400" or "HTTP
+413" and one of those phrasings. A 400 with any other body is left as
+it was. \code{hr_options(on_overflow =)} can retry such a request once with a
+smaller prompt your own function makes; see \code{\link[=hr_options]{hr_options()}}. A replay
+retries a recorded refusal only where the recorded run did.
 }
 \description{
 Call a model

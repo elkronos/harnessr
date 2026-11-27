@@ -269,7 +269,7 @@ ledger_answer <- function(ledger, question, client, spec, trace) {
                                          restate = restate_how(spec), premise = spec$premise),
                  model = spec$model, max_output = spec$max_answer_tokens,
                  temperature = spec$temperature, trace = trace, label = "refine.answer",
-                 effort = spec$effort)
+                 effort = spec$effort, closing = TRUE)
   if (is_refused(res) || !usable_text(res)) {
     return(list(text = paste(ledger, collapse = "\n"), failed = !is_refused(res)))
   }

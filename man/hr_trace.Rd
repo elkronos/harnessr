@@ -45,13 +45,15 @@ pass the same trace to several calls and they all record into it. Fields:
 \code{run_id}, \code{started}, \code{meta}, \code{actor}, \code{config}, \code{steps}, \code{calls},
 \code{cached}, \code{tokens_in}, \code{tokens_out}, \code{embed_tokens}, \code{errors},
 \code{budget_stop}, \code{stop_reason}, \code{spent_usd}, \code{replayed_usd}, \code{refusals},
-\code{governor}.
+\code{governor}, \code{utc_offset}.
 
 \code{actor} holds the five fields above. \code{config} is a snapshot of the
 options in force when the trace was made (\code{\link[=hr_options]{hr_options()}}, with the values
 of \code{api_headers} left out, since they can hold credentials) and the R
 version, so a saved trace says what it ran under. \code{\link[=as_json]{as_json()}} writes
-\code{started} in UTC, as ISO 8601 with a trailing \code{Z}.
+\code{started} in UTC, as ISO 8601 with a trailing \code{Z}. \code{utc_offset} is the
+recording session's offset from UTC in seconds, which places a local
+step's \code{at} (see \code{\link[=hr_trace_summary]{hr_trace_summary()}}); \code{\link[=as_json]{as_json()}} leaves it out.
 \code{cached} counts the calls answered from an \code{\link[=hr_cache]{hr_cache()}} or a
 \code{\link[=hr_replay_client]{hr_replay_client()}} rather than the network, so \code{calls - cached} is what
 the run paid for. \code{calls} includes requests to an embeddings endpoint,
@@ -130,6 +132,13 @@ replay key.}
 included: 0 when a cache or a recording answered it.}
 \item{\code{started_utc}, \code{ended_utc}}{When the request started and ended,
 ISO 8601 in UTC with a trailing \code{Z}.}
+\item{\code{overflow}, \code{overflow_retry}}{Only on a request the provider
+refused as longer than the model's context window: \code{overflow} holds
+\code{estimate_tokens}, the local count of the prompt,
+\code{context_window}, the window registered for the model, and the HTTP
+\code{status}, which a replay of the step reads. On the retry
+that \code{hr_options(on_overflow =)} sent, \code{overflow_retry} is \code{TRUE} (see
+\code{\link[=hr_call]{hr_call()}}).}
 }
 }
 

@@ -312,7 +312,7 @@ read_iterative <- function(chunks, question, client, spec, trace) {
                                     restate = restate_how(spec), premise = spec$premise,
                                          structure = answer_structure(spec)),
                  spec, trace, "iterative.final", spec$max_answer_tokens,
-                 sources = reader_source_text(sub))
+                 sources = reader_source_text(sub), closing = TRUE)
   }
   # Partial already, since the loop did not finish; the count says why as well.
   cut <- as.integer(res$ok && reply_cut_off(res))

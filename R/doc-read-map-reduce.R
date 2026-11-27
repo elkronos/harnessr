@@ -94,7 +94,7 @@ read_map_reduce <- function(chunks, question, client, spec, trace) {
   }
   # merge_system_prompt(FALSE) is the prompt tree_merge() defaults to.
   merged <- tree_merge(client, question, pieces[useful], spec, trace, label = "reduce",
-                       system_prompt = merge_system_prompt(spec$premise))
+                       system_prompt = merge_system_prompt(spec$premise), closing = TRUE)
   cut <- cut + merged$truncated_calls
   # A merge request that failed below the last level passes its group up
   # unmerged and leaves `merged$ok` alone, and a finding cut to fit a merge

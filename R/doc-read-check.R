@@ -581,7 +581,9 @@ check_reader_governor <- function(reader, max_calls, client = NULL) {
   chunks <- suppressWarnings(gr_segment(gr_example(),
                                         list(method = "paragraph", max_tokens = 150L)))
   spec <- c(list(reader = reader), check_read_inputs(reader))
-  trace <- hr_trace(governor = hr_governor(max_calls = max_calls),
+  # No call reserve: the check holds the reader to `max_calls` alone, and a
+  # session's reserve_calls may be larger than the cap the check uses.
+  trace <- hr_trace(governor = hr_governor(max_calls = max_calls, reserve_calls = 0),
                     meta = list(check = reader))
   # Only the refusal is kept: a warning of the same class, which a read
   # gives when a batch will not fit, must not end the read.

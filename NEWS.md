@@ -1,3 +1,116 @@
+# harnessr 0.7.0.9000
+
+## Run time in the trace
+
+* **`hr_trace_summary()` reads `elapsed_s` from the steps.** It was the time
+  from the run's start to the moment you asked for the summary, so a summary
+  taken later, or of a trace read back from a file, overstated the run. It
+  now runs from the trace's start to the end of its last step, and a trace
+  with no steps gives 0. A local step records local time with no offset, so
+  it is placed by the offset the trace's requests show, or, in a trace with
+  no requests, by the new `utc_offset` field `hr_trace()` records. A trace
+  read back in another time zone gives the same figure. One with local steps
+  only, made by 0.7.0, has no `utc_offset`, so its `elapsed_s` is
+  `request_s + local_s`.
+
+* **`hr_trace_summary()` splits the run time.** Six columns follow the
+  existing ones, which keep their names and positions: `request_s`, the
+  seconds spent in model calls and embeddings requests; `local_s`, the
+  seconds of local steps that time themselves, such as `hr_step_command()`;
+  `overhead_s`, the rest; and a share for each. The trace's print gains a
+  `time:` line with the split and, when the provider served input from its
+  cache, the share of input tokens it served. The `summary` that
+  `as_json()` and `hr_trace_save()` write carries the new columns.
+
+## A reserve for the closing call
+
+* **`hr_governor()` and `hr_options()` gain `reserve_calls` and
+  `reserve_usd`.** A run that used up `max_calls` or `max_cost_usd` in its
+  rounds had its final request refused, so the rounds already paid for ended
+  as not found. A reserve holds part of each limit back: an ordinary request
+  is refused once it would reach into it, and a request sent with the new
+  `hr_call(closing = TRUE)` may spend it. The readers mark their final
+  request as closing: the `iterative` reader's final answer, the
+  `map_reduce` reader's last merge, the answer of the `hierarchical`,
+  `skim`, `preview` and `rerank` readers and of the `refine` reader under
+  `refine_state = "ledger"`, and the `ensemble` reader's adjudication. Both
+  reserves default to 0, which leaves requests, refusals, cache keys and
+  traces as they were. A reserve larger than its limit is refused with class
+  `hr_bad_reserve`, by `hr_governor()` and by `hr_options()`. The requests
+  of a parallel batch share what is left outside the reserve, and two
+  combined governors hold an ordinary request to the lower of their limits
+  less their reserves. See "A reserve for the closing request" in
+  `vignette("runs")`.
+
+## Context-too-long refusals
+
+* **A provider's refusal of a prompt longer than the window has a name.**
+  A 400 or 413 whose error body says so in one of the phrasings providers
+  use (OpenAI's `context_length_exceeded`, Anthropic's "prompt is too long",
+  Gemini's "exceeds the maximum number of tokens", and others listed in the
+  source) used to come back as a plain HTTP 400. `hr_call()` now signals a
+  condition of class `hr_context_overflow` and sets `$error_class` to the
+  same name. A refusal raised as an error through `hr_ellmer_client()` or
+  `hr_backend_client()` gets the name too when its message carries httr2's
+  "HTTP 400" or "HTTP 413" and one of those phrasings. The result's
+  `$overflow` and the trace step's `overflow` field hold the local count of
+  the prompt, the window registered for the model and the status, so you
+  can see how far the local count was off. The error text is unchanged, a
+  400 for any other reason is left as it was, and a replay of the trace
+  names the refusal again.
+
+* **`hr_options()` gains `on_overflow`.** The default, `"error"`, returns
+  the failed result and sends nothing more. A function of
+  `(messages, info)` that you write returns a smaller prompt, which is sent
+  once as a new request: the governor checks it, the trace records it with
+  `overflow_retry = TRUE`, and it is not retried again. harnessr never asks
+  a model to shorten a prompt. A function that fails, or returns messages
+  `hr_call()` cannot send, warns with class `hr_overflow_refit_failed`; one
+  that returns `NULL` sends nothing more. In a parallel batch the function
+  runs in the worker, with what it uses from your workspace. A replay
+  retries a refusal only where the recorded run did. See
+  "When the provider says the prompt is too long" in `vignette("context")`.
+
+* **`hr_mock_client()` gains `mode = "overflow"`**, which refuses the first
+  request with OpenAI's overflow body and answers every request after it.
+
+## Credentials in command steps and stored copies
+
+* **`hr_step_command()` hides more credentials from the program it runs.**
+  It unset only `OPENAI_API_KEY`. It now unsets, for the call, every
+  variable whose name ends in `_API_KEY`, `_TOKEN`, `_SECRET`, `_PASSWORD`,
+  `_PAT` or `_SECRET_ACCESS_KEY` (in any case), the common provider
+  variables such as `ANTHROPIC_API_KEY`, `GITHUB_PAT` and `HF_TOKEN`, and any
+  variable whose value is one of your `api_headers` values, or the key set
+  with `options(harnessr.api_key =)`, of 8 characters or more, and puts them
+  back after it. A program that read one of these
+  variables finds it empty; pass what it needs another way. The step's note
+  in the trace gains `hidden_env`, the number of variables hidden, never
+  their names or values.
+
+* **`hr_options()` gains `command_hide_env` and `command_temp_home`.**
+  `command_hide_env` adds regular expressions matched against variable
+  names to the list above. `command_temp_home = TRUE` runs the program with
+  `HOME` (and `USERPROFILE` on Windows) set to an empty folder made for the
+  call, so it does not read your configuration files or stored logins. Both
+  are off by default. See "Credentials and the program" in
+  `vignette("core")`.
+
+* **`hr_options()` gains `mask_secrets`**, off by default. Turned on, it
+  replaces key-shaped strings (OpenAI, Anthropic, GitHub, Google, Slack and
+  Hugging Face keys, AWS access key IDs, JSON web tokens and the token after
+  `Bearer `) with `<masked>` in the output a command step keeps, in the file
+  `hr_trace_save()` writes and in a printed trace. A command step's output
+  also has the values of the variables it hid masked. The step's note
+  records `masked`, a saved trace a top-level `masked`, and the print a
+  `masked:` line, each a count. The trace in your session, the cache and
+  every cache and replay key keep the text as it was, so a replay of a
+  masked file still finds its replies. A later step that reads a command
+  step's `$check` gets the masked output, so a prompt built from it changes
+  with the setting. Turn it on before you share a trace or a step's output,
+  since an error body or a program's output can echo a key. Off, every copy
+  is byte for byte what it was.
+
 # harnessr 0.7.0
 
 harnessr 0.7.0 is the first release under the name harnessr. It reframes
