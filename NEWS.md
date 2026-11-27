@@ -57,7 +57,7 @@
 * **`hr_context_policy()` gains `overflow = "stubs"` and
   `disclose_subset`.** Stubs list the pieces cut away entirely, by name and
   with the titles passed to `hr_context_fit()`, in at most `stub_tokens`
-  tokens. `disclose_subset` adds one line such as "12 of 40 studies shown; do
+  tokens, or as a count alone when that cannot hold one. `disclose_subset` adds one line such as "12 of 40 studies shown; do
   not state totals". `hr_context_fit()` returns both as `notice`, with the
   names cut away in `omitted`, and sets room aside for them before it cuts.
   A policy that sets none of the new arguments is the object it was.

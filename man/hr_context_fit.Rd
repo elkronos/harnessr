@@ -56,8 +56,11 @@ the \code{notice} is set aside before anything is cut, and the notice names
 the unpinned pieces cut away entirely: the subset line first, then the
 stubs, one line each, \code{"- <name>: <title>"}, with \code{"- and N more"} for
 those the stub cap leaves out. The pieces and the notice together stay
-within \code{budget} whenever the pinned pieces fit. The notice is \code{""} when
-nothing was cut away or the policy asks for neither; placing it in the
+within \code{budget} whenever the pinned pieces fit. When \code{stub_tokens} cannot
+hold one stub, the stubs shrink to the header and \code{"- and N more"}. The
+room set aside is at most half of \code{budget}, so the notice is \code{""} when
+nothing was cut away, when the policy asks for neither, or when that room
+cannot hold the subset line or that shortest list; placing it in the
 request is the caller's job.
 }
 \examples{

@@ -452,6 +452,27 @@ test_that("hr_context_fit() lists the pieces it cut away, with titles, under the
   expect_error(hr_context_fit(pieces, 150, pol, titles = "x"), class = "gr_bad_setting")
 })
 
+test_that("a stub cap too small for one stub still counts what was left out", {
+  st <- cp_studies()
+  pieces <- c(question = "What was found?", st)
+  titles <- stats::setNames(paste("Trial", 1:8), names(st))
+  tiny <- hr_context_fit(pieces, 150, hr_context_policy(overflow = "stubs", stub_tokens = 5),
+                         titles = titles)
+  expect_true(length(tiny$omitted) > 0L)
+  expect_identical(tiny$notice, sprintf("Left out for space:\n- and %d more",
+                                        length(tiny$omitted)))
+  expect_true(tiny$fits)
+  expect_lte(tiny$tokens, 150)
+  # Half the budget cannot hold even that: the notice is empty, and the
+  # fit stays within the budget rather than go over it.
+  small <- hr_context_fit(pieces, 20, hr_context_policy(overflow = "stubs",
+                                                        disclose_subset = TRUE),
+                          titles = titles)
+  expect_true(length(small$omitted) > 0L)
+  expect_identical(small$notice, "")
+  expect_lte(small$tokens, 20)
+})
+
 test_that("disclose_subset says how many pieces are shown and not to state totals", {
   pieces <- c(question = "What was found?", cp_studies())
   pol <- hr_context_policy(disclose_subset = "{shown} of {total} studies shown; do not state totals.")

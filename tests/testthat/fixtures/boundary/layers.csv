@@ -586,6 +586,7 @@
 "settings_steps","core","function"
 "settle_usage","core","function"
 "share_refused","core","function"
+"short_stubs","core","function"
 "shortest_numbers","core","function"
 "signal_boot","core","function"
 "signal_metrics","core","function"

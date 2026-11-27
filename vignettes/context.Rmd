@@ -534,8 +534,9 @@ The list goes in the fit's `notice`, which you place in the request; the
 pieces stay where they were. Room for the notice is set aside before
 anything is cut, so the pieces and the notice together fit the budget. Stubs
 that do not fit under `stub_tokens` are counted in a last line, `"- and N
-more"`. Only unpinned pieces cut away entirely are listed; a piece cut in
-part carries the marker instead.
+more"`. When `stub_tokens` cannot hold even one stub, the list is the header
+and that last line alone. Only unpinned pieces cut away entirely are listed;
+a piece cut in part carries the marker instead.
 
 ### One line on the subset
 
@@ -552,7 +553,9 @@ cat(shown$notice)
 
 `{total}` counts the unpinned pieces that had text, and `{shown}` those that
 still have some. With both settings the line comes first and the stubs
-follow. When nothing is cut away the notice is `""`.
+follow. When nothing is cut away the notice is `""`. The room set aside is
+at most half the budget, so with a very small budget the notice is `""` as
+well: a fit never goes over the budget to name what it left out.
 
 The readers use a policy's marker for the cuts they make under it. `refine`
 fits two pieces and sets no room aside for a notice. `gr_synthesise()`

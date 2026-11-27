@@ -314,8 +314,9 @@ log_cut <- function(trace, where, piece, keep, before, kept, n, marker, part) {
 #' that marks a cut piece, and may hold `{tokens_dropped}` and
 #' `{units_dropped}` (see [hr_truncate()]). `overflow = "stubs"` lists the
 #' pieces cut away entirely by name, with the titles the caller gives
-#' [hr_context_fit()], in at most `stub_tokens` tokens; fetching one by its
-#' name is left to the caller. `disclose_subset` adds one line when pieces
+#' [hr_context_fit()], in at most `stub_tokens` tokens, or as a count alone
+#' when that cannot hold one; fetching one by its name is left to the
+#' caller. `disclose_subset` adds one line when pieces
 #' were cut away, such as "12 of 40 studies shown; do not state totals":
 #' `TRUE` writes "`{shown}` of `{total}` items shown; do not state totals.",
 #' and a string is used as the template. [hr_context_fit()] returns the
@@ -344,7 +345,8 @@ log_cut <- function(trace, where, piece, keep, before, kept, n, marker, part) {
 #'   leaves nothing behind. `"stubs"`: such pieces are listed by name and
 #'   title in the fit's `notice`.
 #' @param stub_tokens The most tokens the list of stubs may take; 200 by
-#'   default.
+#'   default. When that cannot hold one stub, the list is the header and
+#'   `"- and N more"` alone.
 #' @param disclose_subset `FALSE` (the default), `TRUE`, or a template with
 #'   `{shown}` and `{total}`: the line added to the fit's `notice` when
 #'   pieces were cut away.
@@ -477,8 +479,11 @@ policy_keep <- function(policy, piece, scored = FALSE) {
 #' the unpinned pieces cut away entirely: the subset line first, then the
 #' stubs, one line each, `"- <name>: <title>"`, with `"- and N more"` for
 #' those the stub cap leaves out. The pieces and the notice together stay
-#' within `budget` whenever the pinned pieces fit. The notice is `""` when
-#' nothing was cut away or the policy asks for neither; placing it in the
+#' within `budget` whenever the pinned pieces fit. When `stub_tokens` cannot
+#' hold one stub, the stubs shrink to the header and `"- and N more"`. The
+#' room set aside is at most half of `budget`, so the notice is `""` when
+#' nothing was cut away, when the policy asks for neither, or when that room
+#' cannot hold the subset line or that shortest list; placing it in the
 #' request is the caller's job.
 #'
 #' @param pieces A named character vector (or a named list of single
@@ -589,8 +594,14 @@ notice_reserve <- function(policy, of, budget) {
   stubs <- identical(policy$overflow, "stubs")
   if (is.null(line) && !stubs) return(0)
   need <- (if (is.null(line)) 0 else hr_count_tokens(fill_subset(line, of, of)) + 1) +
-    (if (stubs) policy$stub_tokens %||% 200L else 0)
+    (if (stubs) max(policy$stub_tokens %||% 200L, hr_count_tokens(short_stubs(of))) else 0)
   min(need, max(budget %/% 2, 0))
+}
+
+#' The shortest stub list: the header and "- and N more".
+#' @noRd
+short_stubs <- function(n) {
+  paste(c("Left out for space:", sprintf("- and %d more", as.integer(n))), collapse = "\n")
 }
 
 #' The subset line with its counts written in.
@@ -609,8 +620,8 @@ fit_notice <- function(policy, omitted, shown, of, titles, reserve) {
   first <- if (is.null(line)) character(0) else fill_subset(line, shown, of)
   if (length(first) && hr_count_tokens(first) > reserve) first <- character(0)
   if (!identical(policy$overflow, "stubs")) return(paste(first, collapse = "\n"))
-  cap <- min(policy$stub_tokens %||% 200L,
-             reserve - if (length(first)) hr_count_tokens(first) + 1 else 0)
+  room <- reserve - if (length(first)) hr_count_tokens(first) + 1 else 0
+  cap <- min(policy$stub_tokens %||% 200L, room)
   ttl <- if (is.null(titles)) rep(NA_character_, length(omitted)) else
     unname(titles[match(omitted, names(titles))])
   ttl <- trimws(gsub("[[:space:]]+", " ", ttl))
@@ -626,6 +637,11 @@ fit_notice <- function(policy, omitted, shown, of, titles, reserve) {
     n_in <- k
   }
   if (n_in < length(lines)) stubs <- c(stubs, sprintf("- and %d more", length(lines) - n_in))
-  if (hr_count_tokens(paste(stubs, collapse = "\n")) > cap) stubs <- character(0)
+  # When the cap cannot hold even one stub, the count alone is kept, in
+  # the room set aside for it, so the cut is not silent.
+  if (hr_count_tokens(paste(stubs, collapse = "\n")) > cap) {
+    stubs <- short_stubs(length(lines))
+    if (hr_count_tokens(stubs) > room) stubs <- character(0)
+  }
   paste(c(first, stubs), collapse = "\n")
 }

@@ -37,7 +37,8 @@ leaves nothing behind. \code{"stubs"}: such pieces are listed by name and
 title in the fit's \code{notice}.}
 
 \item{stub_tokens}{The most tokens the list of stubs may take; 200 by
-default.}
+default. When that cannot hold one stub, the list is the header and
+\code{"- and N more"} alone.}
 
 \item{disclose_subset}{\code{FALSE} (the default), \code{TRUE}, or a template with
 \code{{shown}} and \code{{total}}: the line added to the fit's \code{notice} when
@@ -70,8 +71,9 @@ Three settings make a cut say what it removed. \code{marker} replaces the text
 that marks a cut piece, and may hold \code{{tokens_dropped}} and
 \code{{units_dropped}} (see \code{\link[=hr_truncate]{hr_truncate()}}). \code{overflow = "stubs"} lists the
 pieces cut away entirely by name, with the titles the caller gives
-\code{\link[=hr_context_fit]{hr_context_fit()}}, in at most \code{stub_tokens} tokens; fetching one by its
-name is left to the caller. \code{disclose_subset} adds one line when pieces
+\code{\link[=hr_context_fit]{hr_context_fit()}}, in at most \code{stub_tokens} tokens, or as a count alone
+when that cannot hold one; fetching one by its name is left to the
+caller. \code{disclose_subset} adds one line when pieces
 were cut away, such as "12 of 40 studies shown; do not state totals":
 \code{TRUE} writes "\code{{shown}} of \code{{total}} items shown; do not state totals.",
 and a string is used as the template. \code{\link[=hr_context_fit]{hr_context_fit()}} returns the
