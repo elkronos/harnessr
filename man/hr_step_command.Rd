@@ -54,10 +54,10 @@ Each element of \code{argv} is one argument: they are quoted for the shell,
 never split on spaces, so a \verb{;} or a \code{$} in an argument reaches the
 program as it is written. There is no default command, and a command is
 never taken from a model's reply or a skill's text: write \code{argv} yourself.
-Nothing isolates the program: it can read and write what you can. The
-child process inherits the session's environment variables, except
-\code{OPENAI_API_KEY}, which is unset for the call and put back after it; R
-options never reach it. A program stopped at its time limit is ended,
+Nothing isolates the program: it can read and write what you can. It
+inherits the session's environment variables except the ones that look
+like credentials (see "Credentials" below); R options never reach it. A
+program stopped at its time limit is ended,
 but processes it started in the background (or that ignore the signal)
 can keep running, on any platform; on Windows, any process it started
 can.
@@ -92,8 +92,35 @@ step that is not held after one that is, with class \code{hr_held_not_last}.
 
 In a benchmark the step notes the run in the trace as a local step,
 \code{"step.command"}, with hashes of \code{argv} and of the output, never the output
-itself. It sends no request, so it costs nothing.
+itself, and \code{hidden_env}, the number of variables hidden from the program
+(never their names or values). It sends no request, so it costs nothing.
 }
+\section{Credentials}{
+
+The child process inherits the session's environment variables except the
+ones that look like credentials, which are unset for the call and put back
+after it. A variable is hidden when its name ends in \verb{_API_KEY}, \verb{_TOKEN},
+\verb{_SECRET}, \verb{_PASSWORD}, \verb{_PAT} or \verb{_SECRET_ACCESS_KEY} (in any case), when
+it is one of the provider variables \code{OPENAI_API_KEY}, \code{ANTHROPIC_API_KEY},
+\code{GOOGLE_API_KEY}, \code{GEMINI_API_KEY}, \code{AZURE_OPENAI_API_KEY}, \code{GITHUB_PAT},
+\code{GITHUB_TOKEN}, \code{AWS_SECRET_ACCESS_KEY}, \code{AWS_SESSION_TOKEN} and
+\code{HF_TOKEN}, when its name matches a regular expression in
+\code{hr_options(command_hide_env =)}, or when its value is one of the values of
+\code{hr_options(api_headers =)}, such as a gateway key read with \code{\link[=Sys.getenv]{Sys.getenv()}}.
+A program that needs one of these variables cannot read it; pass what it
+needs another way. \code{hr_options(command_temp_home = TRUE)} also runs the
+program with \code{HOME} (and \code{USERPROFILE} on Windows) set to an empty folder
+made for the call and removed after it, so it does not read your
+configuration files and stored logins.
+
+With \code{hr_options(mask_secrets = TRUE)} the \code{stdout} and \code{stderr} kept in
+the result have key-shaped strings replaced with \verb{<masked>}, and the step
+records how many in the trace as \code{masked}. The hash of the output is taken
+before masking. \code{\link[=hr_options]{hr_options()}} lists the shapes masked. This is hygiene,
+not a sandbox: the program still runs with your permissions and can read
+your files.
+}
+
 \examples{
 rscript <- file.path(R.home("bin"), "Rscript")
 check <- hr_step_command("check", c(rscript, "-e", "quit(status = 0)"))

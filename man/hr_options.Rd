@@ -146,6 +146,33 @@ with \code{overflow_retry = TRUE}, and it is not retried again. Return
 deterministic, such as one that cuts the longest message with
 \code{\link[=hr_truncate]{hr_truncate()}}; harnessr never asks a model to shorten a prompt.
 Untested: a choice, not a tuned value.}
+\item{\code{command_hide_env} (none)}{More variables to hide from the
+programs \code{\link[=hr_step_command]{hr_step_command()}} runs: a character vector of regular
+expressions matched against variable names, without regard to case,
+such as \code{"^MY_GATEWAY$"}. Added to the built-in list, which hides names
+ending in \verb{_API_KEY}, \verb{_TOKEN}, \verb{_SECRET}, \verb{_PASSWORD}, \verb{_PAT} or
+\verb{_SECRET_ACCESS_KEY}, the common provider variables, and variables
+whose value is one of the \code{api_headers} values (see "Credentials" in
+\code{\link[=hr_step_command]{hr_step_command()}}). Untested: a choice.}
+\item{\code{command_temp_home} (FALSE)}{Whether \code{\link[=hr_step_command]{hr_step_command()}} runs its
+program with \code{HOME} (and \code{USERPROFILE} on Windows) set to an empty
+folder made for the call, so it does not read your configuration files
+and stored logins. Untested: a choice.}
+\item{\code{mask_secrets} (FALSE)}{Whether key-shaped strings are replaced
+with \verb{<masked>} in the copies harnessr stores or shows: the output a
+command step keeps, the file \code{\link[=hr_trace_save]{hr_trace_save()}} writes, and a printed
+trace. Turn it on before you share a trace or a step's output, since
+an HTTP error body or a program's output can echo a key. The shapes
+masked are OpenAI and Anthropic keys (\code{sk-...}), GitHub tokens
+(\code{ghp_...}, \code{github_pat_...}), AWS access key ids (\code{AKIA...}), Google
+API keys (\code{AIza...}), Slack tokens (\code{xox...}), Hugging Face tokens
+(\code{hf_...}), JSON web tokens, the token after \code{Bearer }, and the values
+of the variables a command step hides. The trace records how many were
+masked: \code{masked} in a command step's note and at the top of a saved
+trace, and a \verb{masked:} line in the print. The trace in your session,
+the cache and every cache and replay key keep the text as it was, so
+masking changes no request and no key. Off, nothing is masked and
+every copy is byte for byte what it was. Untested: a choice.}
 \item{\code{price_max_age_days} (120)}{How old a price may be, in days, before
 a cost computed from it warns with class \code{hr_stale_price}. A price's age
 is counted from the first day of its \code{as_of} month (see \code{\link[=hr_models]{hr_models()}}),
@@ -203,14 +230,16 @@ than the default joins the store key of \code{\link[=gr_read_many]{gr_read_many(
 
 The settings listed last above were constants in the code until they were
 options; each keeps the constant's value. A trace records them, and
-\code{price_max_age_days}, \code{reserve_calls}, \code{reserve_usd} and \code{on_overflow},
-(in its options snapshot) only when one is not its default, so a trace
+\code{price_max_age_days}, \code{reserve_calls}, \code{reserve_usd}, \code{on_overflow},
+\code{command_hide_env}, \code{command_temp_home} and \code{mask_secrets}, (in its
+options snapshot) only when one is not its default, so a trace
 made at the defaults reads as it did before they existed. A function given
 as \code{on_overflow} is recorded as \code{"<function>"}. Each tuning setting's entry
 above (\code{temperature}, \code{max_retries}, \code{retry_pause_base},
 \code{request_timeout}, \code{safety_margin}, \code{min_output_tokens}, \code{workers},
 \code{price_max_age_days} and the settings listed last) says where its default
-came from, as do those of \code{allow_unpriced}, the reserves and \code{on_overflow};
+came from, as do those of \code{allow_unpriced}, the reserves, \code{on_overflow}
+and the three credential settings;
 "untested" means no measurement backs the value. The other entries are
 switches, limits and names, which are choices rather than tuned values.
 }

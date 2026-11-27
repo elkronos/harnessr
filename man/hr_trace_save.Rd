@@ -19,6 +19,14 @@ Writes the trace as JSON, in the form \code{\link[=as_json]{as_json()}} produces
 everything \code{\link[=hr_replay_client]{hr_replay_client()}} needs, so this is how a run leaves the
 session it happened in.
 }
+\details{
+With \code{hr_options(mask_secrets = TRUE)} key-shaped strings in the file
+(an API key echoed in an error, a token in a prompt) are replaced with
+\verb{<masked>}, and a top-level field \code{masked} says how many. The trace in
+your session is left as it was, and each step's \code{replay_key} was taken
+from the prompt as it was sent, so a replay of the file still finds its
+replies. \code{\link[=hr_options]{hr_options()}} lists the shapes masked.
+}
 \examples{
 cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)

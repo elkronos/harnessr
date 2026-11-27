@@ -190,7 +190,7 @@ test_that("the trace notes the run by hash, never its output", {
   expect_identical(steps[[1]]$label, "step.command")
   d <- steps[[1]]$detail
   expect_identical(sort(names(d)), sort(c("name", "argv_hash", "exit", "status", "seconds",
-                                          "degradation", "stdout_hash")))
+                                          "degradation", "stdout_hash", "hidden_env")))
   expect_false(grepl("secret-output-text", paste(unlist(d), collapse = " "), fixed = TRUE))
   expect_identical(nrow(as.data.frame(tr)), 0L)
 })

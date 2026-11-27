@@ -26,6 +26,13 @@
 #' everything [hr_replay_client()] needs, so this is how a run leaves the
 #' session it happened in.
 #'
+#' With `hr_options(mask_secrets = TRUE)` key-shaped strings in the file
+#' (an API key echoed in an error, a token in a prompt) are replaced with
+#' `<masked>`, and a top-level field `masked` says how many. The trace in
+#' your session is left as it was, and each step's `replay_key` was taken
+#' from the prompt as it was sent, so a replay of the file still finds its
+#' replies. [hr_options()] lists the shapes masked.
+#'
 #' @param trace A `gr_trace`.
 #' @param path Destination file.
 #' @return `path`, invisibly.
@@ -44,7 +51,17 @@ hr_trace_save <- function(trace, path) {
   if (!nzchar(path)) gr_abort("`path` must be a file name.")
   dir <- dirname(path)
   if (!dir.exists(dir)) dir.create(dir, recursive = TRUE, showWarnings = FALSE)
-  writeLines(as.character(as_json(trace, pretty = TRUE)), path, useBytes = TRUE)
+  json <- if (isTRUE(hr_options("mask_secrets"))) {
+    # Masked in the copy written, never in the trace: the steps' replay keys
+    # were taken from the prompts as they were sent.
+    m <- mask_secrets_walk(trace_as_list(trace))
+    out <- m$value
+    out$masked <- m$n
+    as_json.default(out, pretty = TRUE)
+  } else {
+    as_json(trace, pretty = TRUE)
+  }
+  writeLines(as.character(json), path, useBytes = TRUE)
   invisible(path)
 }
 

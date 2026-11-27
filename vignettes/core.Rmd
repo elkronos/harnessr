@@ -690,6 +690,48 @@ that runs too long, with the status `"timeout"`. "Checks that run a program" in
 `vignette("evaluate")` covers those settings and how a benchmark counts the
 results, and `vignette("compose")` puts the step in a chain.
 
+### Credentials and the program {#set-credentials}
+
+The program inherits your environment variables, less the ones that look like
+credentials: names ending in `_API_KEY`, `_TOKEN`, `_SECRET`, `_PASSWORD`, `_PAT`
+or `_SECRET_ACCESS_KEY`, the common provider variables, and any variable whose
+value is one of your `api_headers` values. They are unset for the call and put
+back after it, and a program that prints one finds nothing:
+
+```{r}
+Sys.setenv(DEMO_SERVICE_TOKEN = "tok-123456789", DEMO_REGION = "eu")
+show_env <- hr_step_command("env", c(rscript, "-e",
+  "cat(Sys.getenv('DEMO_SERVICE_TOKEN'), Sys.getenv('DEMO_REGION'), sep = '|')"))
+show_env(list(), list())$check$stdout
+```
+
+`hr_options(command_hide_env =)` adds patterns of your own, such as
+`"^DEMO_REGION$"`, and `command_temp_home = TRUE` gives the program an empty
+`HOME` for the call, so it does not read your configuration files or stored
+logins. A command step's note in the trace counts the variables hidden as
+`hidden_env`, and never names them.
+
+Output can still echo a key that a program read from a file, and an HTTP error
+body can echo the key that was sent. `hr_options(mask_secrets = TRUE)` replaces
+key-shaped strings with `<masked>` in the output a command step keeps, in the
+file `hr_trace_save()` writes and in a printed trace, and counts what it
+replaced. The trace in your session, the cache and every key keep the text as
+it was, so masking changes no request:
+
+```{r}
+prev <- hr_options(mask_secrets = TRUE)
+leaky <- hr_step_command("leak", c(rscript, "-e",
+  "cat('key: sk-proj-abcdefghijklmnopqrstuvwx and a plain sentence')"))
+leaky(list(), list())$check$stdout
+hr_options(prev)
+Sys.unsetenv(c("DEMO_SERVICE_TOKEN", "DEMO_REGION"))
+```
+
+Both are hygiene, not a sandbox: the program still runs with your permissions.
+Masking is off by default so that traces and output stay byte for byte what
+they were; turn it on before you share a trace file or a step's output.
+`?hr_options` lists the shapes masked.
+
 ## Signals
 
 A signal is a value your code records about its own work: whether the code a

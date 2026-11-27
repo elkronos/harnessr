@@ -941,6 +941,14 @@ format_trace_time <- function(s) {
 
 #' @export
 print.gr_trace <- function(x, ...) {
+  # Under mask_secrets the lines are masked as a whole, and a last line says
+  # how many strings were replaced.
+  if (isTRUE(hr_options("mask_secrets")) && !isTRUE(list(...)[[".unmasked"]])) {
+    m <- mask_secrets(utils::capture.output(print.gr_trace(x, .unmasked = TRUE)))
+    cat(m$text, sep = "\n")
+    if (m$n > 0L) cat(sprintf("  masked: %d key-shaped string(s)\n", m$n))
+    return(invisible(x))
+  }
   s <- hr_trace_summary(x)
   recovered <- sum(vapply(x$errors, function(e) isTRUE(e$recovered), logical(1)))
   # Model calls and embeddings requests apart: both are requests the limits
