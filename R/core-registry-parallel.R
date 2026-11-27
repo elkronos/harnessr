@@ -468,10 +468,11 @@ worker_functions <- function(client, opts) {
 #'
 #' Measured without recording a stop: the batch then runs in this process,
 #' where each request is checked against the run, and only a refusal stops a
-#' run. Each item makes one request, so `n` more calls is what a batch needs;
-#' an `on_overflow` retry is a second one, which the item's share refuses
-#' when the run has no room for it. `item_usd`, when known, prices each at
-#' its worst. A run with
+#' run. Each item makes one request, so `n` more calls is what a batch needs.
+#' An `on_overflow` retry is a second one. The item's share, an equal split
+#' of the run's headroom (batch_share()), refuses it once the first request
+#' has spent it, even when the run has calls left, and batch_collect() then
+#' warns. `item_usd`, when known, prices each at its worst. A run with
 #' nothing left to spend sends no batch either: every worker's share would be
 #' nothing.
 #' @noRd
