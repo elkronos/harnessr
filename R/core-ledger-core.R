@@ -644,7 +644,8 @@ as_parent_trace <- function(trace, arg = "trace") {
 #' @return A one-row data frame: `run_id`, `calls`, `cached`, `steps`,
 #'   `tokens_in`, `tokens_out`, `errors`, `elapsed_s`, `embed_calls`,
 #'   `embed_tokens`, `tokens_reasoning`, `tokens_cached_in`,
-#'   `usage_estimated`.
+#'   `usage_estimated`, `request_s`, `local_s`, `overhead_s`,
+#'   `request_share`, `local_share`, `overhead_share`.
 #'
 #'   `calls` counts every request, including the `embed_calls` of them made to
 #'   an embeddings endpoint. `tokens_in` and `tokens_out` are the size of the
@@ -671,7 +672,26 @@ as_parent_trace <- function(trace, arg = "trace") {
 #'   additions to them. `usage_estimated` is the share of requests whose token
 #'   counts were estimated locally because the provider reported none (see
 #'   `tokens` under "Steps" in [hr_trace()]), from 0 to 1, or `NA` when no
-#'   request says.
+#'   request says. The share of input tokens the provider served from its
+#'   cache is `tokens_cached_in / tokens_in`; the trace's print shows it when
+#'   it is above 0.
+#'
+#'   `elapsed_s` is the time from the run's start (`trace$started`) to the end
+#'   of its last step: a request's `ended_utc`, or the `at` time of a local
+#'   step, which is in the session's time zone. It is read from the steps, so
+#'   a summary taken an hour after the run, or of a trace saved with
+#'   [saveRDS()] and read back, gives the same figure. A trace with no steps
+#'   gives 0.
+#'
+#'   The last six columns split that time. `request_s` is the seconds the
+#'   requests took (model calls and embeddings requests, retries included),
+#'   `local_s` the seconds local steps recorded (a command step from
+#'   [hr_step_command()] records its run time; segmentation, truncation and
+#'   other local steps record none, so their time falls into the overhead),
+#'   and `overhead_s` the rest of `elapsed_s`. Requests sent in parallel
+#'   overlap, so `request_s` can pass `elapsed_s`, and `overhead_s` is then 0.
+#'   The three shares are each part over the three together, so they add to
+#'   1, or `NA` when no time was measured.
 #' @seealso [hr_trace()], [as_json()], [hr_trace_cost()], [hr_estimate_cost()],
 #'   [hr_cache()]
 #' @export
@@ -689,6 +709,7 @@ as_parent_trace <- function(trace, arg = "trace") {
 #' hr_estimate_cost("gpt-4o", ans$trace$tokens_in, ans$trace$tokens_out)
 hr_trace_summary <- function(trace) {
   stopifnot(inherits(trace, "gr_trace"))
+  tm <- trace_time_parts(trace)
   data.frame(
     run_id = trace$run_id,
     calls = trace$calls,
@@ -697,7 +718,7 @@ hr_trace_summary <- function(trace) {
     tokens_in = trace$tokens_in,
     tokens_out = trace$tokens_out,
     errors = length(trace$errors),
-    elapsed_s = round(as.numeric(difftime(Sys.time(), trace$started, units = "secs")), 2),
+    elapsed_s = round(tm$elapsed, 2),
     # Last, so code that reads the columns by position finds the others where
     # they were.
     embed_calls = sum(vapply(trace$steps, function(st) identical(st$kind, "embedding"),
@@ -708,8 +729,78 @@ hr_trace_summary <- function(trace) {
     tokens_reasoning = sum_step_tokens(trace$steps, "reasoning"),
     tokens_cached_in = sum_step_tokens(trace$steps, "cached_input"),
     usage_estimated = usage_estimated_share(trace$steps),
+    # Where the time went, after every column above so none moves.
+    request_s = round(tm$request, 2),
+    local_s = round(tm$local, 2),
+    overhead_s = round(tm$overhead, 2),
+    request_share = time_share(tm$request, tm),
+    local_share = time_share(tm$local, tm),
+    overhead_share = time_share(tm$overhead, tm),
     stringsAsFactors = FALSE
   )
+}
+
+#' When a step ended: its `ended_utc`, or for a step without one (a local
+#' step, or one written before the field existed) its `at`, which is local
+#' time. NA when neither can be read.
+#' @noRd
+step_end_time <- function(st) {
+  if (!is.list(st)) return(NA_real_)
+  utc <- as_chr1(st[["ended_utc", exact = TRUE]], NA_character_)
+  if (!is.na(utc)) {
+    t <- as.POSIXct(utc, format = "%Y-%m-%dT%H:%M:%OSZ", tz = "UTC")
+    if (!is.na(t)) return(as.numeric(t))
+  }
+  at <- as_chr1(st[["at", exact = TRUE]], NA_character_)
+  if (is.na(at)) return(NA_real_)
+  as.numeric(as.POSIXct(at, format = "%Y-%m-%dT%H:%M:%OS", tz = ""))
+}
+
+#' The seconds a step took, as it recorded them: `seconds` on a request, and
+#' `seconds` in the detail of a local step that timed itself (a command
+#' step). 0 when the step recorded none.
+#' @noRd
+step_seconds <- function(st) {
+  s <- if (identical(st$kind, "local")) {
+    if (is.list(st$detail)) st$detail[["seconds", exact = TRUE]]
+  } else {
+    st[["seconds", exact = TRUE]]
+  }
+  s <- as_num1(s, 0)
+  if (is.finite(s) && s > 0) s else 0
+}
+
+#' Where a run's time went: `elapsed` from the run's start to the end of its
+#' last step, the seconds its requests took, the seconds its local steps
+#' recorded, and the rest as `overhead`. Read from the steps alone, so a
+#' summary taken later, or of a trace read back from a file, gives the same
+#' figures. An empty trace has taken no time: every part is 0.
+#' @noRd
+trace_time_parts <- function(trace) {
+  steps <- Filter(is.list, trace$steps)
+  zero <- list(elapsed = 0, request = 0, local = 0, overhead = 0)
+  if (!length(steps)) return(zero)
+  local <- vapply(steps, function(st) identical(st$kind, "local"), logical(1))
+  secs <- vapply(steps, step_seconds, numeric(1))
+  request <- sum(secs[!local])
+  local_s <- sum(secs[local])
+  ends <- vapply(steps, step_end_time, numeric(1))
+  started <- if (inherits(trace$started, "POSIXct")) as.numeric(trace$started) else NA_real_
+  elapsed <- if (all(is.na(ends)) || is.na(started)) request + local_s
+             else max(max(ends, na.rm = TRUE) - started, 0)
+  # Requests sent in parallel overlap, so their seconds can add up to more
+  # than the run took. The overhead is then 0, not negative.
+  list(elapsed = elapsed, request = request, local = local_s,
+       overhead = max(elapsed - request - local_s, 0))
+}
+
+#' One part of a run's time as a share of the parts together, from 0 to 1,
+#' or NA when no time was measured.
+#' @noRd
+time_share <- function(part, tm) {
+  total <- tm$request + tm$local + tm$overhead
+  if (!is.finite(total) || total <= 0) return(NA_real_)
+  round(part / total, 4)
 }
 
 #' The requests of a trace whose usage is recorded: not local steps.
@@ -824,6 +915,22 @@ format_call_counts <- function(trace) {
          if (embed > 0L) sprintf(", %d embeddings request(s)", embed) else "")
 }
 
+#' The time line of a trace's print: how long the run took and where the
+#' time went, then the share of input tokens the provider served from its
+#' cache when it served any.
+#' @noRd
+format_trace_time <- function(s) {
+  pct <- function(v) if (is.na(v)) "NA" else sprintf("%.0f%%", 100 * v)
+  out <- sprintf("  time: %s s (requests %s, local %s, overhead %s)",
+                 format(s$elapsed_s, nsmall = 2), pct(s$request_share), pct(s$local_share),
+                 pct(s$overhead_share))
+  if (s$tokens_cached_in > 0L && s$tokens_in > 0L) {
+    out <- paste0(out, sprintf("; %s of input tokens from the provider's cache",
+                               pct(s$tokens_cached_in / s$tokens_in)))
+  }
+  out
+}
+
 #' @export
 print.gr_trace <- function(x, ...) {
   s <- hr_trace_summary(x)
@@ -845,6 +952,7 @@ print.gr_trace <- function(x, ...) {
     cat("  steps:", paste(sprintf("%s x%d", names(tab), as.integer(tab)), collapse = ", "), "\n")
   }
   cat(sprintf("  cost: %s\n", format_trace_cost(x)))
+  if (s$steps > 0L) cat(format_trace_time(s), "\n", sep = "")
   # The usage, served-by and actor lines print only when there is something
   # to say, so a mock run prints what it did, plus where its token counts came
   # from. The start time and the first error follow them.
