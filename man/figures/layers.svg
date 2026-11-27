@@ -1,16 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="676" viewBox="0 0 900 676" role="img" aria-labelledby="layers-title layers-desc">
-<title id="layers-title">harnessr in two layers</title>
-<desc id="layers-desc">Two stacked layers. Your R code calls the document layer (gr_ functions: ingest, segment, read, screen, extract, claims, synthesis, review) or the core directly (hr_ functions: client, calls, cache, trace and ledger, budget and governor, registry and modules, composition). The document layer calls the core, and the core sends requests to a model provider or a stand-in. The core never calls the document layer; tests/testthat/test-boundary.R checks that.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="756" viewBox="0 0 900 756" role="img" aria-labelledby="layers-title layers-desc">
+<title id="layers-title">harnessr: a core and a document layer</title>
+<desc id="layers-desc">Two stacked layers. The core (hr_ functions: calls and clients, trace, models and prices, context, effort, limits, cache and replay, composing, evaluating, registry and modules) sends every request to a model provider or a stand-in: hr_client(), hr_ellmer_client(), hr_backend_client(), hr_mock_client(), hr_replay_client(). The document layer (gr_ functions: ingest, segment, read, screen, extract, claims, synthesis, review) sits above it and calls the core. Your R code calls either layer. The core never calls the document layer; tests/testthat/test-boundary.R checks that.</desc>
 <defs>
 <marker id="layers-arrow-neutral" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#8c959f"/></marker>
 <marker id="layers-arrow-core" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#0969da"/></marker>
 <marker id="layers-arrow-doc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#1a7f37"/></marker>
 <marker id="layers-arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#bc4c00"/></marker>
 </defs>
-<rect width="900" height="676" rx="14" fill="#ffffff"/>
+<rect width="900" height="756" rx="14" fill="#ffffff"/>
 <g font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Liberation Sans', sans-serif" font-size="14" fill="#1f2328">
-<text x="24" y="36" font-size="20" font-weight="bold">harnessr in two layers</text>
-<text x="24" y="60" fill="#57606a">Calls go down. The core never calls the document layer.</text>
+<text x="24" y="36" font-size="20" font-weight="bold">harnessr: a core and a document layer</text>
+<text x="24" y="60" fill="#57606a">The core sends every model request. The document layer builds on it; calls go down.</text>
 <rect x="24" y="76" width="852" height="40" rx="8" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.5"/>
 <text x="450" y="101" font-size="15" text-anchor="middle" font-weight="bold">Your R code</text>
 <path d="M380 116 L380 154" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#layers-arrow-neutral)" class="call"/>
@@ -49,33 +49,49 @@
 <path d="M512 341 L528 357 M528 341 L512 357" stroke="#bc4c00" stroke-width="2.5"/>
 <text x="540" y="344" font-size="13" font-weight="bold" fill="#953800">never: core to document layer</text>
 <text x="540" y="362" font-size="13" fill="#57606a">test-boundary.R checks it</text>
-<rect x="24" y="378" width="852" height="194" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5" class="core-layer"/>
+<rect x="24" y="378" width="852" height="268" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5" class="core-layer"/>
 <text x="40" y="402" font-size="15" font-weight="bold" fill="#0550ae">Core: hr_ functions in R/core-*.R</text>
 <rect x="40" y="414" width="196" height="66" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
-<text x="138" y="443.2" text-anchor="middle" font-weight="bold" fill="#0550ae" class="core-item">client</text>
-<text x="138" y="460.4" font-size="13" text-anchor="middle" class="fn">hr_client()</text>
+<text x="138" y="434.7" text-anchor="middle" font-weight="bold" fill="#0550ae" class="core-item">calls and clients</text>
+<text x="138" y="451.9" font-size="13" text-anchor="middle" class="fn">hr_call()</text>
+<text x="138" y="468.8" font-size="13" text-anchor="middle" class="fn">hr_client()</text>
 <rect x="248" y="414" width="196" height="66" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
-<text x="346" y="443.2" text-anchor="middle" font-weight="bold" fill="#0550ae" class="core-item">calls</text>
-<text x="346" y="460.4" font-size="13" text-anchor="middle" class="fn">hr_call()</text>
+<text x="346" y="443.2" text-anchor="middle" font-weight="bold" fill="#0550ae" class="core-item">trace</text>
+<text x="346" y="460.4" font-size="13" text-anchor="middle" class="fn">hr_trace()</text>
 <rect x="456" y="414" width="196" height="66" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
-<text x="554" y="443.2" text-anchor="middle" font-weight="bold" fill="#0550ae" class="core-item">cache</text>
-<text x="554" y="460.4" font-size="13" text-anchor="middle" class="fn">hr_cache()</text>
+<text x="554" y="434.7" text-anchor="middle" font-weight="bold" fill="#0550ae" class="core-item">models and prices</text>
+<text x="554" y="451.9" font-size="13" text-anchor="middle" class="fn">hr_register_model()</text>
+<text x="554" y="468.8" font-size="13" text-anchor="middle" class="fn">hr_load_models()</text>
 <rect x="664" y="414" width="196" height="66" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
-<text x="762" y="443.2" text-anchor="middle" font-weight="bold" fill="#0550ae" class="core-item">trace and ledger</text>
-<text x="762" y="460.4" font-size="13" text-anchor="middle" class="fn">hr_trace()</text>
+<text x="762" y="434.7" text-anchor="middle" font-weight="bold" fill="#0550ae" class="core-item">context</text>
+<text x="762" y="451.9" font-size="13" text-anchor="middle" class="fn">hr_budget()</text>
+<text x="762" y="468.8" font-size="13" text-anchor="middle" class="fn">hr_context_fit()</text>
 <rect x="40" y="490" width="196" height="66" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
-<text x="138" y="510.7" text-anchor="middle" font-weight="bold" fill="#0550ae" class="core-item">budget and governor</text>
-<text x="138" y="527.9" font-size="13" text-anchor="middle" class="fn">hr_budget()</text>
-<text x="138" y="544.8" font-size="13" text-anchor="middle" class="fn">hr_governor()</text>
+<text x="138" y="510.7" text-anchor="middle" font-weight="bold" fill="#0550ae" class="core-item">effort</text>
+<text x="138" y="527.9" font-size="13" text-anchor="middle" class="fn">hr_effort_escalate()</text>
+<text x="138" y="544.8" font-size="13" text-anchor="middle" class="fn">hr_effort_check()</text>
 <rect x="248" y="490" width="196" height="66" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
-<text x="346" y="519.2" text-anchor="middle" font-weight="bold" fill="#0550ae" class="core-item">registry and modules</text>
-<text x="346" y="536.4" font-size="13" text-anchor="middle" class="fn">hr_register()</text>
+<text x="346" y="519.2" text-anchor="middle" font-weight="bold" fill="#0550ae" class="core-item">limits</text>
+<text x="346" y="536.4" font-size="13" text-anchor="middle" class="fn">hr_governor()</text>
 <rect x="456" y="490" width="196" height="66" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
-<text x="554" y="519.2" text-anchor="middle" font-weight="bold" fill="#0550ae" class="core-item">composition</text>
-<text x="554" y="536.4" font-size="13" text-anchor="middle" class="fn">hr_chain()</text>
-<path d="M450 572 L450 610" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#layers-arrow-neutral)" class="call"/>
-<text x="458" y="596" font-size="13" fill="#57606a">sends requests</text>
-<rect x="24" y="610" width="852" height="44" rx="8" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.5"/>
-<text x="450" y="636.3" font-size="13" text-anchor="middle" class="fn">A model provider, or a stand-in: hr_client(), hr_ellmer_client(), hr_mock_client(), hr_replay_client()</text>
+<text x="554" y="510.7" text-anchor="middle" font-weight="bold" fill="#0550ae" class="core-item">cache and replay</text>
+<text x="554" y="527.9" font-size="13" text-anchor="middle" class="fn">hr_cache_client()</text>
+<text x="554" y="544.8" font-size="13" text-anchor="middle" class="fn">hr_replay_client()</text>
+<rect x="664" y="490" width="196" height="66" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="762" y="510.7" text-anchor="middle" font-weight="bold" fill="#0550ae" class="core-item">composing</text>
+<text x="762" y="527.9" font-size="13" text-anchor="middle" class="fn">hr_chain()</text>
+<text x="762" y="544.8" font-size="13" text-anchor="middle" class="fn">hr_step()</text>
+<rect x="40" y="566" width="196" height="66" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="138" y="586.7" text-anchor="middle" font-weight="bold" fill="#0550ae" class="core-item">evaluating</text>
+<text x="138" y="603.9" font-size="13" text-anchor="middle" class="fn">hr_benchmark()</text>
+<text x="138" y="620.8" font-size="13" text-anchor="middle" class="fn">hr_report()</text>
+<rect x="248" y="566" width="196" height="66" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="346" y="595.2" text-anchor="middle" font-weight="bold" fill="#0550ae" class="core-item">registry and modules</text>
+<text x="346" y="612.4" font-size="13" text-anchor="middle" class="fn">hr_register()</text>
+<path d="M450 646 L450 684" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#layers-arrow-neutral)" class="call"/>
+<text x="458" y="670" font-size="13" fill="#57606a">sends requests</text>
+<rect x="24" y="684" width="852" height="52" rx="8" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.5"/>
+<text x="450" y="705.8" font-size="13" text-anchor="middle">A model provider over HTTP or through ellmer, your own function, a mock or a recording</text>
+<text x="450" y="722.7" font-size="13" text-anchor="middle" class="fn">hr_client(), hr_ellmer_client(), hr_backend_client(), hr_mock_client(), hr_replay_client()</text>
 </g>
 </svg>

@@ -1,7 +1,7 @@
 # test-diagrams.R: the SVG diagrams in man/figures match the package.
 #
-# dev/build-diagrams.R writes layers.svg, document-run.svg, composition.svg
-# and registry.svg from the code. The script is not part of the built
+# dev/build-diagrams.R writes layers.svg, document-run.svg, composition.svg,
+# registry.svg and request.svg from the code. The script is not part of the built
 # package, so these tests run from the source tree (run-tests.sh, the tests
 # workflow) and skip under R CMD check, as test-contract-files.R does. After
 # a change to anything a diagram shows, rerun the script from the repository
@@ -9,7 +9,8 @@
 #
 #   Rscript dev/build-diagrams.R
 
-diagram_files <- c("layers.svg", "document-run.svg", "composition.svg", "registry.svg")
+diagram_files <- c("layers.svg", "document-run.svg", "composition.svg", "registry.svg",
+                   "request.svg")
 
 diagram_root <- function() {
   root <- test_path("..", "..")
@@ -104,8 +105,9 @@ test_that("layers.svg names both layers and the rule between them", {
 test_that("layers.svg lists what each layer holds, as the spec does", {
   doc <- read_diagram("layers.svg")
   expect_identical(diagram_text(doc, "core-item"),
-                   c("client", "calls", "cache", "trace and ledger", "budget and governor",
-                     "registry and modules", "composition"))
+                   c("calls and clients", "trace", "models and prices", "context", "effort",
+                     "limits", "cache and replay", "composing", "evaluating",
+                     "registry and modules"))
   expect_identical(diagram_text(doc, "doc-item"),
                    c("ingest", "segment", "read", "screen", "extract", "claims", "synthesis",
                      "review"))
@@ -175,6 +177,18 @@ governor_stage_limits <- function() {
   })
 }
 
+# The reserve each stage holds back for closing requests, which
+# governor_check() reads through governor_hold(gov, "name").
+governor_stage_reserves <- function() {
+  src <- paste(deparse(body(harnessr:::governor_check), width.cutoff = 500L), collapse = "\n")
+  parts <- strsplit(src, "if (stage %in% c(\"both\", \"send\"))", fixed = TRUE)[[1]]
+  expect_length(parts, 2)
+  lapply(parts, function(part) {
+    hits <- regmatches(part, gregexpr("governor_hold\\(gov, \"[a-z_]+\"", part))[[1]]
+    unique(gsub("^governor_hold\\(gov, \"|\"$", "", hits))
+  })
+}
+
 test_that("document-run.svg puts each governor limit under the stage that checks it", {
   doc <- read_diagram("document-run.svg")
   limits <- governor_stage_limits()
@@ -186,6 +200,55 @@ test_that("document-run.svg puts each governor limit under the stage that checks
   at <- function(s) which(txt == s)
   expect_identical(at(diagram_text(doc, "limits-call")), at("1. governor, before the cache") + 1L)
   expect_identical(at(diagram_text(doc, "limits-send")), at("3. governor, on a cache miss") + 1L)
+})
+
+test_that("document-run.svg names the reserve under each governor stage", {
+  doc <- read_diagram("document-run.svg")
+  reserves <- governor_stage_reserves()
+  expect_identical(reserves, list("reserve_calls", "reserve_usd"))
+  expect_true(all(unlist(reserves) %in% names(formals(harnessr::hr_governor))))
+  shown <- c(diagram_text(doc, "reserve-call"), diagram_text(doc, "reserve-send"))
+  expect_identical(sub(",.*$", "", shown), unlist(reserves))
+  txt <- diagram_text(doc)
+  at <- function(s) which(txt == s)
+  expect_identical(at(shown[[1]]), at("1. governor, before the cache") + 2L)
+  expect_identical(at(shown[[2]]), at("3. governor, on a cache miss") + 2L)
+})
+
+test_that("request.svg shows the steps of one request and the limits of each stage", {
+  doc <- read_diagram("request.svg")
+  steps <- diagram_text(doc, "step")
+  expect_identical(sub("^([0-9]+)[.] .*$", "\\1", steps), as.character(seq_along(steps)))
+  expect_identical(sub(":.*$", "", sub("^[0-9]+[.] ", "", steps)),
+                   c("count and cap", "governor, before the cache", "cache",
+                     "governor, on a cache miss", "the client sends it", "trace_record()",
+                     "context overflow"))
+  limits <- governor_stage_limits()
+  reserves <- governor_stage_reserves()
+  expect_identical(diagram_text(doc, "limits-call"), paste(limits[[1]], collapse = ", "))
+  expect_identical(diagram_text(doc, "limits-send"), paste(limits[[2]], collapse = ", "))
+  expect_identical(sub(",.*$", "", c(diagram_text(doc, "reserve-call"),
+                                     diagram_text(doc, "reserve-send"))), unlist(reserves))
+  txt <- diagram_text(doc)
+  at <- function(s) which(txt == s)
+  expect_identical(at(diagram_text(doc, "limits-call")), at(steps[[2]]) + 1L)
+  expect_identical(at(diagram_text(doc, "limits-send")), at(steps[[4]]) + 1L)
+  expect_identical(at(diagram_text(doc, "reserve-call")), at(steps[[2]]) + 2L)
+  expect_identical(at(diagram_text(doc, "reserve-send")), at(steps[[4]]) + 2L)
+  status <- harnessr:::.retryable_status
+  expect_identical(diagram_text(doc, "retry-status"),
+                   paste(paste(status[-length(status)], collapse = ", "), "and",
+                         status[length(status)]))
+  expect_match(paste(txt, collapse = "\n"),
+               sprintf("max_retries = %d times", harnessr:::gr_defaults$max_retries), fixed = TRUE)
+  # model_call() takes the steps in the order the diagram draws them.
+  src <- paste(deparse(body(harnessr:::model_call), width.cutoff = 500L), collapse = "\n")
+  marks <- c("call_cap(", "governor_check(trace, gate, \"call\")", "client_dispatch(client, req)",
+             "is_context_overflow(res)", "trace_record(trace, label, messages, res, params,",
+             "overflow_refit(")
+  where <- vapply(marks, function(m) regexpr(m, src, fixed = TRUE)[[1]], numeric(1))
+  expect_true(all(where > 0))
+  expect_false(is.unsorted(where))
 })
 
 test_that("registry.svg shows every kind and both contract versions", {
@@ -229,6 +292,20 @@ test_that("rerunning dev/build-diagrams.R gives byte-identical files", {
   }
 })
 
+# The text of the <text> elements of class `cls`, read without xml2, so the
+# checks of README.md and the guides run where xml2 is not installed. The
+# build writes each <text> on one line with no markup inside it, and
+# escapes only &, <, > and ".
+svg_class_text <- function(name, cls) {
+  lines <- readLines(diagram_path(name), warn = FALSE, encoding = "UTF-8")
+  hits <- regmatches(lines, regexpr(sprintf("class=\"%s\">[^<]*</text>", cls), lines))
+  out <- sub("</text>$", "", sub("^[^>]*>", "", hits))
+  out <- gsub("&quot;", "\"", out, fixed = TRUE)
+  out <- gsub("&lt;", "<", out, fixed = TRUE)
+  out <- gsub("&gt;", ">", out, fixed = TRUE)
+  gsub("&amp;", "&", out, fixed = TRUE)
+}
+
 # README.md uses the path from the repository root, which GitHub and pkgdown
 # both resolve. The guides use "../man/figures/". That path renders under
 # R CMD build, which embeds the image in the built HTML, so the installed
@@ -239,9 +316,20 @@ test_that("README and the guides show the diagrams, each with alt text", {
   readme <- paste(readLines(file.path(root, "README.md"), warn = FALSE), collapse = "\n")
   expect_match(readme, "![Two stacked layers", fixed = TRUE)
   expect_match(readme, "](man/figures/layers.svg)", fixed = TRUE)
+  # The alt text names what each layer holds, as the diagram does.
+  alt <- regmatches(readme, regexpr("!\\[Two stacked layers[^]]+\\]", readme))
+  expect_length(alt, 1)
+  # An empty scan would skip the loop, so check first that each layer has items.
+  core_items <- svg_class_text("layers.svg", "core-item")
+  doc_items <- svg_class_text("layers.svg", "doc-item")
+  expect_gt(length(core_items), 0)
+  expect_gt(length(doc_items), 0)
+  for (item in c(core_items, doc_items)) {
+    expect_match(alt, item, fixed = TRUE, info = item)
+  }
 
   shown <- c(harnessr = "document-run.svg", compose = "composition.svg",
-             extending = "registry.svg")
+             extending = "registry.svg", core = "request.svg")
   for (v in names(shown)) {
     lines <- readLines(file.path(root, "vignettes", paste0(v, ".Rmd")), warn = FALSE)
     call <- sprintf('knitr::include_graphics("../man/figures/%s")', shown[[v]])
@@ -279,6 +367,19 @@ test_that("the alt text of the guides states the same facts as the package", {
   expect_match(alt, sprintf("module contract %s.", harnessr:::hr_contract_version()),
                fixed = TRUE)
   expect_match(alt, sprintf("their own contract, %s.", harnessr:::.hr_signal_contract),
+               fixed = TRUE)
+
+  alt <- vignette_alt("core", "request.svg")
+  steps <- svg_class_text("request.svg", "step")
+  expect_gt(length(steps), 0)
+  expect_match(alt, sprintf("through %s steps. ", number_words[length(steps)]), fixed = TRUE)
+  for (l in unlist(c(governor_stage_limits(), governor_stage_reserves()))) {
+    expect_match(alt, l, fixed = TRUE, info = l)
+  }
+  status <- harnessr:::.retryable_status
+  expect_match(alt, paste(paste(status[-length(status)], collapse = ", "), "and",
+                          status[length(status)]), fixed = TRUE)
+  expect_match(alt, sprintf("max_retries = %d times", harnessr:::gr_defaults$max_retries),
                fixed = TRUE)
 
   alt <- vignette_alt("harnessr", "document-run.svg")

@@ -17,18 +17,10 @@ documents count, `gr_extract()` fills a typed schema across all of them, and
 `gr_synthesise()` writes the result up, citing the rows each section rests on
 and flagging any sentence that cites none.
 
-![Two stacked layers. Your code calls the document layer (gr_ functions for ingest, segment, read, screen, extract, claims, synthesis and review) or the core (hr_ functions for the client, calls, cache, trace and ledger, budget and governor, registry and modules, and composition). The document layer calls the core, the core sends requests to a model provider, and the core never calls the document layer.](man/figures/layers.svg)
+![Two stacked layers. The core (hr_ functions for calls and clients, the trace, models and prices, context, effort, limits, cache and replay, composing, evaluating, and the registry and modules) sends every request to a model provider over HTTP or through ellmer, your own function, a mock or a recording. The document layer (gr_ functions for ingest, segment, read, screen, extract, claims, synthesis and review) sits above it and calls the core. Your code calls either layer, and the core never calls the document layer.](man/figures/layers.svg)
 
 Your code can call either layer: the document functions (`gr_`) build on the
 core functions (`hr_`), and the core never calls the document layer.
-
-The [guides](#guides) explain each part in depth and all run offline, without a
-key. `vignette("harnessr")` walks through the core in brief and then a first
-document question. The core guides follow, starting with `vignette("core")` for
-calls, clients and the trace, then models and prices, context, effort, limits
-and caching, composing steps, and measuring. The document guides build on
-them. All are on the website, <https://elkronos.github.io/harnessr/>, with the
-reference for every function.
 
 harnessr was called readgpt up to version 0.6.0. If you have code written for
 readgpt, `vignette("migrate")` lists the old names and what replaced them.
@@ -36,10 +28,14 @@ readgpt, `vignette("migrate")` lists the old names and what replaced them.
 ## Install
 
 Requires R 4.1 or later. The only non-base hard dependencies are `digest`,
-`httr` and `jsonlite`.
+`httr` and `jsonlite`. Install the 0.7.0 release, or the development version,
+which has the changes in NEWS.md since 0.7.0:
 
 ```r
 install.packages(c("remotes", "knitr", "rmarkdown"))
+# The 0.7.0 release
+remotes::install_github("elkronos/harnessr@v0.7.0", build_vignettes = TRUE)
+# The development version, which the website documents
 remotes::install_github("elkronos/harnessr", build_vignettes = TRUE)
 ```
 
@@ -49,11 +45,13 @@ without RStudio, install it from <https://pandoc.org/installing.html> first, or
 leave out `build_vignettes = TRUE`. From a local checkout,
 `remotes::install_local("path/to/harnessr")` does the same.
 
-Other packages (pdftools, tesseract and magick, xml2, future, ellmer, shiny)
-are checked when a feature needs them; a missing one is an error naming it,
-unless harnessr can carry on without it. `vignette("harnessr")` lists them.
+Some features need an optional package: `pdftools` to read PDFs, `ellmer` for
+providers other than OpenAI, and a few more. harnessr checks for one when a
+feature needs it, and a missing one is an error naming it, unless harnessr can
+carry on without it. `vignette("harnessr")` lists each package with the feature
+that needs it.
 
-## Quick start
+## A first call
 
 One call through the core, with `hr_mock_client()` standing in for a model so
 it runs without a key. The trace records the request, its tokens and its cost:
@@ -70,53 +68,33 @@ as.data.frame(tr)[, c("stage", "model", "tokens_in", "tokens_out", "usd")]
 ```
 
 `res$text` holds the reply and `res$ok` says whether the call succeeded.
-`vignette("core")` covers every kind of client, what a result holds, the trace,
-structured replies and checks on a reply.
+`hr_call()` checked the request against the run's limits before sending it:
+by default 400 calls and $5, set with `hr_options()` or `hr_governor()`.
+`hr_trace_save()` writes the trace to a file, and `hr_replay_client()` answers
+the same requests from that file with no key and no network.
+`vignette("core")` covers every kind of client, what a result holds, the
+trace, structured replies and checks on a reply.
 
-The document layer runs a whole pipeline over a file in one call:
+## The document layer
+
+`answer_document()` runs a whole pipeline over a file in one call: ingest,
+segment, read. Here it answers from the bundled example report, with the same
+stand-in client:
 
 ```r
-ans <- answer_document("report.pdf", "What was Q3 revenue?", recipe = "needle")
+ans <- answer_document(gr_example(), "What was revenue in fiscal 2024?",
+                       recipe = "needle", client = cl)
 ans$answer
-ans$partial
+#> [1] "Revenue was 45.2 million dollars."
 ```
 
-The console block below is real output from the bundled example document,
-with `hr_mock_client()` standing in for the API, so you can reproduce it
-without a key. `gr_compare()` runs several recipes over one document and
-extracts it only once, so you can choose a pipeline before committing to it:
-
-```r
-cl  <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-cmp <- gr_compare(gr_example(), "What was revenue in fiscal 2024?",
-                  c("fast", "needle", "thorough", "survey"), client = cl)
-cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "signature", "settings")]
-#>     recipe  segmenter chunks       reader         signature
-#> 1     fast  paragraph      1        stuff        all|1|none
-#> 2   needle   semantic      2     retrieve       topk|1|none
-#> 3 thorough  paragraph      1   map_reduce   all|N+logN|tree
-#> 4   survey structural      6 hierarchical all|N+tree+1|tree
-#>                                                settings
-#> 1                                       max_tokens=4000
-#> 2 top_k=8, cite=TRUE, max_tokens=500, overlap_tokens=50
-#> 3                                    overlap_tokens=120
-#> 4                                       max_tokens=1500
-```
-
-`settings` names whatever each recipe changed from the defaults. The bundled
-example is small (under 600 tokens as `gr_ingest()` counts them), so `fast`
-and `thorough` fit it in one chunk. On a real report they would not.
-
-Or build a pipeline by hand, one choice per axis:
-
-```r
-rec <- gr_recipe("my_pipeline",
-  ingest  = list(clean = c("page_numbers", "hyphenation", "headers_footers")),
-  segment = list(method = "structural", max_tokens = 800, overlap_tokens = 80),
-  read    = list(reader = "skim", cite = TRUE, model = "gpt-5.6-terra"))
-
-ans <- answer_document("thesis.pdf", "How was the sample recruited?", rec)
-```
+`ans$trace` records every step of the run, and `ans$evidence` the chunks the
+answer rests on. A recipe such as `"needle"` names one choice for each stage.
+`vignette("readers")` explains how to choose one. `gr_compare()` runs several
+recipes over one document, extracting it once, and reports what each recipe
+cost and answered, so you can choose a pipeline before committing to it. For a
+folder of documents, `vignette("review")` covers screening, extraction and
+synthesis.
 
 ## Connecting a model
 
@@ -139,18 +117,20 @@ limit does not cover it.
 hr_register_model("gpt-5.6-terra", input_usd = 2, output_usd = 12)
 ```
 
-Then `answer_document()` in the quick start runs against the real model, and
-`hr_call()` does too when you give it `hr_client()` in place of the stand-in.
-`vignette("harnessr")` covers the other ways to give a key, company gateways,
-other providers and local models through ellmer, and any other backend.
-`vignette("models")` shows how to set many prices from a file and keep them
-current.
+Then `answer_document()` runs against the real model when you leave out
+`client`, and `hr_call()` does too when you give it `hr_client()` in place of
+the stand-in. `vignette("harnessr")` covers the other ways to give a key,
+company gateways, other providers and local models through ellmer, and any
+other backend. `vignette("models")` shows how to set many prices from a file
+and keep them current.
 
 ## Guides
 
-Each guide is on the website, under the same groups as here, and once
-installed in R as `vignette("name")`. The core guides come first because the
-document guides build on them.
+Each guide runs offline, without a key. All are on the website,
+<https://elkronos.github.io/harnessr/>, under the same groups as here, with the
+reference for every function. Once installed, each is also in R as
+`vignette("name")`. The core guides come first because the document guides
+build on them.
 
 ### Get started
 

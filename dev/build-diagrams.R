@@ -1,11 +1,12 @@
-# build-diagrams.R: write the four SVG diagrams in man/figures from the code.
+# build-diagrams.R: write the five SVG diagrams in man/figures from the code.
 #
 # Run from the repository root:
 #
 #   Rscript dev/build-diagrams.R             # writes man/figures
-#   Rscript dev/build-diagrams.R <out_dir>   # writes the four files there
+#   Rscript dev/build-diagrams.R <out_dir>   # writes the five files there
 #
-# It writes layers.svg, document-run.svg, composition.svg and registry.svg.
+# It writes layers.svg, document-run.svg, composition.svg, registry.svg and
+# request.svg.
 # The markup is written as text with base R, never through a graphics
 # device: cairo turns glyphs into paths, which a screen reader cannot read
 # and which differ between machines. A rerun gives byte-identical files.
@@ -281,17 +282,22 @@ doc_prefix <- layer_prefix("doc")
 must(identical(core_prefix, "hr_") && identical(doc_prefix, "gr_"),
      "the core exports hr_ functions and the document layer gr_ functions")
 
-# What each layer holds, with the function that stands for it. The topics are
-# the ones the spec lists; each function is checked to be exported and to be
-# defined in a file of its layer.
+# What each layer holds, with the functions that stand for it. The core items
+# follow the core guides in the order the site lists them (core, models,
+# context, effort, runs, compose, evaluate, then extending for the registry);
+# each function is checked to be exported and to be defined in a file of its
+# layer.
 core_items <- list(
-  list("client", fn("hr_client", "core")),
-  list("calls", fn("hr_call", "core")),
-  list("cache", fn("hr_cache", "core")),
-  list("trace and ledger", fn("hr_trace", "core")),
-  list("budget and governor", fn("hr_budget", "core"), fn("hr_governor", "core")),
-  list("registry and modules", fn("hr_register", "core")),
-  list("composition", fn("hr_chain", "core")))
+  list("calls and clients", fn("hr_call", "core"), fn("hr_client", "core")),
+  list("trace", fn("hr_trace", "core")),
+  list("models and prices", fn("hr_register_model", "core"), fn("hr_load_models", "core")),
+  list("context", fn("hr_budget", "core"), fn("hr_context_fit", "core")),
+  list("effort", fn("hr_effort_escalate", "core"), fn("hr_effort_check", "core")),
+  list("limits", fn("hr_governor", "core")),
+  list("cache and replay", fn("hr_cache_client", "core"), fn("hr_replay_client", "core")),
+  list("composing", fn("hr_chain", "core"), fn("hr_step", "core")),
+  list("evaluating", fn("hr_benchmark", "core"), fn("hr_report", "core")),
+  list("registry and modules", fn("hr_register", "core")))
 doc_items <- list(
   list("ingest", fn("gr_ingest", "doc")),
   list("segment", fn("gr_segment", "doc")),
@@ -302,7 +308,8 @@ doc_items <- list(
   list("synthesis", fn("gr_synthesise", "doc")),
   list("review", fn("gr_audit_report", "doc")))
 clients <- c(fn("hr_client", "core"), fn("hr_ellmer_client", "core"),
-             fn("hr_mock_client", "core"), fn("hr_replay_client", "core"))
+             fn("hr_backend_client", "core"), fn("hr_mock_client", "core"),
+             fn("hr_replay_client", "core"))
 
 item_lines <- function(it, layer) {
   c(list(ln(it[[1]], 14, bold = TRUE, color = pal[[layer]]$ink, cls = paste0(layer, "-item"))),
@@ -310,9 +317,9 @@ item_lines <- function(it, layer) {
 }
 
 draw_layers <- function() {
-  cv <- canvas("layers", 676)
-  heading(cv, "harnessr in two layers",
-          "Calls go down. The core never calls the document layer.")
+  cv <- canvas("layers", 756)
+  heading(cv, "harnessr: a core and a document layer",
+          "The core sends every model request. The document layer builds on it; calls go down.")
   box(cv, 24, 76, 852, 40, list(ln("Your R code", 15, bold = TRUE)))
 
   # The document layer.
@@ -343,8 +350,10 @@ draw_layers <- function() {
   txt(cv, 540, 344, "never: core to document layer", 13, bold = TRUE, color = pal$accent$ink)
   txt(cv, 540, 362, "test-boundary.R checks it", 13, color = muted)
 
-  # The core.
-  rect(cv, 24, 378, 852, 194, "core", cls = "core-layer")
+  # The core, one box per area, in the order of the core guides.
+  rows <- ceiling(length(core_items) / 4)
+  core_h <- 36 + rows * 76 + 4
+  rect(cv, 24, 378, 852, core_h, "core", cls = "core-layer")
   txt(cv, 40, 402, sprintf("Core: %s functions in R/core-*.R", core_prefix), 15,
       bold = TRUE, color = pal$core$ink)
   cw <- (852 - 32 - 36) / 4
@@ -355,20 +364,25 @@ draw_layers <- function() {
         item_lines(core_items[[i]], "core"), "core")
   }
 
-  arrow(cv, c(450, 572, 450, 610), cls = "call")
-  txt(cv, 458, 596, "sends requests", 13, color = muted)
-  box(cv, 24, 610, 852, 44, list(ln(sprintf(
-    "A model provider, or a stand-in: %s", paste0(clients, "()", collapse = ", ")),
-    13, cls = "fn")))
+  core_end <- 378 + core_h
+  arrow(cv, c(450, core_end, 450, core_end + 38), cls = "call")
+  txt(cv, 458, core_end + 24, "sends requests", 13, color = muted)
+  box(cv, 24, core_end + 38, 852, 52, list(
+    ln("A model provider over HTTP or through ellmer, your own function, a mock or a recording", 13),
+    ln(paste0(clients, "()", collapse = ", "), 13, cls = "fn")))
+  if (core_end + 38 + 52 + 20 != cv$height) {
+    stop(sprintf("Set the layers height to %s.", fmt(core_end + 38 + 52 + 20)), call. = FALSE)
+  }
 
-  svg_file(cv, "harnessr in two layers",
-           paste0("Two stacked layers. Your R code calls the document layer (", doc_prefix,
-                  " functions: ", paste(vapply(doc_items, `[[`, "", 1), collapse = ", "),
-                  ") or the core directly (", core_prefix, " functions: ",
+  svg_file(cv, "harnessr: a core and a document layer",
+           paste0("Two stacked layers. The core (", core_prefix, " functions: ",
                   paste(vapply(core_items, `[[`, "", 1), collapse = ", "),
-                  "). The document layer calls the core, and the core sends requests to a ",
-                  "model provider or a stand-in. The core never calls the document layer; ",
-                  "tests/testthat/test-boundary.R checks that."))
+                  ") sends every request to a model provider or a stand-in: ",
+                  paste0(clients, "()", collapse = ", "), ". The document layer (", doc_prefix,
+                  " functions: ", paste(vapply(doc_items, `[[`, "", 1), collapse = ", "),
+                  ") sits above it and calls the core. Your R code calls either layer. ",
+                  "The core never calls the document layer; tests/testthat/test-boundary.R ",
+                  "checks that."))
 }
 
 # ---------------------------------------------------------------------------
@@ -422,7 +436,9 @@ must(calls_in_order(ns$model_call, c("governor_check(trace, gate, \"call\")",
 must(calls_in_order(get("client_dispatch.gr_client", envir = ns),
                     c("cache_get(", "req$admit()", "client_send(client, req)", "cache_put(")),
      "a client looks in its cache before the spend check and sends only on a miss")
-# The limits governor_check() reads before the cache and after a miss.
+# The limits governor_check() reads before the cache and after a miss, and
+# the reserve each stage holds back for closing requests, read through
+# governor_hold(gov, "name").
 gov_body <- paste(deparse(body(ns$governor_check), width.cutoff = 500L), collapse = "\n")
 gov_split <- strsplit(gov_body, "if (stage %in% c(\"both\", \"send\"))", fixed = TRUE)[[1]]
 must(length(gov_split) == 2, "governor_check() has a call stage and a send stage")
@@ -430,8 +446,16 @@ gov_limits <- lapply(gov_split, function(part) {
   hits <- regmatches(part, gregexpr("gov\\$[a-z_]+", part))[[1]]
   unique(sub("^gov\\$", "", hits))
 })
-must(all(unlist(gov_limits) %in% names(formals(ns$hr_governor))),
+gov_reserves <- lapply(gov_split, function(part) {
+  hits <- regmatches(part, gregexpr("governor_hold\\(gov, \"[a-z_]+\"", part))[[1]]
+  unique(gsub("^governor_hold\\(gov, \"|\"$", "", hits))
+})
+must(identical(gov_reserves, list("reserve_calls", "reserve_usd")),
+     "governor_check() holds back reserve_calls in its call stage and reserve_usd in its send stage")
+must(all(unlist(c(gov_limits, gov_reserves)) %in% names(formals(ns$hr_governor))),
      "each limit governor_check() reads is an argument of hr_governor()")
+# The line under a governor stage's limits that names its reserve.
+reserve_line <- function(reserve) sprintf("%s, kept for closing = TRUE requests", reserve)
 readers_budget <- basename(r_files[startsWith(basename(r_files), "doc-read-") &
   vapply(r_files, function(f) any(grepl("hr_budget(", readLines(f, warn = FALSE),
                                         fixed = TRUE)), logical(1))])
@@ -439,7 +463,7 @@ must(length(readers_budget) > 0, "readers size prompts with hr_budget()")
 cache_documents <- isTRUE(ns$hr_options("cache_documents"))
 
 draw_document_run <- function() {
-  cv <- canvas("document-run", 736)
+  cv <- canvas("document-run", 752)
   heading(cv, "A document run",
           sprintf("%s() runs the stages of %s() in order: %s.", fn("answer_document", "doc"),
                   fn("gr_recipe", "doc"), paste(stages, collapse = ", ")))
@@ -484,11 +508,15 @@ draw_document_run <- function() {
   arrow(cv, c(lx + lw, read_mid, 444, read_mid, 444, 104, rx, 104))
   steps <- list(
     list(list(ln("1. governor, before the cache", 14, bold = TRUE),
-              ln(paste(gov_limits[[1]], collapse = ", "), 13, cls = "limits-call")), "core"),
+              ln(paste(gov_limits[[1]], collapse = ", "), 13, cls = "limits-call"),
+              ln(reserve_line(gov_reserves[[1]]), 13, color = muted, cls = "reserve-call")),
+         "core"),
     list(list(ln(sprintf("2. cache: %s()", fn("hr_cache_client", "core")), 14, bold = TRUE),
               ln("a hit is returned; nothing is sent", 13)), "core"),
     list(list(ln("3. governor, on a cache miss", 14, bold = TRUE),
-              ln(paste(gov_limits[[2]], collapse = ", "), 13, cls = "limits-send")), "core"),
+              ln(paste(gov_limits[[2]], collapse = ", "), 13, cls = "limits-send"),
+              ln(reserve_line(gov_reserves[[2]]), 13, color = muted, cls = "reserve-send")),
+         "core"),
     list(list(ln("4. the client answers it", 14, bold = TRUE),
               ln("a provider over HTTP, a mock or a replay", 13)), "neutral"),
     list(list(ln(sprintf("5. %s()", fn("trace_record", "core", internal = TRUE)), 14,
@@ -498,8 +526,9 @@ draw_document_run <- function() {
   for (s in steps) {
     arrow(cv, c(rx + rw / 2, y, rx + rw / 2, y + 20))
     y <- y + 20
-    box(cv, rx, y, rw, 56, s[[1]], s[[2]])
-    y <- y + 56
+    h <- max(56, 12 + sum(vapply(s[[1]], function(l) l$size * 1.3, numeric(1))))
+    box(cv, rx, y, rw, h, s[[1]], s[[2]])
+    y <- y + h
   }
   txt(cv, rx, y + 26, sprintf("A refused request is not sent; %s()", fn("hr_governor", "core")),
       13, color = muted)
@@ -526,9 +555,9 @@ draw_document_run <- function() {
                         collapse = "; "),
                   ". Segmenters and readers that declare model calls send each request ",
                   "through hr_call(): the governor checks ", paste(gov_limits[[1]], collapse = ", "),
-                  "; the cache answers a repeat; on a miss the governor checks ",
-                  paste(gov_limits[[2]], collapse = ", "),
-                  "; the client answers it; trace_record() adds a step. Readers size prompts with ",
+                  " and ", gov_reserves[[1]], "; the cache answers a repeat; on a miss the ",
+                  "governor checks ", paste(gov_limits[[2]], collapse = ", "), " and ",
+                  gov_reserves[[2]], "; the client answers it; trace_record() adds a step. Readers size prompts with ",
                   "hr_budget(). One trace from hr_trace() goes to every stage."))
 }
 
@@ -822,10 +851,162 @@ draw_registry <- function() {
                   signal_contract, " (.hr_signal_contract)."))
 }
 
+# ---------------------------------------------------------------------------
+# 5. request.svg
+# ---------------------------------------------------------------------------
+
+# The life of one request through hr_call(), in the order model_call() takes
+# it (R/core-transport-call.R): the cap, the governor's call stage, the
+# client's dispatch, the trace step, then a context overflow and its one
+# retry. A prompt that leaves no room for a reply is recorded and not sent.
+must(calls_in_order(ns$model_call, c(
+  "call_cap(", "max_output <= 0L", "trace_record(trace", "governor_check(trace, gate, \"call\")",
+  "client_dispatch(client, req)", "governor_refuse(trace", "is_context_overflow(res)",
+  "trace_record(trace", "signalCondition(", "overflow_refit(", "model_call(client, smaller")),
+  "model_call() caps the reply, checks the governor, dispatches, records, then retries an overflow")
+must(grepl("overflow_retry = TRUE", paste(deparse(body(ns$model_call), width.cutoff = 500L),
+                                          collapse = "\n"), fixed = TRUE),
+     "an overflow is retried once, marked overflow_retry = TRUE")
+# A replay client checks the send stage and answers from its recording; it
+# has no cache (R/core-transport-call.R).
+must(calls_in_order(get("client_dispatch.gr_replay_client", envir = ns),
+                    c("req$admit()", "replay_lookup(client, req)")),
+     "a replay client checks the send stage and then looks the request up")
+# What the cache does not keep.
+dispatch_src <- paste(deparse(body(get("client_dispatch.gr_client", envir = ns)),
+                              width.cutoff = 500L), collapse = "\n")
+must(grepl("isTRUE(res$ok) && !identical(res$finish_reason, \"length\") && usable(res)",
+           dispatch_src, fixed = TRUE),
+     "the cache keeps only a usable reply that was not cut off")
+# HTTP retries (R/core-transport-http.R).
+http_src <- paste(deparse(body(ns$http_call), width.cutoff = 500L), collapse = "\n")
+must(grepl("status %in% .retryable_status && attempt <= client$max_retries", http_src,
+           fixed = TRUE) && grepl("out_of_quota(status, body_text)", http_src, fixed = TRUE),
+     "http_call() retries the retryable statuses up to max_retries, and not an account out of quota")
+retry_status <- ns$.retryable_status
+max_retries <- ns$gr_defaults$max_retries
+on_overflow_default <- ns$gr_defaults$on_overflow
+must(identical(on_overflow_default, "error"), "on_overflow is \"error\" by default")
+must(identical(ns$check_closing(TRUE), TRUE), "hr_call() takes closing = TRUE")
+# deparse() breaks a line after `if (...)`, so whitespace is made one space.
+gov_src <- gsub("\\s+", " ", paste(deparse(body(ns$governor_check), width.cutoff = 500L),
+                                   collapse = " "))
+must(grepl("hold <- if (closing) 0 else governor_hold(gov, \"reserve_calls\"", gov_src,
+           fixed = TRUE) &&
+       grepl("hold <- if (closing) 0 else governor_hold(gov, \"reserve_usd\"", gov_src,
+             fixed = TRUE),
+     "a closing request may spend reserve_calls and reserve_usd")
+must(grepl("\"hr_budget_refused\"", gov_src, fixed = TRUE), "a refusal has class hr_budget_refused")
+overflow_phrases <- ns$.hr_overflow_phrases
+must("prompt is too long" %in% overflow_phrases, "\"prompt is too long\" names an overflow")
+
+draw_request <- function() {
+  # The height is checked at the end, as for document-run.svg.
+  cv <- canvas("request", 864)
+  heading(cv, "The life of one request",
+          sprintf("%s() takes each request down these steps; a refusal, a hit or no room ends it early.",
+                  fn("hr_call", "core")))
+  mx <- 24
+  mw <- 500
+  ox <- 564
+  ow <- 312
+  box(cv, mx, 84, mw, 40, list(ln(sprintf("%s(client, messages, ..., closing = FALSE)",
+                                          fn("hr_call", "core")), 14, bold = TRUE, cls = "fn")),
+      "core")
+  step <- function(title, ...) c(list(ln(title, 14, bold = TRUE, cls = "step")), list(...))
+  rows <- list(
+    list(main = step(sprintf("1. count and cap: %s()", fn("hr_count_tokens", "core")),
+                     ln("counts the prompt; max_output is held to the model's", 13),
+                     ln("output limit and to the room its context window leaves", 13)),
+         out = list(ln("no room for a reply", 14, bold = TRUE, color = pal$accent$ink),
+                    ln("a failed result with status 0;", 13),
+                    ln("a step of the trace, never sent", 13)), out_style = "accent"),
+    list(main = step("2. governor, before the cache",
+                     ln(paste(gov_limits[[1]], collapse = ", "), 13, cls = "limits-call"),
+                     ln(reserve_line(gov_reserves[[1]]), 13, color = muted, cls = "reserve-call")),
+         out = list(ln("refused", 14, bold = TRUE, color = pal$accent$ink),
+                    ln("ok = FALSE, refused = TRUE;", 13),
+                    ln("class hr_budget_refused;", 13),
+                    ln("not sent and not a step", 13)), out_style = "accent"),
+    list(main = step(sprintf("3. cache: %s()", fn("hr_cache_client", "core")),
+                     ln(sprintf("an %s() answers from its recording", fn("hr_replay_client", "core")),
+                        13, cls = "fn"),
+                     ln("instead, and has no cache", 13)),
+         out = list(ln("a hit", 14, bold = TRUE),
+                    ln("returned with cached = TRUE and", 13),
+                    ln("attempts = 0; nothing is paid", 13)), out_style = "core"),
+    list(main = step("4. governor, on a cache miss",
+                     ln(paste(gov_limits[[2]], collapse = ", "), 13, cls = "limits-send"),
+                     ln(reserve_line(gov_reserves[[2]]), 13, color = muted, cls = "reserve-send")),
+         out = list(ln("refused", 14, bold = TRUE, color = pal$accent$ink),
+                    ln("as at step 2: nothing is sent", 13),
+                    ln("and nothing is paid", 13)), out_style = "accent"),
+    list(main = step("5. the client sends it",
+                     ln(sprintf("%s() retries a dropped connection and HTTP",
+                                fn("hr_client", "core")), 13, cls = "fn"),
+                     ln(paste(paste(retry_status[-length(retry_status)], collapse = ", "), "and",
+                              retry_status[length(retry_status)]), 13, cls = "retry-status"),
+                     ln(sprintf("up to max_retries = %d times, pausing between tries;",
+                                max_retries), 13),
+                     ln("an account out of quota is not retried", 13)),
+         main_style = "neutral",
+         out = list(ln("the reply is cached", 14, bold = TRUE),
+                    ln("unless it failed, was cut off at", 13),
+                    ln("its cap or fails the caller's check", 13)), out_style = "core"),
+    list(main = step(sprintf("6. %s()", fn("trace_record", "core", internal = TRUE)),
+                     ln("adds one step: tokens, cost, seconds, when it started", 13),
+                     ln("and ended, and the overflow fields when there is one", 13))),
+    list(main = step("7. context overflow",
+                     ln("a 400 or 413 whose body says the prompt is too long", 13),
+                     ln("signals hr_context_overflow", 13)),
+         out = list(ln(sprintf("%s(on_overflow = fn)", fn("hr_options", "core")), 14, bold = TRUE,
+                       cls = "fn"),
+                    ln("fn makes a smaller prompt, sent", 13),
+                    ln("once, from step 1 again; the default", 13),
+                    ln(sprintf("\"%s\" returns the failure", on_overflow_default), 13)),
+         out_style = "core"))
+  need <- function(lines) ceiling(12 + sum(vapply(lines, function(l) l$size * 1.3, numeric(1))))
+  y <- 124
+  for (r in rows) {
+    arrow(cv, c(mx + mw / 2, y, mx + mw / 2, y + 20))
+    y <- y + 20
+    h <- max(56, need(r$main), if (!is.null(r$out)) need(r$out) else 0)
+    box(cv, mx, y, mw, h, r$main, r$main_style %||% "core")
+    if (!is.null(r$out)) {
+      arrow(cv, c(mx + mw, y + h / 2, ox, y + h / 2), r$out_style)
+      box(cv, ox, y, ow, h, r$out, r$out_style)
+    }
+    y <- y + h
+  }
+  arrow(cv, c(mx + mw / 2, y, mx + mw / 2, y + 20))
+  y <- y + 20
+  box(cv, mx, y, 852, 44, list(ln(
+    "the result: a gr_result with $ok, $text, $usage, $cached, $attempts and more", 14)))
+  if (y + 44 + 20 != cv$height) stop(sprintf("Set the request height to %s.", fmt(y + 44 + 20)),
+                                     call. = FALSE)
+
+  svg_file(cv, "The life of one request",
+           paste0("hr_call() takes a request through seven steps. 1: it counts the prompt and ",
+                  "caps the reply; a prompt that leaves no room is a failed step, not sent. ",
+                  "2: the governor checks ", paste(gov_limits[[1]], collapse = ", "), " and ",
+                  gov_reserves[[1]], "; a refused request is not sent and not a step. 3: the cache of ",
+                  "hr_cache_client() returns a hit with nothing paid; a replay client answers ",
+                  "from its recording. 4: on a miss the governor checks ",
+                  paste(gov_limits[[2]], collapse = ", "), " and ", gov_reserves[[2]],
+                  ". A closing request may spend the ",
+                  "reserves. 5: the client sends it; hr_client() retries a dropped connection and ",
+                  "HTTP ", paste(retry_status, collapse = ", "), " up to ", max_retries,
+                  " times, and the cache keeps a usable reply. 6: trace_record() adds the step. ",
+                  "7: a provider's refusal of a prompt that is too long signals ",
+                  "hr_context_overflow, and an on_overflow function can retry it once with a ",
+                  "smaller prompt. The call returns a gr_result."))
+}
+
 written <- c(
   write_svg(draw_layers(), "layers.svg"),
   write_svg(draw_document_run(), "document-run.svg"),
   write_svg(draw_composition(), "composition.svg"),
-  write_svg(draw_registry(), "registry.svg"))
+  write_svg(draw_registry(), "registry.svg"),
+  write_svg(draw_request(), "request.svg"))
 ns$hr_options(old_opts)
 cat(paste0("Wrote ", written, "\n"), sep = "")
