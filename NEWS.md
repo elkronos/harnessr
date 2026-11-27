@@ -1,5 +1,24 @@
 # harnessr 0.7.0.9000
 
+## Run time in the trace
+
+* **`hr_trace_summary()` reads `elapsed_s` from the steps.** It was the time
+  from the run's start to the moment you asked for the summary, so a summary
+  taken later, or of a trace read back from a file, overstated the run. It
+  now runs from the trace's start to the end of its last step, and a trace
+  with no steps gives 0. A local step records local time with no offset, so
+  it is placed by the offset the trace's requests show, and a trace read back
+  in another time zone gives the same figure.
+
+* **`hr_trace_summary()` splits the run time.** Six columns follow the
+  existing ones, which keep their names and positions: `request_s`, the
+  seconds spent in model calls and embeddings requests; `local_s`, the
+  seconds of local steps that time themselves, such as `hr_step_command()`;
+  `overhead_s`, the rest; and a share for each. The trace's print gains a
+  `time:` line with the split and, when the provider served input from its
+  cache, the share of input tokens it served. The `summary` that
+  `as_json()` and `hr_trace_save()` write carries the new columns.
+
 # harnessr 0.7.0
 
 harnessr 0.7.0 is the first release under the name harnessr. It reframes

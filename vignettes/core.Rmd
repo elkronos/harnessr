@@ -475,7 +475,7 @@ hr_trace_summary(tr)[, c("elapsed_s", "request_s", "local_s", "overhead_s",
 
 `elapsed_s` runs from the trace's start to the end of its last step, read from
 the steps, so a summary taken tomorrow, or of a trace saved with `saveRDS()` and
-read back, gives the same figure. `request_s` is the seconds the requests took,
+read back in another time zone, gives the same figure. An empty trace gives 0. `request_s` is the seconds the requests took,
 `local_s` the seconds that local steps timed (a command step times itself), and
 `overhead_s` the rest: R code between requests, and local steps that record no
 time. The shares add to 1. Requests sent in parallel overlap, so `request_s`
