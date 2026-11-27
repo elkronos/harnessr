@@ -37,7 +37,7 @@
 * **A sampled screening names its rule.** With `samples` above 1, the
   result gains a `sampling` field (`samples`, `sample_rule` and, under
   `"k_of_n"`, `sample_k`), the print says how each decision was made, and
-  each answer's notes carry `sample_k`. At `samples = 1` the request, the
+  under `"k_of_n"` each answer's notes carry `sample_k`. At `samples = 1` the request, the
   cache key, the table and the result's fields are as before.
 
 ## A context policy for synthesis, and cuts that say what they removed
