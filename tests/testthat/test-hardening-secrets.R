@@ -40,6 +40,16 @@ test_that("the provider variables and api_headers values are hidden", {
   expect_identical(unname(seen), c("", "", ""))
 })
 
+test_that("a short api_headers value hides no variable", {
+  withr::local_envvar(c(HRT_FLAG = "true", HRT_TEAM = "finance", HRT_GW = "gateway-key-0123"))
+  old <- hr_options()
+  on.exit(hr_options(old), add = TRUE)
+  hr_options(api_headers = c("X-Debug" = "true", "X-Team" = "finance",
+                             "api-key" = "gateway-key-0123"))
+  seen <- sec_seen(sec_env_step(c("HRT_FLAG", "HRT_TEAM", "HRT_GW"))(list(), list()))
+  expect_identical(unname(seen), c("true", "finance", ""))
+})
+
 test_that("a name the user adds is hidden, and the count is recorded", {
   withr::local_envvar(c(HRT_REGION = "eu-west", HRT_OTHER = "kept", HRT_X_TOKEN = "t-1"))
   old <- hr_options()

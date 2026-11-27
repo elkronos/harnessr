@@ -44,6 +44,11 @@
                               "GITHUB_TOKEN", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN",
                               "HF_TOKEN")
 
+#' The fewest characters an api_headers value needs before a variable that
+#' holds it is hidden: the length mask_secrets() needs to mask a value.
+#' @noRd
+.hr_command_header_min <- 8L
+
 #' The most of a command's output, in bytes, kept in its result.
 #' @noRd
 .hr_command_output_cap <- 65536L
@@ -111,7 +116,9 @@
 #' `GITHUB_TOKEN`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` and
 #' `HF_TOKEN`, when its name matches a regular expression in
 #' `hr_options(command_hide_env =)`, or when its value is one of the values of
-#' `hr_options(api_headers =)`, such as a gateway key read with [Sys.getenv()].
+#' `hr_options(api_headers =)` and 8 characters or longer, such as a gateway
+#' key read with [Sys.getenv()]; a shorter header value, such as `"true"`, is
+#' no credential and hides nothing.
 #' A program that needs one of these variables cannot read it; pass what it
 #' needs another way. `hr_options(command_temp_home = TRUE)` also runs the
 #' program with `HOME` (and `USERPROFILE` on Windows) set to an empty folder
@@ -357,7 +364,8 @@ command_exec <- function(name, argv, parse, timeout, wd) {
 #' vector of their values: those whose name matches
 #' .hr_command_hidden_patterns or the patterns of
 #' hr_options("command_hide_env"), those named in .hr_command_hidden_names,
-#' and those whose value is one of hr_options("api_headers").
+#' and those whose value is one of hr_options("api_headers") and at least
+#' .hr_command_header_min characters long.
 #' @noRd
 command_hidden_env <- function() {
   env <- Sys.getenv()
@@ -368,7 +376,10 @@ command_hidden_env <- function() {
   hit <- nm %in% .hr_command_hidden_names
   for (p in pats) hit <- hit | grepl(p, nm, ignore.case = TRUE, perl = TRUE)
   headers <- unlist(hr_options("api_headers") %||% list(), use.names = FALSE)
-  headers <- as.character(headers[nzchar(as.character(headers))])
+  headers <- as.character(headers)
+  # A short header value, such as "true" or a team name, is no credential,
+  # and a variable that happens to hold it stays visible.
+  headers <- headers[!is.na(headers) & nchar(headers) >= .hr_command_header_min]
   if (length(headers)) hit <- hit | (env %in% headers & nzchar(env))
   env[hit]
 }

@@ -106,7 +106,9 @@ it is one of the provider variables \code{OPENAI_API_KEY}, \code{ANTHROPIC_API_K
 \code{GITHUB_TOKEN}, \code{AWS_SECRET_ACCESS_KEY}, \code{AWS_SESSION_TOKEN} and
 \code{HF_TOKEN}, when its name matches a regular expression in
 \code{hr_options(command_hide_env =)}, or when its value is one of the values of
-\code{hr_options(api_headers =)}, such as a gateway key read with \code{\link[=Sys.getenv]{Sys.getenv()}}.
+\code{hr_options(api_headers =)} and 8 characters or longer, such as a gateway
+key read with \code{\link[=Sys.getenv]{Sys.getenv()}}; a shorter header value, such as \code{"true"}, is
+no credential and hides nothing.
 A program that needs one of these variables cannot read it; pass what it
 needs another way. \code{hr_options(command_temp_home = TRUE)} also runs the
 program with \code{HOME} (and \code{USERPROFILE} on Windows) set to an empty folder
