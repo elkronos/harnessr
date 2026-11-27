@@ -217,8 +217,9 @@ print.gr_result <- function(x, ...) {
 #'   the phrasings providers use, such as `context_length_exceeded`, "maximum
 #'   context length" or "prompt is too long") comes back as a failed result
 #'   with the same error text and `$error_class = "hr_context_overflow"`, and
-#'   `$overflow` holds `estimate_tokens`, the local count of the prompt, and
-#'   `context_window`, the window registered for the model. The trace step
+#'   `$overflow` holds `estimate_tokens`, the local count of the prompt,
+#'   `context_window`, the window registered for the model, and the HTTP
+#'   `status`. The trace step
 #'   records the same in its `overflow` field, and a condition of class
 #'   `hr_context_overflow` is signalled. A 400 with any other body is left as
 #'   it was. `hr_options(on_overflow =)` can retry such a request once with a
@@ -431,8 +432,11 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
   # and the step keeps the local count and the window beside it.
   overflow <- NULL
   if (is_context_overflow(res)) {
+    # The status too: a step does not keep one, and a replay of the step needs
+    # it to name the refusal again (see replay_lookup()).
     overflow <- list(estimate_tokens = as_num1(prompt_tokens, NA_real_),
-                     context_window = as_num1(info$context_window, NA_real_))
+                     context_window = as_num1(info$context_window, NA_real_),
+                     status = as_int1(res$status, NA_integer_))
     res$error_class <- "hr_context_overflow"
     res$overflow <- overflow
   }

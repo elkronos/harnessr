@@ -111,8 +111,9 @@
 #'     ISO 8601 in UTC with a trailing `Z`.}
 #'   \item{`overflow`, `overflow_retry`}{Only on a request the provider
 #'     refused as longer than the model's context window: `overflow` holds
-#'     `estimate_tokens`, the local count of the prompt, and
-#'     `context_window`, the window registered for the model. On the retry
+#'     `estimate_tokens`, the local count of the prompt,
+#'     `context_window`, the window registered for the model, and the HTTP
+#'     `status`, which a replay of the step reads. On the retry
 #'     that `hr_options(on_overflow =)` sent, `overflow_retry` is `TRUE` (see
 #'     [hr_call()]).}
 #' }

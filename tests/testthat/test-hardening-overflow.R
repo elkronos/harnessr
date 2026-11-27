@@ -161,3 +161,33 @@ test_that("the mock's overflow mode refuses its first request", {
   cl$reset()
   expect_false(hr_call(cl, "a")$ok)
 })
+
+test_that("the overflow record keeps the status, so a replay names the refusal and retries it", {
+  old <- hr_options()
+  on.exit(hr_options(old), add = TRUE)
+  testthat::local_mocked_bindings(POST = function(...) ov_resp(ov_bodies$anthropic, 413L),
+                                  .package = "httr")
+  tr <- hr_trace()
+  r <- hr_call(ov_client(), "hi", trace = tr)
+  expect_identical(r$overflow$status, 413L)
+  expect_identical(tr$steps[[1]]$overflow$status, 413L)
+
+  hr_options(on_overflow = function(messages, info) {
+    messages[[length(messages)]]$content <- "short"
+    messages
+  })
+  live <- hr_mock_client(function(m, p) "Revenue was 45.2 million.", mode = "overflow")
+  tr <- hr_trace()
+  r <- hr_call(live, "What was revenue?", trace = tr)
+  expect_true(r$ok)
+  f <- tempfile(fileext = ".json")
+  on.exit(unlink(f), add = TRUE)
+  hr_trace_save(tr, f)
+  tr2 <- hr_trace()
+  r2 <- hr_call(hr_replay_client(f), "What was revenue?", trace = tr2)
+  expect_true(r2$ok)
+  expect_identical(r2$text, r$text)
+  expect_identical(length(tr2$steps), 2L)
+  expect_identical(tr2$steps[[1]]$overflow$status, 400L)
+  expect_true(tr2$steps[[2]]$overflow_retry)
+})

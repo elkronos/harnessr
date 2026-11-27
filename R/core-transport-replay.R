@@ -448,6 +448,10 @@ replay_steps <- function(source) {
       # document, and reported 0 misses. It certified itself as an exact
       # reproduction of a run it had not reproduced.
       finish_reason = as_chr1(st$finish_reason, NA_character_),
+      # The status of a provider's refusal of a prompt longer than the window,
+      # the one status a step keeps (see model_call()); NA for any other step.
+      overflow_status = if (is.list(st$overflow)) as_int1(st$overflow$status, NA_integer_)
+                        else NA_integer_,
       label = as_chr1(st$label, "call"),
       # The harnessr-replay-v2 key the call recorded, or NA for a step made
       # before it existed, which is looked up by readgpt-replay-v1 instead.
@@ -864,8 +868,12 @@ replay_lookup <- function(client, req) {
     legacy_key_warn("replay", as_chr1(client$.client_id, "replay"))
   }
 
+  # A step keeps no status, except a provider's refusal of a prompt longer
+  # than the window, which keeps it so that the replay names the refusal and
+  # an on_overflow function retries it as the recorded run did.
   res <- gr_result(
-    ok = st$ok, text = st$response, error = st$error, status = NA_integer_,
+    ok = st$ok, text = st$response, error = st$error,
+    status = as_int1(st[["overflow_status", exact = TRUE]], NA_integer_),
     usage = st$usage %||% list(input = st$tokens$input, output = st$tokens$output),
     model = as_chr1(st$answered_model, model),
     # From the recording. Hard-coded NA here made every replayed call look like

@@ -132,8 +132,9 @@ included: 0 when a cache or a recording answered it.}
 ISO 8601 in UTC with a trailing \code{Z}.}
 \item{\code{overflow}, \code{overflow_retry}}{Only on a request the provider
 refused as longer than the model's context window: \code{overflow} holds
-\code{estimate_tokens}, the local count of the prompt, and
-\code{context_window}, the window registered for the model. On the retry
+\code{estimate_tokens}, the local count of the prompt,
+\code{context_window}, the window registered for the model, and the HTTP
+\code{status}, which a replay of the step reads. On the retry
 that \code{hr_options(on_overflow =)} sent, \code{overflow_retry} is \code{TRUE} (see
 \code{\link[=hr_call]{hr_call()}}).}
 }
