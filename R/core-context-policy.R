@@ -404,8 +404,9 @@ hr_context_policy <- function(pin = c("question", "instructions"), cut_order = c
     gr_abort("`overflow` must be \"marker\" or \"stubs\".", class = "gr_bad_setting")
   }
   st <- suppressWarnings(as.numeric(stub_tokens))
-  if (length(st) != 1L || is.na(st) || st < 1) {
-    gr_abort("`stub_tokens` must be one number of tokens, 1 or more.", class = "gr_bad_setting")
+  if (length(st) != 1L || is.na(st) || st < 1 || st > .Machine$integer.max) {
+    gr_abort(sprintf("`stub_tokens` must be one number of tokens, from 1 to %d.",
+                     .Machine$integer.max), class = "gr_bad_setting")
   }
   ds <- disclose_subset
   if (!isTRUE(ds) && !isFALSE(ds) &&

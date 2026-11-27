@@ -405,6 +405,9 @@ test_that("hr_context_policy() keeps its old shape unless the new rules are set"
   expect_error(hr_context_policy(marker = c("a", "b")), class = "gr_bad_setting")
   expect_error(hr_context_policy(overflow = "drop"), class = "gr_bad_setting")
   expect_error(hr_context_policy(stub_tokens = 0), class = "gr_bad_setting")
+  # A value R cannot store as an integer is refused, not kept as NA.
+  expect_error(hr_context_policy(stub_tokens = Inf), class = "gr_bad_setting")
+  expect_error(hr_context_policy(stub_tokens = 3e9), class = "gr_bad_setting")
   expect_error(hr_context_policy(disclose_subset = NA), class = "gr_bad_setting")
 })
 
