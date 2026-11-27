@@ -13,8 +13,10 @@ Description: A toolkit for composing calls to large language models and
     what came back. On top of that core sits a document-reading layer that
     ingests files, segments them into chunks, reads them to answer a
     question, and screens, extracts from and synthesises across a corpus.
-    Every stage is registry-based, so users can add their own extractors,
-    cleaners, segmenters and readers without editing the package.
+    Any client fits: an OpenAI-compatible endpoint, a provider through
+    'ellmer', a function of your own or an offline mock. Every stage is
+    registry-based, so users can add their own extractors, cleaners,
+    segmenters, readers, embedders and steps without editing the package.
 URL: https://github.com/elkronos/harnessr, https://elkronos.github.io/harnessr/
 BugReports: https://github.com/elkronos/harnessr/issues
 License: MIT + file LICENSE
