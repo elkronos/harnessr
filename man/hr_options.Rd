@@ -127,11 +127,12 @@ prices with \code{\link[=hr_register_model]{hr_register_model()}} or \code{\link
 run's closing requests, such as a reader's final answer. An ordinary
 request is refused once it would reach into them; a request sent with
 \code{hr_call(closing = TRUE)} may use them (see \code{\link[=hr_governor]{hr_governor()}}). 0 holds
-none back. A value above \code{max_calls} is refused when a governor is
-made, with class \code{hr_bad_reserve}. Untested: a choice, not a tuned
-value.}
+none back. A value above \code{max_calls} is refused with class
+\code{hr_bad_reserve}, both here and in \code{\link[=hr_governor]{hr_governor()}}. Untested: a
+choice, not a tuned value.}
 \item{\code{reserve_usd} (0)}{Dollars held back from \code{max_cost_usd} for a
-run's closing requests, in the same way. 0 holds none back.
+run's closing requests, in the same way. 0 holds none back. A value
+above \code{max_cost_usd} is refused with class \code{hr_bad_reserve}.
 Untested: a choice, not a tuned value.}
 \item{\code{on_overflow} ("error")}{What a request does when the provider
 refuses its prompt as longer than the model's context window (an
@@ -258,7 +259,9 @@ ignoring it spends money. \code{NULL} and \code{Inf} both mean "no limit".
 vector of ids, and \code{allow_unpriced} \code{TRUE} or \code{FALSE}. The reserves,
 \code{reserve_calls} and \code{reserve_usd}, must be a single finite number of 0 or
 more, and are refused otherwise with the same class; \code{reserve_calls} is
-rounded down.
+rounded down. A reserve larger than its limit, as the two stand once every
+setting of the call is in, is refused with classes \code{hr_bad_reserve} and
+\code{gr_bad_option}, and the call changes nothing.
 
 The tuning settings (\code{safety_margin} [0, 0.5], \code{min_output_tokens}
 [0, 1e6], \code{max_retries} [0, 10], \code{retry_pause_base} [0, 60],

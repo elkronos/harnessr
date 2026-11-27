@@ -181,22 +181,29 @@ hr_governor <- function(max_calls = hr_options("max_calls"),
                    class = "hr_governor")
   rc <- check_option("reserve_calls", reserve_calls)
   ru <- check_option("reserve_usd", reserve_usd)
-  over <- function(reserve, limit, what) {
-    lim <- finite_limit(limit)
-    if (!is.null(lim) && reserve > lim) {
-      gr_abort(sprintf("%s (%s) is larger than %s (%s), so no limit would be left to hold it back from.",
-                       what[1], format(reserve, scientific = FALSE), what[2],
-                       format(lim, scientific = FALSE)),
-               class = c("hr_bad_reserve", "gr_bad_setting"))
-    }
-  }
-  over(rc, gov$max_calls, c("reserve_calls", "max_calls"))
-  over(ru, gov$max_cost_usd, c("reserve_usd", "max_cost_usd"))
+  check_reserve(rc, gov$max_calls, c("reserve_calls", "max_calls"), "gr_bad_setting")
+  check_reserve(ru, gov$max_cost_usd, c("reserve_usd", "max_cost_usd"), "gr_bad_setting")
   # Only when set, so a governor without a reserve, and a trace that saves
   # one, are what they were before the reserve existed.
   if (rc > 0) gov$reserve_calls <- rc
   if (ru > 0) gov$reserve_usd <- ru
   gov
+}
+
+#' Refuse a reserve larger than the limit it is held back from, with class
+#' `hr_bad_reserve` and `cls`. A limit that is not set holds no reserve, so
+#' any reserve passes. `what` names the reserve and the limit.
+#' @noRd
+check_reserve <- function(reserve, limit, what, cls) {
+  lim <- finite_limit(limit)
+  if (!is.null(lim) && reserve > lim) {
+    gr_abort(sprintf(paste0("%s (%s) is larger than %s (%s); a reserve is held back from ",
+                            "its limit, so it can be at most the limit."),
+                     what[1], format(reserve, scientific = FALSE), what[2],
+                     format(lim, scientific = FALSE)),
+             class = c("hr_bad_reserve", cls))
+  }
+  invisible(reserve)
 }
 
 #' What a governor holds back for closing requests from one limit: its

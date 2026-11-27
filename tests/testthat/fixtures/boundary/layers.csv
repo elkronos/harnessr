@@ -138,6 +138,7 @@
 "check_positive","core","function"
 "check_reference","core","function"
 "check_registration","core","function"
+"check_reserve","core","function"
 "check_same_dim","core","function"
 "check_step","core","function"
 "check_texts","core","function"

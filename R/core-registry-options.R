@@ -471,11 +471,12 @@ check_option <- function(name, value) {
 #'     run's closing requests, such as a reader's final answer. An ordinary
 #'     request is refused once it would reach into them; a request sent with
 #'     `hr_call(closing = TRUE)` may use them (see [hr_governor()]). 0 holds
-#'     none back. A value above `max_calls` is refused when a governor is
-#'     made, with class `hr_bad_reserve`. Untested: a choice, not a tuned
-#'     value.}
+#'     none back. A value above `max_calls` is refused with class
+#'     `hr_bad_reserve`, both here and in [hr_governor()]. Untested: a
+#'     choice, not a tuned value.}
 #'   \item{`reserve_usd` (0)}{Dollars held back from `max_cost_usd` for a
-#'     run's closing requests, in the same way. 0 holds none back.
+#'     run's closing requests, in the same way. 0 holds none back. A value
+#'     above `max_cost_usd` is refused with class `hr_bad_reserve`.
 #'     Untested: a choice, not a tuned value.}
 #'   \item{`on_overflow` ("error")}{What a request does when the provider
 #'     refuses its prompt as longer than the model's context window (an
@@ -598,7 +599,9 @@ check_option <- function(name, value) {
 #' vector of ids, and `allow_unpriced` `TRUE` or `FALSE`. The reserves,
 #' `reserve_calls` and `reserve_usd`, must be a single finite number of 0 or
 #' more, and are refused otherwise with the same class; `reserve_calls` is
-#' rounded down.
+#' rounded down. A reserve larger than its limit, as the two stand once every
+#' setting of the call is in, is refused with classes `hr_bad_reserve` and
+#' `gr_bad_option`, and the call changes nothing.
 #'
 #' The tuning settings (`safety_margin` \[0, 0.5\], `min_output_tokens`
 #' \[0, 1e6\], `max_retries` \[0, 10\], `retry_pause_base` \[0, 60\],
@@ -667,6 +670,16 @@ hr_options <- function(...) {
   # disabling the cost cap, quietly restored the $5 cap instead. Assign directly
   # so NULL is stored as a value.
   for (nm in names(args)) cur[nm] <- list(args[[nm]])
+  # A reserve is checked against its limit as the two stand once every
+  # setting of this call is in, so they may be set in either order.
+  if (any(names(args) %in% c("reserve_calls", "max_calls", "reserve_usd", "max_cost_usd"))) {
+    after <- gr_defaults
+    for (nm in names(cur)) after[nm] <- list(cur[[nm]])
+    check_reserve(after$reserve_calls, after$max_calls, c("reserve_calls", "max_calls"),
+                  "gr_bad_option")
+    check_reserve(after$reserve_usd, after$max_cost_usd, c("reserve_usd", "max_cost_usd"),
+                  "gr_bad_option")
+  }
   hr_state$options <- cur
   invisible(old)
 }

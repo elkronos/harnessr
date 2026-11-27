@@ -232,3 +232,21 @@ test_that("combined governors hold ordinary and closing requests to the tighter 
   expect_identical(f$max_calls, 4)
   expect_identical(f$reserve_calls, 1)
 })
+
+test_that("hr_options() refuses a reserve larger than its limit and keeps the old values", {
+  old <- hr_options()
+  on.exit(hr_options(old), add = TRUE)
+  hr_options(max_calls = 5, max_cost_usd = 1)
+  expect_error(hr_options(reserve_calls = 6), class = "hr_bad_reserve")
+  expect_error(hr_options(reserve_usd = 2), class = "gr_bad_option")
+  expect_equal(hr_options("reserve_calls"), 0)
+  expect_identical(hr_options("reserve_usd"), 0)
+  # Checked once every setting of the call is in, so the order does not matter.
+  hr_options(reserve_calls = 8, max_calls = 10)
+  expect_identical(hr_options("reserve_calls"), 8)
+  expect_error(hr_options(max_calls = 7), class = "hr_bad_reserve")
+  expect_identical(hr_options("max_calls"), 10)
+  # No limit holds no reserve, so any reserve passes.
+  hr_options(max_cost_usd = NULL, reserve_usd = 50)
+  expect_identical(hr_options("reserve_usd"), 50)
+})
