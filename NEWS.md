@@ -96,16 +96,19 @@
   `vignette("core")`.
 
 * **`hr_options()` gains `mask_secrets`**, off by default. Turned on, it
-  replaces key-shaped strings (OpenAI, Anthropic, GitHub, AWS, Google, Slack
-  and Hugging Face keys, JSON web tokens, the token after `Bearer ` and the
-  values a command step hides) with `<masked>` in the output a command step
-  keeps, in the file `hr_trace_save()` writes and in a printed trace. The
-  step's note records `masked`, a saved trace a top-level `masked`, and the
-  print a `masked:` line, each a count. The trace in your session, the cache
-  and every cache and replay key keep the text as it was, so a replay of a
-  masked file still finds its replies. Turn it on before you share a trace or
-  a step's output, since an error body or a program's output can echo a key.
-  Off, every copy is byte for byte what it was.
+  replaces key-shaped strings (OpenAI, Anthropic, GitHub, Google, Slack and
+  Hugging Face keys, AWS access key IDs, JSON web tokens and the token after
+  `Bearer `) with `<masked>` in the output a command step keeps, in the file
+  `hr_trace_save()` writes and in a printed trace. A command step's output
+  also has the values of the variables it hid masked. The step's note
+  records `masked`, a saved trace a top-level `masked`, and the print a
+  `masked:` line, each a count. The trace in your session, the cache and
+  every cache and replay key keep the text as it was, so a replay of a
+  masked file still finds its replies. A later step that reads a command
+  step's `$check` gets the masked output, so a prompt built from it changes
+  with the setting. Turn it on before you share a trace or a step's output,
+  since an error body or a program's output can echo a key. Off, every copy
+  is byte for byte what it was.
 
 # harnessr 0.7.0
 

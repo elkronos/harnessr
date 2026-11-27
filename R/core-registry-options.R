@@ -513,12 +513,15 @@ check_option <- function(name, value) {
 #'     masked are OpenAI and Anthropic keys (`sk-...`), GitHub tokens
 #'     (`ghp_...`, `github_pat_...`), AWS access key ids (`AKIA...`), Google
 #'     API keys (`AIza...`), Slack tokens (`xox...`), Hugging Face tokens
-#'     (`hf_...`), JSON web tokens, the token after `Bearer `, and the values
-#'     of the variables a command step hides. The trace records how many were
-#'     masked: `masked` in a command step's note and at the top of a saved
-#'     trace, and a `masked:` line in the print. The trace in your session,
-#'     the cache and every cache and replay key keep the text as it was, so
-#'     masking changes no request and no key. Off, nothing is masked and
+#'     (`hf_...`), JSON web tokens and the token after `Bearer `. In a
+#'     command step's output the values of the variables the step hides are
+#'     masked too; in a saved or printed trace only the shapes are. The trace
+#'     records how many were masked: `masked` in a command step's note and at
+#'     the top of a saved trace, and a `masked:` line in the print. The trace
+#'     in your session, the cache and every cache and replay key keep the
+#'     text as it was. A command step passes its masked output on in
+#'     `$check`, so a later step that builds a prompt from it sends the
+#'     masked text, under another cache key. Off, nothing is masked and
 #'     every copy is byte for byte what it was. Untested: a choice.}
 #'   \item{`price_max_age_days` (120)}{How old a price may be, in days, before
 #'     a cost computed from it warns with class `hr_stale_price`. A price's age

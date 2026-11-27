@@ -718,8 +718,10 @@ Output can still echo a key that a program read from a file, and an HTTP error
 body can echo the key that was sent. `hr_options(mask_secrets = TRUE)` replaces
 key-shaped strings with `<masked>` in the output a command step keeps, in the
 file `hr_trace_save()` writes and in a printed trace, and counts what it
-replaced. The trace in your session, the cache and every key keep the text as
-it was, so masking changes no request:
+replaced. In a command step's output it also masks the values of the variables
+the step hid. The trace in your session, the cache and every key keep the text
+as it was. A later step that reads the command's `$check` gets the masked
+output, so a prompt built from it changes with the setting:
 
 ```{r}
 prev <- hr_options(mask_secrets = TRUE)

@@ -128,8 +128,11 @@
 #'
 #' With `hr_options(mask_secrets = TRUE)` the `stdout` and `stderr` kept in
 #' the result have key-shaped strings replaced with `<masked>`, and the step
-#' records how many in the trace as `masked`. The hash of the output is taken
-#' before masking. [hr_options()] lists the shapes masked. Neither setting
+#' records how many in the trace as `masked`. The values of the hidden
+#' variables are masked as well. The hash of the output is taken before
+#' masking. The masked output is what the step passes on in `$check`, so a
+#' later step that builds a prompt from it sends the masked text.
+#' [hr_options()] lists the shapes masked. Neither setting
 #' confines the program: it still runs with your permissions and can read
 #' your files.
 #'

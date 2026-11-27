@@ -118,8 +118,11 @@ configuration files and stored logins.
 
 With \code{hr_options(mask_secrets = TRUE)} the \code{stdout} and \code{stderr} kept in
 the result have key-shaped strings replaced with \verb{<masked>}, and the step
-records how many in the trace as \code{masked}. The hash of the output is taken
-before masking. \code{\link[=hr_options]{hr_options()}} lists the shapes masked. Neither setting
+records how many in the trace as \code{masked}. The values of the hidden
+variables are masked as well. The hash of the output is taken before
+masking. The masked output is what the step passes on in \verb{$check}, so a
+later step that builds a prompt from it sends the masked text.
+\code{\link[=hr_options]{hr_options()}} lists the shapes masked. Neither setting
 confines the program: it still runs with your permissions and can read
 your files.
 }
