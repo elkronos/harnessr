@@ -46,7 +46,10 @@
 #' @param resolve What to do when two parts of one document give different values
 #'   for the same field. `"first"` (default) takes the earlier one and records
 #'   the disagreement in the `conflicts` column, costing nothing. `"model"`
-#'   spends one extra call per disagreeing field to adjudicate; if that call
+#'   spends one extra call per disagreeing field to adjudicate, and the table
+#'   gains a `model_picks` column naming each field whose value that call
+#'   chose. A model's pick is advisory: no validation against people's
+#'   judgements backs it, so check each one against its quote. If that call
 #'   fails, or a request limit is reached before it can be made, the first
 #'   value is kept, as with `"first"`, and a warning (in the row's
 #'   `summary$warnings`) names the field. If it chooses none of the values,
@@ -82,8 +85,10 @@
 #'       the schema and of that field's type, then `n_filled`, `n_unverified`,
 #'       `conflicts`, `status`, `duplicate_of`, `error` (with
 #'       `agreement_columns = TRUE`, a `<field>_agreement` and a
-#'       `<field>_conflict` column for each field after the field columns).
-#'       `status` is the run
+#'       `<field>_conflict` column for each field after the field columns;
+#'       with `resolve = "model"`, a `model_picks` column after `error`: the
+#'       fields whose value a model call chose, comma-separated, or `NA` when
+#'       none was). `status` is the run
 #'       status from `summary`, except that a document some of whose extraction
 #'       requests failed is `"incomplete"` (or `"failed"` if all did), and one
 #'       whose extraction requests all succeeded is not `"failed"` for another
@@ -314,7 +319,8 @@ gr_extract <- function(sources, fields, goal = NULL, recipe = "research",
 
   structure(list(
     table    = attach_record_fields(extraction_table(docs, answers, fields, out$summary,
-                                                     agreement_columns = agreement_columns),
+                                                     agreement_columns = agreement_columns,
+                                                     model_picks = identical(resolve, "model")),
                                     bib_from, out$sources),
     evidence = extraction_evidence(docs, answers, out$summary$document_id),
     fields   = fields,
@@ -362,6 +368,14 @@ print.gr_extraction <- function(x, ...) {
   }
   cnf <- sum(!is.na(tab$conflicts))
   if (cnf) cat(sprintf("  %d document(s) contradicted themselves on at least one field\n", cnf))
+  # Counted over distinct documents, as the unverified values are.
+  mp <- tab[["model_picks"]]
+  npick <- if (is.null(mp)) 0L
+           else sum(lengths(strsplit(mp[own & !is.na(mp)], ", ", fixed = TRUE)))
+  if (npick) {
+    cat(sprintf(paste0("  %d value(s) chosen by a model under resolve = \"model\" (see ",
+                       "`model_picks`): advisory, so check each against its quote\n"), npick))
+  }
   ev <- x$evidence
   # And the spans of distinct documents: extraction_evidence() repeats a
   # duplicate's first copy's spans under the duplicate's name, as the audit
@@ -442,7 +456,8 @@ extraction_column <- function(field, values) {
 }
 
 #' @noRd
-extraction_table <- function(docs, answers, fields, summary, agreement_columns = FALSE) {
+extraction_table <- function(docs, answers, fields, summary, agreement_columns = FALSE,
+                             model_picks = FALSE) {
   if (is.null(summary$document_id)) summary$document_id <- NA_character_
   records <- lapply(docs, function(d) answer_record(answers[[d]], fields))
   tab <- data.frame(document = as.character(docs),
@@ -559,6 +574,16 @@ extraction_table <- function(docs, answers, fields, summary, agreement_columns =
   # having to join back to $summary.
   tab$duplicate_of <- as.character(summary$duplicate_of %||% NA_character_)
   tab$error <- error
+  # resolve = "model" only, so the table keeps its columns under the other
+  # rules. The fields whose value a model call chose, as `conflicts` names
+  # them: NA when none was, or when the document has no answer or was read
+  # from a store written before picks were recorded.
+  if (isTRUE(model_picks)) {
+    tab$model_picks <- vapply(docs, function(d) {
+      mp <- answers[[d]]$notes$model_picks
+      if (!length(mp)) NA_character_ else paste(mp, collapse = ", ")
+    }, character(1), USE.NAMES = FALSE)
+  }
   rownames(tab) <- NULL
   tab
 }

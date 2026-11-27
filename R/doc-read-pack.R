@@ -136,7 +136,9 @@ reader_source_text <- function(d) {
 #' when the spec has no context policy, and under the policy's keep rule for
 #' piece `name` when it has one. A policy that pins the piece cannot leave it
 #' longer than the request has room for, so the piece is then cut as before,
-#' with a warning that names the policy.
+#' with a warning that names the policy. When the policy cuts the piece, its
+#' own `marker` takes the place of the default marker; a packer that passes a
+#' marker of its own, such as merge_giveup()'s, keeps it.
 #' Returns what truncate_logged() returns: `text` and `dropped`.
 #' @noRd
 cut_piece <- function(text, n, where, trace, spec, name, marker = " ...[truncated]", ...) {
@@ -148,6 +150,7 @@ cut_piece <- function(text, n, where, trace, spec, name, marker = " ...[truncate
     }
     return(truncate_logged(text, n, where, trace, marker = marker, ...))
   }
+  if (!is.null(pol$marker) && identical(marker, " ...[truncated]")) marker <- pol$marker
   out <- hr_truncate(text, n, keep = piece_keep(pol, name), marker = marker, trace = trace,
                      where = where, piece = name)
   list(text = out, dropped = as.integer(max(hr_count_tokens(as_chr1(text, "")) -

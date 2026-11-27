@@ -269,6 +269,33 @@ test_that("gaps whose first line is over the cap write the cut without the marke
   expect_identical(d$tokens_dropped, d$tokens_before - d$tokens_kept)
 })
 
+test_that("gaps cut under a policy's marker write the cut without that marker", {
+  local_registries()
+  hr_register_model("gaps-window", context_window = 3000L, max_output = 400L,
+                    input_usd = 0, output_usd = 0)
+  tab <- data.frame(document = c("a.pdf", "b.pdf"), document_id = c("h1", "h2"),
+                    status = "ok", duplicate_of = NA_character_, n_filled = 2L,
+                    n_unverified = 0L, conflicts = NA_character_,
+                    design = c("trial", "survey"), stringsAsFactors = FALSE)
+  cl <- hr_mock_client(function(messages, params) "The studies [study 1] [study 2].")
+  g <- data.frame(kind = "combination unstudied", dimension = "design x setting",
+                  detail = paste(rep("word", 3000), collapse = " "))
+  outline <- structure(c(Findings = "f", "What is missing" = "gaps"),
+                       closing = "What is missing")
+  pol <- hr_context_policy(marker = " [{tokens_dropped} tokens cut]")
+  s <- quiet(gr_synthesise(tab, outline = outline, question = "Q?", client = cl, gaps = g,
+                           model = "gaps-window", max_section_tokens = 300,
+                           context_policy = pol))
+  cuts <- Filter(function(s) identical(s$detail$where, "synthesise.gaps"),
+                 truncation_steps(s$trace))
+  expect_length(cuts, 1L)
+  d <- cuts[[1]]$detail
+  expect_match(s$gaps, " \\[[0-9]+ tokens cut\\]$")
+  kept <- sub(" \\[[0-9]+ tokens cut\\]$", "", s$gaps)
+  expect_identical(d$tokens_kept, as.integer(hr_count_tokens(kept)))
+  expect_identical(d$tokens_dropped, d$tokens_before - d$tokens_kept)
+})
+
 test_that("an embedding input cut to the model's window writes its cut", {
   local_registries()
   hr_register_model("tiny-embed", context_window = 40L, max_output = 1L,

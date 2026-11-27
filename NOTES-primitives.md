@@ -26,8 +26,8 @@ removed or gains or loses its last caller.
 | `hr_call()` | `answer_request()`, `ledger_answer()`, `read_ensemble()` and 8 more | test-adversarial.R, test-backend.R and 39 more |
 | `hr_check_module()` | `gr_check_reader()`, `gr_check_segmenter()` | test-core-contract.R |
 | `hr_client()` | `answer_document()`, `doc_arm_run()`, `gr_claims()` and 4 more | test-adversarial.R, test-cache-replay.R and 26 more |
-| `hr_context_fit()` | `read_refine()`, under a read's `context_policy` | test-context-policy.R |
-| `hr_context_policy()` | `check_context_policy()`, which resolves a read's `context_policy` | test-context-policy.R |
+| `hr_context_fit()` | `read_refine()`, under a read's `context_policy`; `fit_gap_lines()`, under `gr_synthesise()`'s | test-context-policy.R, test-synth-context.R |
+| `hr_context_policy()` | `check_context_policy()`, which resolves the `context_policy` of a read and of `gr_synthesise()` | test-context-policy.R, test-synth-context.R |
 | `hr_cost()` | the reader cost functions: `cost_extract()`, `cost_map_reduce()` and the rest | test-conformance.R, test-core-schema.R |
 | `hr_count_tokens()` | `answer_document()`, `call_failure()`, `cap_gap_lines()` and 36 more | test-adversarial.R, test-claims.R and 20 more |
 | `hr_effort_escalate()` | `read_escalation()`, under a read's `effort_mode = "escalate"` | test-effort-escalate.R |
@@ -49,7 +49,7 @@ removed or gains or loses its last caller.
 | `hr_trace()` | `answer_document()`, `check_reader_governor()`, `claims_cost_stage()` and 10 more | test-adversarial.R, test-backend.R and 66 more |
 | `hr_trace_cost()` | `audit_cost()`, `corpus_cost()`, `gr_compare()` and 4 more | test-bench-ctx.R, test-compare-cost.R and 19 more |
 | `hr_trace_summary()` | `corpus_row()`, `gr_read_many()` and `print.gr_answer()` | test-backend.R, test-cache-replay.R and 8 more |
-| `hr_truncate()` | `cut_piece()`, which the merge, `hierarchical` and `preview` packers call under a `context_policy` | test-context-policy.R |
+| `hr_truncate()` | `cut_piece()`, which the merge, `hierarchical` and `preview` packers call under a `context_policy`, the merges of `gr_synthesise()` included | test-context-policy.R, test-synth-context.R |
 | `hr_truncate_tokens()` | `cap_gap_lines()`, `screen_opening()` and `seg_contextual()` | test-context-policy.R, test-core.R and 5 more |
 | `hr_validate()` | `gr_read_spec()`, `gr_segment_spec()`, `gr_ingest_spec()` | test-core-schema.R, test-adversarial.R |
 

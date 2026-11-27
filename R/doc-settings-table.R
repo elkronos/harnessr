@@ -76,7 +76,9 @@
   gr_screen.samples = ev_untested("One request per document, as before; not compared."),
   gr_screen.sample_rule = ev_untested(paste0(
     "\"include_if_any\" so that no study one draw would keep is lost; not compared with ",
-    "\"majority\".")),
+    "\"majority\" or \"k_of_n\".")),
+  gr_screen.sample_k = ev_untested(paste0(
+    "None: k_of_n needs the caller to choose k, and no value of k has been compared.")),
   hr_error_correlation.strata = ev_untested(paste0(
     "NULL: strata of difficulty read from the same runs; a rule, not a tuned value.")),
   hr_error_correlation.seed = ev_untested(paste0(
@@ -103,6 +105,12 @@
   gr_synthesise.revision_check = ev_untested(paste0(
     "\"lexicon\": the word-counting guard alone, as before; the judge is not validated ",
     "against people's labels and not compared.")),
+  gr_synthesise.context_policy = ev_untested(paste0(
+    "NULL: the cuts the write-up made before the setting existed; no policy has been ",
+    "compared.")),
+  gr_synthesise.context_order = ev_untested(paste0(
+    "\"relevance\" keeps the rank order sections were written in; not compared with ",
+    "\"document\" or \"edges\".")),
   gr_claims.unverified = ev_untested(paste0(
     "\"exclude\", so a claim rests on what the documents were found to say; not compared ",
     "with \"include\".")),
@@ -202,6 +210,7 @@
   read.rerank_candidates = "readers#set-low-score",
   screen.criteria_schema = "review#set-screen-reply",
   screen.samples = "review#set-screen-reply", screen.sample_rule = "review#set-screen-reply",
+  screen.sample_k = "review#set-screen-reply",
   screen.gr_calibrate.recall_target = "review#set-calibration",
   screen.gr_calibrate.conf = "review#set-calibration",
   screen.gr_calibrate.max_width = "review#set-calibration",
@@ -215,6 +224,8 @@
   synthesise.prominence = "review#set-synthesis",
   synthesise.unverified = "review#set-synthesis",
   synthesise.revision_check = "review#set-synthesis",
+  synthesise.context_policy = "review#set-synthesis-context",
+  synthesise.context_order = "review#set-synthesis-context",
   evaluate.governor = "runs#set-governor",
   evaluate.hr_error_correlation.strata = "evaluate#set-errcorr",
   evaluate.hr_error_correlation.n_strata = "evaluate#set-errcorr",

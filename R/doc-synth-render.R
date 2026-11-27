@@ -9,7 +9,7 @@
 #' @noRd
 study_fields <- function(used, hide = character(0)) {
   meta <- c("document", "document_id", "status", "duplicate_of", "error",
-            "n_filled", "n_unverified", "conflicts", "study")
+            "n_filled", "n_unverified", "conflicts", "model_picks", "study")
   # The columns gr_extract(agreement_columns = TRUE) adds describe how the
   # document agreed with itself, not the study: a field's pair is left out
   # when both are there beside the field.

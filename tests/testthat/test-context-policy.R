@@ -361,3 +361,145 @@ test_that("context_policy and refine_state are swept as recipe arms", {
   }, list(cut = c("head", "tail")))
   expect_length(arms, 2L)
 })
+
+# --- markers that count, stubs and the subset line ---------------------------
+
+test_that("a marker template is filled with the tokens and units a cut removed", {
+  mk <- " [{tokens_dropped} tokens, {units_dropped} paragraphs cut]"
+  whole <- hr_count_tokens(cp_paras)
+  for (k in c("head", "tail", "both")) {
+    out <- hr_truncate(cp_paras, 60, keep = k, marker = mk)
+    expect_lte(hr_count_tokens(out), 60)
+    expect_false(grepl("{", out, fixed = TRUE), info = k)
+    got <- regmatches(out, regexec("\\[([0-9]+) tokens, ([0-9]+) paragraphs cut\\]", out))[[1]]
+    expect_length(got, 3L)
+    kept <- trimws(sub("\\[[0-9]+ tokens, [0-9]+ paragraphs cut\\]", "", out))
+    expect_identical(as.integer(got[2]), as.integer(whole - hr_count_tokens(kept)), info = k)
+    whole_kept <- sum(vapply(strsplit(cp_paras, "\n\n")[[1]], grepl, logical(1), x = kept,
+                             fixed = TRUE))
+    expect_identical(as.integer(got[3]), 8L - whole_kept, info = k)
+  }
+  sc <- hr_truncate(cp_paras, 45, keep = "scored", scores = c(0, 0, 0, 9, 0, 8, 0, 0),
+                    marker = "[{units_dropped} paragraphs cut]")
+  expect_match(sc, "[6 paragraphs cut]", fixed = TRUE)
+  # Text that fits is returned as it is, braces and all.
+  expect_identical(hr_truncate("fits {tokens_dropped}", 100, marker = "[{tokens_dropped}]"),
+                   "fits {tokens_dropped}")
+  # A plain marker is used as it was.
+  expect_identical(hr_truncate(cp_paras, 30, marker = " [cut]"),
+                   hr_truncate_tokens(cp_paras, 30, marker = " [cut]"))
+})
+
+test_that("hr_context_policy() keeps its old shape unless the new rules are set", {
+  p <- hr_context_policy()
+  expect_named(p, c("pin", "cut_order", "keep", "order_merges"))
+  expect_identical(capture.output(print(p))[5], "  order merges: FALSE")
+  expect_length(capture.output(print(p)), 5L)
+  q <- hr_context_policy(marker = "[{tokens_dropped} cut]", overflow = "stubs",
+                         stub_tokens = 50, disclose_subset = TRUE)
+  expect_identical(q$marker, "[{tokens_dropped} cut]")
+  expect_identical(q$overflow, "stubs")
+  expect_identical(q$stub_tokens, 50L)
+  expect_identical(q$disclose_subset, "{shown} of {total} items shown; do not state totals.")
+  expect_output(print(q), "overflow:     stubs, in at most 50 tokens", fixed = TRUE)
+  expect_error(hr_context_policy(marker = c("a", "b")), class = "gr_bad_setting")
+  expect_error(hr_context_policy(overflow = "drop"), class = "gr_bad_setting")
+  expect_error(hr_context_policy(stub_tokens = 0), class = "gr_bad_setting")
+  # A value R cannot store as an integer is refused, not kept as NA.
+  expect_error(hr_context_policy(stub_tokens = Inf), class = "gr_bad_setting")
+  expect_error(hr_context_policy(stub_tokens = 3e9), class = "gr_bad_setting")
+  expect_error(hr_context_policy(disclose_subset = NA), class = "gr_bad_setting")
+})
+
+cp_studies <- function(n = 8L) {
+  stats::setNames(paste("Study", seq_len(n), paste(rep("findings", 20), collapse = " ")),
+                  paste("study", seq_len(n)))
+}
+
+test_that("hr_context_fit() lists the pieces it cut away, with titles, under the cap", {
+  st <- cp_studies()
+  pieces <- c(question = "What was found?", st)
+  titles <- stats::setNames(paste("Trial", 1:8), names(st))
+  # Without the new rules nothing is listed and the result is as before.
+  plain <- hr_context_fit(pieces, 150, hr_context_policy(), titles = titles)
+  expect_identical(plain$notice, "")
+  expect_true(length(plain$omitted) > 0L)
+  pol <- hr_context_policy(overflow = "stubs")
+  fit <- hr_context_fit(pieces, 150, pol, titles = titles)
+  expect_true(fit$fits)
+  expect_lte(sum(hr_count_tokens(fit$pieces)) + hr_count_tokens(fit$notice), 150)
+  expect_identical(fit$tokens, as.integer(sum(hr_count_tokens(fit$pieces)) +
+                                            hr_count_tokens(fit$notice)))
+  lines <- strsplit(fit$notice, "\n", fixed = TRUE)[[1]]
+  expect_identical(lines[1], "Left out for space:")
+  expect_true(all(fit$omitted %in% names(st)))
+  expect_identical(fit$pieces[["question"]], "What was found?")
+  listed <- sub("^- (study [0-9]+): .*$", "\\1", grep("^- study", lines, value = TRUE))
+  expect_true(all(listed %in% fit$omitted))
+  expect_match(lines[2], "^- study [0-9]+: Trial [0-9]+$")
+  # A small cap lists what fits and counts the rest.
+  small <- hr_context_fit(pieces, 150, hr_context_policy(overflow = "stubs", stub_tokens = 20),
+                          titles = titles)
+  expect_lte(hr_count_tokens(small$notice), 20L)
+  expect_match(small$notice, "- and [0-9]+ more$")
+  # No titles: the names alone.
+  bare <- hr_context_fit(pieces, 150, pol)
+  expect_match(bare$notice, "\n- study [0-9]+\n", fixed = FALSE)
+  # Nothing cut away, nothing said.
+  none <- hr_context_fit(pieces, 1e4, pol, titles = titles)
+  expect_identical(none$notice, "")
+  expect_identical(none$omitted, character(0))
+  expect_error(hr_context_fit(pieces, 150, pol, titles = "x"), class = "gr_bad_setting")
+})
+
+test_that("a stub cap too small for one stub still counts what was left out", {
+  st <- cp_studies()
+  pieces <- c(question = "What was found?", st)
+  titles <- stats::setNames(paste("Trial", 1:8), names(st))
+  tiny <- hr_context_fit(pieces, 150, hr_context_policy(overflow = "stubs", stub_tokens = 5),
+                         titles = titles)
+  expect_true(length(tiny$omitted) > 0L)
+  expect_identical(tiny$notice, sprintf("Left out for space:\n- and %d more",
+                                        length(tiny$omitted)))
+  expect_true(tiny$fits)
+  expect_lte(tiny$tokens, 150)
+  # Half the budget cannot hold even that: the notice is empty, and the
+  # fit stays within the budget rather than go over it.
+  small <- hr_context_fit(pieces, 20, hr_context_policy(overflow = "stubs",
+                                                        disclose_subset = TRUE),
+                          titles = titles)
+  expect_true(length(small$omitted) > 0L)
+  expect_identical(small$notice, "")
+  expect_lte(small$tokens, 20)
+})
+
+test_that("disclose_subset says how many pieces are shown and not to state totals", {
+  pieces <- c(question = "What was found?", cp_studies())
+  pol <- hr_context_policy(disclose_subset = "{shown} of {total} studies shown; do not state totals.")
+  fit <- hr_context_fit(pieces, 150, pol)
+  shown <- sum(nzchar(fit$pieces[names(cp_studies())]))
+  expect_identical(fit$notice, sprintf("%d of 8 studies shown; do not state totals.", shown))
+  expect_true(fit$fits)
+  expect_identical(hr_context_fit(pieces, 1e4, pol)$notice, "")
+  dflt <- hr_context_fit(pieces, 150, hr_context_policy(disclose_subset = TRUE))
+  expect_match(dflt$notice, "^[0-9]+ of 8 items shown; do not state totals\\.$")
+  # The policy's marker is the one a piece cut in part carries.
+  mk <- hr_context_fit(c(question = "Which region?", excerpt = cp_paras), 60,
+                       hr_context_policy(marker = " [{tokens_dropped} cut]"))
+  expect_identical(mk$cut, "excerpt")
+  expect_match(mk$pieces[["excerpt"]], "\\[[0-9]+ cut\\]$")
+  expect_lte(mk$tokens, 60)
+})
+
+test_that("a read packer cuts a piece with the policy's marker", {
+  spec <- list(context_policy = hr_context_policy(marker = " [{tokens_dropped} tokens cut]"))
+  out <- cut_piece(cp_paras, 40, "merge.input", NULL, spec, "findings")
+  expect_match(out$text, "\\[[0-9]+ tokens cut\\]$")
+  # A packer's own marker stays its own.
+  own <- cut_piece(cp_paras, 40, "merge.giveup", NULL, spec, "findings", marker = " [failed]")
+  expect_match(own$text, "[failed]", fixed = TRUE)
+  # Without a policy marker the cut is as before.
+  expect_identical(cut_piece(cp_paras, 40, "m", NULL, list(context_policy = hr_context_policy()),
+                             "findings")$text,
+                   hr_truncate_tokens(cp_paras, 40))
+})

@@ -109,8 +109,8 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
     # Indexing the ALREADY-rendered blocks rather than re-rendering, so the
     # bibliographic columns stay hidden by exactly the same rule.
     rendered <- rendered[used$study %in% want]
-    blocks <- render_claims(cw, claims$support, weights, collapse = FALSE,
-                            prominence = prominence)
+    blocks <- place_claims(render_claims(cw, claims$support, weights, collapse = FALSE,
+                                         prominence = prominence), spec$context_order)
     claim_block <- paste(blocks, collapse = "\n\n")
   } else if (gaps_only) {
     rendered <- character(0)
@@ -555,6 +555,20 @@ render_claims <- function(cw, support, weights, collapse = TRUE, prominence = NU
   }, character(1), USE.NAMES = FALSE) -> blocks
   if (!collapse) return(structure(blocks, claim_id = cw$claim_id))
   paste(blocks, collapse = "\n\n")
+}
+
+#' A section's claim blocks (render_claims(collapse = FALSE)), placed by
+#' gr_synthesise()'s `context_order`: "relevance" keeps their rank,
+#' "document" puts them in claim number order, and "edges" puts the highest
+#' ranked first, the next last and the lowest in the middle. Each block keeps
+#' the sentence budget its rank gave it.
+#' @noRd
+place_claims <- function(blocks, how) {
+  how <- as_chr1(how, "relevance")
+  if (identical(how, "relevance")) return(blocks)
+  ids <- attr(blocks, "claim_id")
+  ord <- if (identical(how, "document")) order(ids) else arrange_context(seq_along(blocks), how)
+  structure(unname(blocks[ord]), claim_id = ids[ord])
 }
 
 #' Pack rendered studies into batches that fit `budget` input tokens.

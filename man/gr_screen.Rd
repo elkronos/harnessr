@@ -22,7 +22,8 @@ gr_screen(
   trace = NULL,
   criteria_schema = c("decision", "per_criterion"),
   samples = 1L,
-  sample_rule = c("include_if_any", "majority"),
+  sample_rule = c("include_if_any", "majority", "k_of_n"),
+  sample_k = NULL,
   ...
 )
 }
@@ -81,8 +82,17 @@ sends its own draws. Untested.}
 excludes one only when every draw was read and excluded it, and sends
 the rest to a person as \code{"unclear"}, so a study one draw would keep is
 not lost to the others. \code{"majority"} takes the decision most draws gave,
-\code{"unclear"} on a tie. The reason, criterion and quote are the first draw's
-that gave the decision kept. Untested.}
+\code{"unclear"} on a tie. \code{"k_of_n"} includes a document when at least
+\code{sample_k} draws included it, excludes one only when every draw was read
+and excluded it, and sends the rest to a person as \code{"unclear"}. The
+reason, criterion and quote are the first draw's that gave the decision
+kept. Untested.}
+
+\item{sample_k}{Under \code{sample_rule = "k_of_n"}, how many draws must include
+a document for it to be included: a whole number from 1 to \code{samples}.
+\code{k_of_n} needs it, and the other rules take none. At 1 it decides as
+\code{"include_if_any"} does; at \code{samples} a document is included only when
+every draw included it. Untested.}
 
 \item{...}{Recipe overrides, as in \code{\link[=gr_extract]{gr_extract()}}.}
 }
@@ -111,6 +121,9 @@ it reads \code{forward}.}
 \item{\code{sources}}{Every source, one per row of \code{table}, so that
 \code{\link[=gr_resolve]{gr_resolve()}} can rebuild the sets above.}
 \item{\code{records}}{The \code{\link[=gr_records]{gr_records()}} the run was made over, or \code{NULL}.}
+\item{\code{sampling}}{Only when \code{samples} is above 1: a list of \code{samples},
+\code{sample_rule} and, under \code{"k_of_n"}, \code{sample_k}, the rule that turned
+the draws in \code{sample_decisions} into \code{decision}.}
 \item{\code{summary},\code{answers},\code{trace},\code{store}}{As \code{\link[=gr_extract]{gr_extract()}}.}
 }
 }

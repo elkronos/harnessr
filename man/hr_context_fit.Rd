@@ -10,7 +10,8 @@ hr_context_fit(
   policy = hr_context_policy(),
   scores = NULL,
   trace = NULL,
-  where = "context"
+  where = "context",
+  titles = NULL
 )
 }
 \arguments{
@@ -27,21 +28,40 @@ vectors named by piece. A piece without scores is cut with \code{"head"}.}
 \item{trace}{Optional \code{gr_trace}.}
 
 \item{where}{The packer's name, the start of each cut's \code{where}.}
+
+\item{titles}{For \code{overflow = "stubs"}: a character vector of titles
+named by piece, written after each stub's name. A piece without a title
+is listed by name alone.}
 }
 \value{
 A list of \code{pieces} (named character, in the order given), \code{fits}
-(whether they now fit; \code{FALSE} when the pinned pieces alone do not),
-\code{tokens} (their total), \code{cut} (the names of the pieces cut) and
-\code{tokens_dropped}.
+(whether they now fit with the notice; \code{FALSE} when the pinned pieces
+alone do not), \code{tokens} (their total, the notice's included), \code{cut}
+(the names of the pieces cut), \code{tokens_dropped}, \code{omitted} (the names
+of the unpinned pieces cut away entirely) and \code{notice} (the subset line
+and stubs, or \code{""}).
 }
 \description{
 When the pieces together are longer than \code{budget} tokens, cuts them under
 \code{policy} (\code{\link[=hr_context_policy]{hr_context_policy()}}): pinned pieces are never cut; the pieces
 in \code{cut_order} are cut first, in order, and then the others, the last
 piece first. Each piece is cut only as far as the total needs, by
-\code{\link[=hr_truncate]{hr_truncate()}} with the piece's keep rule, and a piece that must go
-entirely becomes \code{""}. Each cut is written to \code{trace} as a \code{"truncate"}
-step with \code{where} set to \code{"<where>.<piece>"}.
+\code{\link[=hr_truncate]{hr_truncate()}} with the piece's keep rule and the policy's \code{marker}, and
+a piece that must go entirely becomes \code{""}. Each cut is written to \code{trace}
+as a \code{"truncate"} step with \code{where} set to \code{"<where>.<piece>"}.
+}
+\details{
+Under a policy with \code{overflow = "stubs"} or \code{disclose_subset}, room for
+the \code{notice} is set aside before anything is cut, and the notice names
+the unpinned pieces cut away entirely: the subset line first, then the
+stubs, one line each, \code{"- <name>: <title>"}, with \code{"- and N more"} for
+those the stub cap leaves out. The pieces and the notice together stay
+within \code{budget} whenever the pinned pieces fit. When \code{stub_tokens} cannot
+hold one stub, the stubs shrink to the header and \code{"- and N more"}. The
+room set aside is at most half of \code{budget}, so the notice is \code{""} when
+nothing was cut away, when the policy asks for neither, or when that room
+cannot hold the subset line or that shortest list; placing it in the
+request is the caller's job.
 }
 \examples{
 pieces <- c(question = "What was revenue?",
@@ -50,6 +70,15 @@ pieces <- c(question = "What was revenue?",
 fit <- hr_context_fit(pieces, 80, hr_context_policy(pin = c("question", "draft")))
 vapply(fit$pieces, hr_count_tokens, numeric(1))
 fit$cut
+
+# Studies as pieces: the ones left out are named, with their titles.
+studies <- setNames(paste("Study", 1:8, paste(rep("findings", 20), collapse = " ")),
+                    paste("study", 1:8))
+pol <- hr_context_policy(overflow = "stubs",
+  disclose_subset = "{shown} of {total} studies shown; do not state totals.")
+fit <- hr_context_fit(c(question = "What was found?", studies), 150, pol,
+                      titles = setNames(paste("Trial", 1:8), names(studies)))
+cat(fit$notice)
 }
 \seealso{
 \code{\link[=hr_context_policy]{hr_context_policy()}}, \code{\link[=hr_truncate]{hr_truncate()}}

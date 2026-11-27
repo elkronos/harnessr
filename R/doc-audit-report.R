@@ -654,12 +654,20 @@ audit_extraction <- function(extraction) {
   flags <- list(n_unverified = function(v) !is.na(v) & v > 0,
                 status = function(v) !v %in% c("ok", "restored", "duplicate"))
   for (cc in conflict_cols) flags[[cc]] <- function(v) !is.na(v) & as.logical(v)
+  # A model's pick is advisory, so each one is flagged for a person to check.
+  picks <- !is.null(t[["model_picks"]]) && any(!is.na(t[["model_picks"]]))
+  if (picks) flags$model_picks <- function(v) !is.na(v)
   c("<h2>What was extracted</h2>",
     if (length(pairs)) paste0(
       "<p class='sub'>Each <code>_agreement</code> column is not a field: it gives how many ",
       "of the chunks that reported the field gave the value most of them gave, of all that ",
       "reported it, and the <code>_conflict</code> column beside it is TRUE when the chunks ",
       "disagreed.</p>"),
+    if (picks) paste0(
+      "<p class='sub'><strong>Values a model chose.</strong> <code>model_picks</code> names ",
+      "the fields whose value a further call chose under <code>resolve = \"model\"</code>. ",
+      "A model's pick is advisory: no validation against people's judgements backs it, so ",
+      "check each one against its quote in the evidence below.</p>"),
     html_table(t[, setdiff(names(t), drop), drop = FALSE],
                numeric_cols = intersect(c("n_filled", "n_unverified"), names(t)),
                flag = flags),
@@ -668,8 +676,8 @@ audit_extraction <- function(extraction) {
       paste0("The value kept is the earlier one under <code>resolve = \"first\"</code> (the ",
              "default), the one most chunks gave under <code>resolve = \"vote\"</code> (the ",
              "earlier of a tie), and the one a further call chose under ",
-             "<code>resolve = \"model\"</code>, or the earlier one when that call did not ",
-             "settle it.</p>"),
+             "<code>resolve = \"model\"</code> (an advisory pick, named in ",
+             "<code>model_picks</code>), or the earlier one when that call did not settle it.</p>"),
       html_table(t[!is.na(t$conflicts), c("document", "conflicts"), drop = FALSE])))
 }
 

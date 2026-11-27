@@ -26,10 +26,12 @@
 #'   before: 1,250 tokens under a 500 cap become 500, 500 and 250.
 #'   `"balanced"` keeps the number of chunks greedy packing makes, k, and
 #'   evens their sizes: it cuts the units at the unit boundaries nearest to
-#'   each k-th of the total tokens (about 420 each in that example). No unit
-#'   is split for it: when a unit is longer than `max_tokens`, or a run
-#'   between two cuts does not fit under it, the greedy chunks are kept.
-#'   Untested.
+#'   each k-th of the total tokens (about 420 each in that example). When a
+#'   run between two of those cuts does not fit under `max_tokens`, it takes
+#'   the cuts that make the largest chunk as small as it can be, if their
+#'   sizes are closer together than the greedy chunks'. No unit is split for
+#'   it: when a unit is longer than `max_tokens`, the greedy chunks are kept.
+#'   Chunks stay in document order. Untested.
 #' @param runt_merge Which way a chunk under `min_tokens` is merged.
 #'   `"backward"` (the default) merges it into the chunk before, as before, so
 #'   a runt that is the first chunk stays on its own. `"both"` also merges a

@@ -747,6 +747,56 @@ test_that("runt_merge = 'both' merges a leading runt forward; 'backward' leaves 
   expect_identical(none$chunks$text[1], "Short title.")
 })
 
+po_words <- function(n) paste(rep("word", n), collapse = " ")
+
+test_that("balanced packing evens chunks when the nearest cuts overflow the cap", {
+  # Cut at each seventh of the total, a run here goes over the 300-token cap,
+  # and greedy packing leaves a short last chunk. The runs that keep the
+  # largest chunk smallest fit, and are much closer in size.
+  n <- c(28, 46, 52, 80, 43, 28, 57, 90, 44, 87, 39, 47, 5, 33, 82, 26, 74, 32, 41, 65, 50,
+         71, 90, 75, 55, 48, 53, 64, 60, 53, 54, 11, 24)
+  u <- vapply(n, po_words, character(1))
+  g <- harnessr:::pack_units(u, 300)
+  b <- harnessr:::pack_units(u, 300, balanced = TRUE)
+  expect_identical(length(b$text), length(g$text))
+  expect_lt(diff(range(hr_count_tokens(b$text))), diff(range(hr_count_tokens(g$text))) / 2)
+  expect_true(all(hr_count_tokens(b$text) <= 300))
+  # Order kept, no unit split or lost.
+  expect_identical(paste(b$text, collapse = "\n\n"), paste(u, collapse = "\n\n"))
+  expect_identical(b$span$first, c(1L, utils::head(b$span$last, -1L) + 1L))
+})
+
+test_that("balanced packing keeps the cap and the order over many unit mixes", {
+  set.seed(417)
+  for (r in 1:40) {
+    u <- vapply(sample(5:90, sample(5:30, 1), replace = TRUE), po_words, character(1))
+    for (ov in c(0L, 25L)) {
+      b <- harnessr:::pack_units(u, 300, overlap_tokens = ov, balanced = TRUE)
+      g <- harnessr:::pack_units(u, 300, overlap_tokens = ov)
+      expect_identical(length(b$text), length(g$text))
+      expect_true(all(hr_count_tokens(b$text) <= 300))
+      expect_identical(b$span$first[1], 1L)
+      expect_identical(utils::tail(b$span$last, 1L), length(u))
+      expect_identical(b$span$first[-1L], utils::head(b$span$last, -1L) + 1L)
+    }
+  }
+})
+
+test_that("balanced packing's provenance counts the units its overlap comes from", {
+  s <- function(n, tag) paste(sprintf("%s sentence %d ends here.", tag, seq_len(n)),
+                              collapse = " ")
+  u <- c(s(8, "Alpha"), "Ok.", s(8, "Beta"), "Ok.", s(8, "Gamma"))
+  meta <- data.frame(page = c(1L, 2L, 2L, 3L, 3L))
+  b <- harnessr:::pack_units(u, 80, overlap_tokens = 15, meta = meta, balanced = TRUE)
+  # The second chunk opens with Alpha's last sentence (page 1), so it is not
+  # wholly from page 2. The greedy packer says the same.
+  expect_true(startsWith(b$text[2], "Alpha sentence 8"))
+  expect_true(is.na(b$meta$page[2]))
+  g <- harnessr:::pack_units(u, 80, overlap_tokens = 15, meta = meta)
+  expect_true(startsWith(g$text[2], "Alpha sentence 8"))
+  expect_true(is.na(g$meta$page[2]))
+})
+
 test_that("packing and runt_merge are swept as recipe arms", {
   arms <- hr_sweep(gr_arm("needle", list(method = "paragraph", max_tokens = 120)),
                    list(packing = c("greedy", "balanced")))
@@ -843,6 +893,150 @@ test_that("each benchmark run sends its own screening draws, so a cache keeps ru
   po_quiet(gr_screen(f, question = "Does it work?", include = po_include, exclude = po_exclude,
                      client = cl, samples = 2))
   expect_identical(vapply(cl$calls(), function(x) as.integer(x$params$draw_index), 1L), 1:2)
+})
+
+test_that("k_of_n includes a document when k draws include it, and needs its k", {
+  run <- function(decisions, k, rule = "k_of_n") {
+    po_quiet(gr_screen(po_screen_file(), question = "Does it work?", include = po_include,
+                       exclude = po_exclude, client = po_draw_screener(decisions),
+                       samples = length(decisions), sample_rule = rule,
+                       sample_k = if (identical(rule, "k_of_n")) k))
+  }
+  two <- run(list("include", "exclude", "include"), 2)
+  expect_identical(two$table$decision, "include")
+  # One include of the two asked for: neither kept as an include nor
+  # excluded, so a person decides, and the reason gives the draws.
+  one <- run(list("include", "exclude", "exclude"), 2)
+  expect_identical(one$table$decision, "unclear")
+  expect_match(one$table$reason, "include, exclude, exclude", fixed = TRUE)
+  expect_equal(one$table$include_share, 1 / 3)
+  expect_identical(run(list("exclude", "exclude", "exclude"), 2)$table$decision, "exclude")
+  # At k = 1 it decides as include_if_any does.
+  for (d in list(list("include", "exclude", "exclude"), list("exclude", "unclear", "exclude"),
+                 list("exclude", "exclude", "exclude"))) {
+    expect_identical(run(d, 1)$table$decision,
+                     run(d, NA, rule = "include_if_any")$table$decision)
+  }
+  # At k = samples, every draw has to include.
+  expect_identical(run(list("include", "include", "exclude"), 3)$table$decision, "unclear")
+  expect_identical(run(list("include", "include", "include"), 3)$table$decision, "include")
+  # k is required under k_of_n, bounded by samples, and refused elsewhere.
+  f <- po_screen_file()
+  bad <- function(...) gr_screen(f, question = "q", include = "x", client = po_draw_screener(
+    list("include")), ...)
+  expect_error(bad(samples = 3, sample_rule = "k_of_n"), class = "gr_bad_setting")
+  expect_error(bad(samples = 3, sample_rule = "k_of_n", sample_k = 4), class = "gr_bad_setting")
+  expect_error(bad(samples = 3, sample_rule = "k_of_n", sample_k = 1.5),
+               class = "gr_bad_setting")
+  expect_error(bad(samples = 3, sample_k = 2), class = "gr_bad_setting")
+})
+
+test_that("a sampled screening records each draw and the rule that combined them", {
+  x <- po_quiet(gr_screen(po_screen_file(), question = "Does it work?", include = po_include,
+                          exclude = po_exclude, keep_answers = TRUE,
+                          client = po_draw_screener(list("include", "exclude", "include")),
+                          samples = 3, sample_rule = "k_of_n", sample_k = 2))
+  expect_identical(x$sampling, list(samples = 3L, sample_rule = "k_of_n", sample_k = 2L))
+  expect_identical(x$table$sample_decisions, "include, exclude, include")
+  notes <- x$answers[[1]]$notes
+  expect_identical(notes$sample_rule, "k_of_n")
+  expect_identical(notes$sample_k, 2L)
+  expect_identical(notes$samples, 3L)
+  expect_output(print(x), "each decided from 3 draws by k_of_n with k = 2", fixed = TRUE)
+  # include_if_any takes no k, and records none.
+  y <- po_quiet(gr_screen(po_screen_file(), question = "Does it work?", include = po_include,
+                          exclude = po_exclude, client = po_draw_screener(list("exclude",
+                                                                               "include")),
+                          samples = 2))
+  expect_identical(y$sampling, list(samples = 2L, sample_rule = "include_if_any"))
+  expect_output(print(y), "each decided from 2 draws by include_if_any (", fixed = TRUE)
+  # One sample: the result has the fields it had, and the print no draws line.
+  z <- po_quiet(gr_screen(po_screen_file(), question = "Does it work?", include = po_include,
+                          exclude = po_exclude, client = po_draw_screener(list("include"))))
+  expect_identical(names(z), c("table", "included", "forward", "deferred", "sources",
+                               "include", "exclude", "summary", "answers", "records",
+                               "trace", "store"))
+  expect_false(any(grepl("draws", capture.output(print(z)), fixed = TRUE)))
+})
+
+test_that("each screening draw is its own cache entry and its own counted call", {
+  sent <- integer(0)
+  base <- hr_mock_client(function(messages, params) {
+    k <- as.integer(params$draw_index %||% 0L)
+    sent <<- c(sent, k)
+    d <- c("exclude", "include", "exclude")[max(1L, k)]
+    sprintf('{"decision":"%s","reason":"Draw %d.","criterion":%s,"quote":null}', d, k,
+            if (d == "exclude") '"Animal study"' else "null")
+  })
+  cached <- hr_cache_client(base, hr_cache(tempfile("po-draw-cache")))
+  f <- po_screen_file()
+  screen <- function(...) po_quiet(gr_screen(f, question = "Does it work?",
+                                             include = po_include, exclude = po_exclude,
+                                             client = cached, ...))
+  first <- screen(samples = 3)
+  expect_identical(sent, 1:3)
+  # Three draws, three calls counted on the trace that the governor checks.
+  expect_identical(as.integer(first$trace$calls), 3L)
+  # The second run is answered from three entries, one per draw, so the
+  # decision and every draw's reply come back as they were.
+  again <- screen(samples = 3)
+  expect_identical(sent, 1:3)
+  expect_identical(again$table$sample_decisions, "exclude, include, exclude")
+  expect_identical(again$table$decision, "include")
+  # A single sample (draw 0) has a key of its own, not draw 1's.
+  screen()
+  expect_identical(sent, c(1:3, 0L))
+  # The governor counts each draw: a limit of two calls per document refuses
+  # the third before it is sent, and the document is left undecided.
+  old <- hr_options(max_calls = 2L)
+  on.exit(hr_options(old), add = TRUE)
+  sent <- integer(0)
+  capped <- po_quiet(gr_screen(f, question = "Does it work?", include = po_include,
+                               exclude = po_exclude, client = base, samples = 3))
+  expect_identical(sent, 1:2)
+  expect_identical(as.integer(capped$trace$calls), 2L)
+  expect_true(is.na(capped$table$decision))
+})
+
+test_that("gr_reference() and gr_calibrate() read the decision the draws were combined into", {
+  dir <- tempfile("po-draw-docs")
+  dir.create(dir)
+  for (i in 1:4) {
+    writeLines(sprintf("Document %d. We randomly assigned adults to two groups.", i),
+               file.path(dir, sprintf("d%d.txt", i)))
+  }
+  plan <- list(d1 = c("include", "include", "include"), d2 = c("exclude", "include", "exclude"),
+               d3 = c("exclude", "exclude", "exclude"), d4 = c("exclude", "unclear", "exclude"))
+  cl <- hr_mock_client(function(messages, params) {
+    seen <- po_text(messages)
+    d <- paste0("d", sub("Document ", "", regmatches(seen, regexpr("Document [0-9]", seen))))
+    k <- max(1L, as.integer(params$draw_index %||% 0L))
+    dec <- plan[[d]][k]
+    sprintf('{"decision":"%s","reason":"Draw %d.","criterion":%s,"quote":null}', dec, k,
+            if (dec == "exclude") '"Animal study"' else "null")
+  })
+  person <- c(d1.txt = "include", d2.txt = "include", d3.txt = "exclude", d4.txt = "include")
+  calibrate <- function(...) {
+    x <- po_quiet(gr_screen(dir, question = "Does it work?", include = po_include,
+                            exclude = po_exclude, client = cl, samples = 3, ...))
+    ref <- gr_reference(x, n = Inf, of = "all", blind = FALSE, seed = 1)
+    ref$human_decision <- unname(person[ref$document])
+    list(x = x, ref = ref, cal = po_quiet(gr_calibrate(x, ref)))
+  }
+  any_draw <- calibrate()
+  expect_identical(any_draw$ref$model_decision, c("include", "include", "exclude", "unclear"))
+  expect_identical(unname(any_draw$cal$counts[c("tp", "fn", "fp", "tn")]), c(3L, 0L, 0L, 1L))
+  # d2 was included by one draw in three: the majority loses it, and the
+  # calibration counts the miss.
+  maj <- calibrate(sample_rule = "majority")
+  # d4 had an unclear draw in three, which the majority also turns into an
+  # exclusion.
+  expect_identical(unname(maj$cal$counts[c("tp", "fn", "fp", "tn")]), c(1L, 2L, 0L, 1L))
+  expect_identical(maj$cal$missed$document, c("d2.txt", "d4.txt"))
+  # Two of three asked for: d2 goes to a person, which still counts as kept.
+  k2 <- calibrate(sample_rule = "k_of_n", sample_k = 2)
+  expect_identical(k2$x$table$decision, c("include", "unclear", "exclude", "unclear"))
+  expect_identical(unname(k2$cal$counts[c("tp", "fn", "fp", "tn")]), c(3L, 0L, 0L, 1L))
 })
 
 # ---------------------------------------------------------------------------

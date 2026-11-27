@@ -165,7 +165,8 @@ read_screen <- function(chunks, question, client, spec, trace) {
   }
   j <- if (n_samples == 1L) judge(ask(0L)) else
     combine_draws(lapply(first_draw + seq_len(n_samples), function(k) judge(ask(k))),
-                  as_chr1(spec[["sample_rule"]], "include_if_any"))
+                  as_chr1(spec[["sample_rule"]], "include_if_any"),
+                  as_int1(spec[["sample_k"]], 1L))
   capped <- j$capped; failed <- j$failed; decision <- j$decision; reason <- j$reason
   # Triggers for effort_mode = "escalate"; recorded only under it.
   if (identical(decision, "unclear")) hr_effort_event(trace, "unclear")
@@ -212,14 +213,18 @@ read_screen <- function(chunks, question, client, spec, trace) {
 #' `rule = "include_if_any"`: include when any draw that was read included;
 #' exclude only when every draw was read and excluded; otherwise unclear, for
 #' a person. A document one draw would include is never lost to the others.
+#' `rule = "k_of_n"`: include when at least `k` draws included; exclude only
+#' when every draw was read and excluded; otherwise unclear. At `k = 1` it
+#' decides as include_if_any does.
 #' `rule = "majority"`: the decision most draws that were read gave, unclear
 #' on a tie. The reason, criterion and quote are those of the first draw that
 #' gave the decision kept; an unclear made from a split says so. With no
 #' draw read, the first draw is returned as it is (failed, or stopped at a
 #' limit). `draws` holds what the notes and the table record: the draws'
-#' decisions and the share of draws read that included.
+#' decisions, the rule, `k` under k_of_n, and the share of draws read that
+#' included.
 #' @noRd
-combine_draws <- function(js, rule = "include_if_any") {
+combine_draws <- function(js, rule = "include_if_any", k = 1L) {
   read <- Filter(function(j) isTRUE(j$ok), js)
   dec <- vapply(read, function(j) as_chr1(j$decision, NA_character_), character(1))
   draws <- list(samples = length(js), sample_rule = rule,
@@ -227,12 +232,15 @@ combine_draws <- function(js, rule = "include_if_any") {
                   if (isTRUE(j$ok)) as_chr1(j$decision, "none") else "none", character(1)),
                   collapse = ", "),
                 include_share = if (length(dec)) mean(dec %in% "include") else NA_real_)
+  if (identical(rule, "k_of_n")) draws$sample_k <- as.integer(k)
   if (!length(read)) return(c(js[[1]], list(draws = draws)))
+  # The includes it takes to include: k under k_of_n, one under include_if_any.
+  need <- if (identical(rule, "k_of_n")) k else 1L
   pick <- if (identical(rule, "majority")) {
     tab <- table(factor(dec, levels = c("include", "exclude", "unclear")))
     top <- names(tab)[tab == max(tab)]
     if (length(top) == 1L) top else "unclear"
-  } else if (any(dec %in% "include")) "include"
+  } else if (sum(dec %in% "include") >= need) "include"
     else if (length(read) == length(js) && all(dec %in% "exclude")) "exclude"
     else "unclear"
   first <- read[dec %in% pick]
@@ -301,8 +309,16 @@ combine_draws <- function(js, rule = "include_if_any") {
 #'   excludes one only when every draw was read and excluded it, and sends
 #'   the rest to a person as `"unclear"`, so a study one draw would keep is
 #'   not lost to the others. `"majority"` takes the decision most draws gave,
-#'   `"unclear"` on a tie. The reason, criterion and quote are the first draw's
-#'   that gave the decision kept. Untested.
+#'   `"unclear"` on a tie. `"k_of_n"` includes a document when at least
+#'   `sample_k` draws included it, excludes one only when every draw was read
+#'   and excluded it, and sends the rest to a person as `"unclear"`. The
+#'   reason, criterion and quote are the first draw's that gave the decision
+#'   kept. Untested.
+#' @param sample_k Under `sample_rule = "k_of_n"`, how many draws must include
+#'   a document for it to be included: a whole number from 1 to `samples`.
+#'   `k_of_n` needs it, and the other rules take none. At 1 it decides as
+#'   `"include_if_any"` does; at `samples` a document is included only when
+#'   every draw included it. Untested.
 #' @param ... Recipe overrides, as in [gr_extract()].
 #'
 #' @return An object of class `gr_screening`:
@@ -329,6 +345,9 @@ combine_draws <- function(js, rule = "include_if_any") {
 #'     \item{`sources`}{Every source, one per row of `table`, so that
 #'       [gr_resolve()] can rebuild the sets above.}
 #'     \item{`records`}{The [gr_records()] the run was made over, or `NULL`.}
+#'     \item{`sampling`}{Only when `samples` is above 1: a list of `samples`,
+#'       `sample_rule` and, under `"k_of_n"`, `sample_k`, the rule that turned
+#'       the draws in `sample_decisions` into `decision`.}
 #'     \item{`summary`,`answers`,`trace`,`store`}{As [gr_extract()].}
 #'   }
 #'
@@ -393,7 +412,8 @@ gr_screen <- function(sources, protocol = NULL, question = NULL, include = NULL,
                       max_total_usd = NULL, max_total_calls = NULL,
                       keep_answers = FALSE, recursive = FALSE, trace = NULL,
                       criteria_schema = c("decision", "per_criterion"), samples = 1L,
-                      sample_rule = c("include_if_any", "majority"), ...) {
+                      sample_rule = c("include_if_any", "majority", "k_of_n"),
+                      sample_k = NULL, ...) {
   criteria_schema <- match.arg(criteria_schema)
   sample_rule <- match.arg(sample_rule)
   if (!is.numeric(samples) || length(samples) != 1L || is.na(samples) || samples < 1 ||
@@ -401,6 +421,7 @@ gr_screen <- function(sources, protocol = NULL, question = NULL, include = NULL,
     gr_abort("`samples` must be a whole number from 1 to 20.", class = "gr_bad_setting")
   }
   samples <- as.integer(samples)
+  sample_k <- check_sample_k(sample_k, sample_rule, samples)
   if (!is.null(protocol)) {
     if (!inherits(protocol, "gr_protocol")) {
       gr_abort("`protocol` must come from gr_protocol().", class = "gr_bad_protocol")
@@ -434,6 +455,7 @@ gr_screen <- function(sources, protocol = NULL, question = NULL, include = NULL,
   if (samples > 1L) {
     rd$samples <- samples
     rd$sample_rule <- sample_rule
+    rd$sample_k <- sample_k
   }
   rec <- gr_recipe(paste0(base$name, "+screen"), ingest = base$ingest,
                    segment = base$segment, read = rd)
@@ -452,7 +474,7 @@ gr_screen <- function(sources, protocol = NULL, question = NULL, include = NULL,
                          draws = samples > 1L)
   sets <- screening_sets(tab, out$sources)
 
-  structure(list(
+  res <- structure(list(
     table    = tab,
     included = sets$included,
     forward  = sets$forward,
@@ -468,6 +490,34 @@ gr_screen <- function(sources, protocol = NULL, question = NULL, include = NULL,
     trace    = out$trace,
     store    = out$store
   ), class = "gr_screening")
+  # The rule that made each decision from its draws. Absent at one sample, so
+  # a default screening has the fields it had.
+  if (samples > 1L) {
+    res$sampling <- c(list(samples = samples, sample_rule = sample_rule),
+                      if (!is.null(sample_k)) list(sample_k = sample_k))
+  }
+  res
+}
+
+#' `sample_k` checked against the rule and the number of draws: a whole number
+#' from 1 to `samples` under "k_of_n", which needs one, and NULL under the
+#' other rules, which take none.
+#' @noRd
+check_sample_k <- function(sample_k, sample_rule, samples) {
+  if (!identical(sample_rule, "k_of_n")) {
+    if (!is.null(sample_k)) {
+      gr_abort(sprintf("`sample_k` applies to `sample_rule = \"k_of_n\"` only, not \"%s\".",
+                       sample_rule), class = "gr_bad_setting")
+    }
+    return(NULL)
+  }
+  if (!is.numeric(sample_k) || length(sample_k) != 1L || is.na(sample_k) || sample_k < 1 ||
+      sample_k > samples || sample_k != round(sample_k)) {
+    gr_abort(sprintf(paste0("`sample_rule = \"k_of_n\"` needs `sample_k`, a whole number ",
+                            "from 1 to `samples` (%d): how many draws must include a ",
+                            "document."), samples), class = "gr_bad_setting")
+  }
+  as.integer(sample_k)
 }
 
 # --- internals -------------------------------------------------------------

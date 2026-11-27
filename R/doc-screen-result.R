@@ -23,6 +23,13 @@ print.gr_screening <- function(x, ...) {
   if (resolved) cat(sprintf("  %d decided by a person with gr_resolve()\n", resolved))
   dup <- sum(!is.na(tab$duplicate_of))
   if (dup) cat(sprintf("  %d were duplicates of a document already screened\n", dup))
+  smp <- x$sampling
+  if (!is.null(smp)) {
+    cat(sprintf("  each decided from %d draws by %s%s (sample_decisions has each draw)\n",
+                as.integer(smp$samples), smp$sample_rule,
+                if (!is.null(smp$sample_k)) sprintf(" with k = %d", as.integer(smp$sample_k))
+                else ""))
+  }
   trunc <- sum(tab$truncated, na.rm = TRUE)
   if (trunc) {
     cat(sprintf("  %d decided on the opening of the document, not all of it\n", trunc))
