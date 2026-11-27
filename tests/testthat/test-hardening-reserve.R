@@ -250,3 +250,14 @@ test_that("hr_options() refuses a reserve larger than its limit and keeps the ol
   hr_options(max_cost_usd = NULL, reserve_usd = 50)
   expect_identical(hr_options("reserve_usd"), 50)
 })
+
+test_that("the reader governor check ignores the session's call reserve", {
+  old <- hr_options()
+  on.exit(hr_options(old), add = TRUE)
+  hr_options(reserve_calls = 3)
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  res <- suppressWarnings(suppressMessages(
+    harnessr:::check_reader_governor("stuff", 1, client = cl)))
+  expect_s3_class(res, "data.frame")
+  expect_true(all(res$ok %in% c(TRUE, NA)))
+})
