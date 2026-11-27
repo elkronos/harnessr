@@ -434,7 +434,7 @@ bad <- file.path(tempdir(), "models-guide-bad.csv")
 writeLines(c("id,input_usd,output_usd", "gpt-4.1,2,8", "gpt-4.1-mini,two,1.6"), bad)
 err <- tryCatch(hr_load_models(bad), hr_bad_models_file = function(e) e)
 conditionMessage(err)
-#> [1] "Models file '/tmp/RtmpPht8XI/models-guide-bad.csv', row 2, column 'input_usd': 'two' is not a price; give USD per 1M tokens as a number of 0 or more, such as 2.5."
+#> [1] "Models file '/tmp/RtmpcYNwE1/models-guide-bad.csv', row 2, column 'input_usd': 'two' is not a price; give USD per 1M tokens as a number of 0 or more, such as 2.5."
 c(row = err$row, column = err$column)
 #>         row      column 
 #>         "2" "input_usd"
@@ -633,7 +633,7 @@ old_prices <- file.path(tempdir(), "models-guide-old.csv")
 writeLines(c("id,input_usd,output_usd,as_of", "gpt-4.1,2,8,2025-01"), old_prices)
 hr_load_models(old_prices)
 hr_estimate_cost("gpt-4.1", 120000, 4000)
-#> Warning: The prices of model 'gpt-4.1' are as of 2025-01, 694 days ago, more
+#> Warning: The prices of model 'gpt-4.1' are as of 2025-01, 695 days ago, more
 #> than the 120 days of hr_options(price_max_age_days =). Check your provider's
 #> current prices and set them with hr_register_model(input_usd =, output_usd =)
 #> or hr_load_models(). Shown once per model per session.
@@ -901,13 +901,13 @@ p <- m[!is.na(m$input_usd_per_1m), c("id", "as_of")]
 p$age_days <- as.numeric(Sys.Date() - as.Date(paste0(p$as_of, "-01")))
 p
 #>               id   as_of age_days
-#> 6        gpt-4.1 2025-01      694
-#> 9         gpt-4o 2026-11       25
-#> 10   gpt-4o-mini 2026-11       25
-#> 19 gpt-5.6-terra 2026-11       25
-#> 20   local-llama 2026-11       25
-#> 21 partner-model 2026-10       56
-#> 23 gateway-embed 2026-11       25
+#> 6        gpt-4.1 2025-01      695
+#> 9         gpt-4o 2026-11       26
+#> 10   gpt-4o-mini 2026-11       26
+#> 19 gpt-5.6-terra 2026-11       26
+#> 20   local-llama 2026-11       26
+#> 21 partner-model 2026-10       57
+#> 23 gateway-embed 2026-11       26
 ```
 
 To see the option at work, load a price checked in January 2025 for a
@@ -926,7 +926,7 @@ hr_estimate_cost("contract-model", 100000, 2000)
 #> [1] 0.108
 hr_options(prev_age)
 hr_estimate_cost("contract-model", 100000, 2000)
-#> Warning: The prices of model 'contract-model' are as of 2025-01, 694 days ago,
+#> Warning: The prices of model 'contract-model' are as of 2025-01, 695 days ago,
 #> more than the 120 days of hr_options(price_max_age_days =). Check your
 #> provider's current prices and set them with hr_register_model(input_usd =,
 #> output_usd =) or hr_load_models(). Shown once per model per session.

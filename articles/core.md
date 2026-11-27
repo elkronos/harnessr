@@ -544,12 +544,12 @@ a <- hr_call(cl, "What was revenue in 2024?", model = "priced-mock",
 b <- hr_call(cl, "Check the draft against the report.", model = "priced-mock",
              trace = tr, label = "check")
 tr
-#> <gr_trace run_20261126232155.958_0beac9>  2 steps, 2 model calls, 23 in / 26 out tokens, 0 error(s)
+#> <gr_trace run_20261127012234.601_fcb7de>  2 steps, 2 model calls, 23 in / 26 out tokens, 0 error(s)
 #>   steps: check x1, draft x1 
 #>   cost: $0.0003 across priced-mock, prices as of 2026-11
 #>   usage: estimated locally for 100% of requests (the provider reported none)
 #>   actor: purpose = core guide 
-#>   started: 2026-11-26T23:21:55.958Z
+#>   started: 2026-11-27T01:22:34.601Z
 ```
 
 The trace is an environment, so every call that is passed it records

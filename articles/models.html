@@ -19,7 +19,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">harnessr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -539,7 +539,7 @@ was:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"id,input_usd,output_usd"</span>, <span class="st">"gpt-4.1,2,8"</span>, <span class="st">"gpt-4.1-mini,two,1.6"</span><span class="op">)</span>, <span class="va">bad</span><span class="op">)</span></span>
 <span><span class="va">err</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_load_models.html">hr_load_models</a></span><span class="op">(</span><span class="va">bad</span><span class="op">)</span>, hr_bad_models_file <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="va">e</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">err</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "Models file '/tmp/RtmpPht8XI/models-guide-bad.csv', row 2, column 'input_usd': 'two' is not a price; give USD per 1M tokens as a number of 0 or more, such as 2.5."</span></span>
+<span><span class="co">#&gt; [1] "Models file '/tmp/RtmpcYNwE1/models-guide-bad.csv', row 2, column 'input_usd': 'two' is not a price; give USD per 1M tokens as a number of 0 or more, such as 2.5."</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>row <span class="op">=</span> <span class="va">err</span><span class="op">$</span><span class="va">row</span>, column <span class="op">=</span> <span class="va">err</span><span class="op">$</span><span class="va">column</span><span class="op">)</span></span>
 <span><span class="co">#&gt;         row      column </span></span>
 <span><span class="co">#&gt;         "2" "input_usd"</span></span>
@@ -704,7 +704,7 @@ whose prices were checked in January 2025 shows it:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"id,input_usd,output_usd,as_of"</span>, <span class="st">"gpt-4.1,2,8,2025-01"</span><span class="op">)</span>, <span class="va">old_prices</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/hr_load_models.html">hr_load_models</a></span><span class="op">(</span><span class="va">old_prices</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/hr_estimate_cost.html">hr_estimate_cost</a></span><span class="op">(</span><span class="st">"gpt-4.1"</span>, <span class="fl">120000</span>, <span class="fl">4000</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: The prices of model 'gpt-4.1' are as of 2025-01, 694 days ago, more</span></span>
+<span><span class="co">#&gt; Warning: The prices of model 'gpt-4.1' are as of 2025-01, 695 days ago, more</span></span>
 <span><span class="co">#&gt; than the 120 days of hr_options(price_max_age_days =). Check your provider's</span></span>
 <span><span class="co">#&gt; current prices and set them with hr_register_model(input_usd =, output_usd =)</span></span>
 <span><span class="co">#&gt; or hr_load_models(). Shown once per model per session.</span></span>
@@ -937,13 +937,13 @@ month of every price, and the age in days follows from it:</p>
 <span><span class="va">p</span><span class="op">$</span><span class="va">age_days</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.Date</a></span><span class="op">(</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">p</span><span class="op">$</span><span class="va">as_of</span>, <span class="st">"-01"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">p</span></span>
 <span><span class="co">#&gt;               id   as_of age_days</span></span>
-<span><span class="co">#&gt; 6        gpt-4.1 2025-01      694</span></span>
-<span><span class="co">#&gt; 9         gpt-4o 2026-11       25</span></span>
-<span><span class="co">#&gt; 10   gpt-4o-mini 2026-11       25</span></span>
-<span><span class="co">#&gt; 19 gpt-5.6-terra 2026-11       25</span></span>
-<span><span class="co">#&gt; 20   local-llama 2026-11       25</span></span>
-<span><span class="co">#&gt; 21 partner-model 2026-10       56</span></span>
-<span><span class="co">#&gt; 23 gateway-embed 2026-11       25</span></span></code></pre></div>
+<span><span class="co">#&gt; 6        gpt-4.1 2025-01      695</span></span>
+<span><span class="co">#&gt; 9         gpt-4o 2026-11       26</span></span>
+<span><span class="co">#&gt; 10   gpt-4o-mini 2026-11       26</span></span>
+<span><span class="co">#&gt; 19 gpt-5.6-terra 2026-11       26</span></span>
+<span><span class="co">#&gt; 20   local-llama 2026-11       26</span></span>
+<span><span class="co">#&gt; 21 partner-model 2026-10       57</span></span>
+<span><span class="co">#&gt; 23 gateway-embed 2026-11       26</span></span></code></pre></div>
 <p>To see the option at work, load a price checked in January 2025 for a
 model no estimate has used yet, and estimate its cost under a higher
 limit and then under the default:</p>
@@ -958,7 +958,7 @@ limit and then under the default:</p>
 <span><span class="co">#&gt; [1] 0.108</span></span>
 <span><span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span><span class="va">prev_age</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/hr_estimate_cost.html">hr_estimate_cost</a></span><span class="op">(</span><span class="st">"contract-model"</span>, <span class="fl">100000</span>, <span class="fl">2000</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: The prices of model 'contract-model' are as of 2025-01, 694 days ago,</span></span>
+<span><span class="co">#&gt; Warning: The prices of model 'contract-model' are as of 2025-01, 695 days ago,</span></span>
 <span><span class="co">#&gt; more than the 120 days of hr_options(price_max_age_days =). Check your</span></span>
 <span><span class="co">#&gt; provider's current prices and set them with hr_register_model(input_usd =,</span></span>
 <span><span class="co">#&gt; output_usd =) or hr_load_models(). Shown once per model per session.</span></span>

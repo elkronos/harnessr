@@ -19,7 +19,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">harnessr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -88,12 +88,13 @@
     
     
 <p>Read this page if you have code written for readgpt, the package’s
-name up to version 0.6.0, or for its first version (v1). Each table
-lists an old name, the name that replaced it and what to change in your
-code. None of the old names has an alias: calling an old function stops
-with “could not find function”. One section has no table: built-in
-models now carry no prices, so you set the prices you pay.
-<code>NEWS.md</code> lists every change release by release.</p>
+name up to version 0.6.0, or for its first version (v1), and want it to
+run on harnessr 0.7.0. Each table lists an old name, the name that
+replaced it and what to change in your code. None of the old names has
+an alias: calling an old function stops with “could not find function”.
+One section has no table: from 0.7.0 built-in models carry no prices, so
+you set the prices you pay. <code>NEWS.md</code> lists every change
+release by release.</p>
 <p>The files listed under “What still loads”, at the end of this page,
 still load. A response cache written by readgpt 0.5.1 or earlier is not
 read.</p>
@@ -285,8 +286,8 @@ change; the arguments, the reply and the class stay the same:</p>
 names<a class="anchor" aria-label="anchor" href="#from-readgpt-0-6-0-the-package-options-and-other-removed-names"></a>
 </h2>
 <p>harnessr was called readgpt up to version 0.6.0, and so was its
-GitHub repository. The rename itself changes no request or key. This
-release does move the response cache to the key
+GitHub repository. The rename itself changes no request or key. harnessr
+0.7.0 does move the response cache to the key
 <code>harnessr-cache-v3</code> and replay to
 <code>harnessr-replay-v2</code>; “What still loads” says how old entries
 are found.</p>
@@ -327,16 +328,6 @@ there is not found.</td>
 <td>Rename the option. harnessr ignores the old one.</td>
 </tr>
 <tr class="odd">
-<td>
-<code><a href="../reference/gr_calibrate.html">gr_calibrate()</a></code>’s <code>$kappa_legacy</code>
-</td>
-<td>
-<code><a href="../reference/gr_calibrate.html">gr_calibrate()</a></code>’s <code>$kappa</code>
-</td>
-<td>Read <code>$kappa</code>. <code>$decisions</code> holds the 3x2
-counts the old figure came from.</td>
-</tr>
-<tr class="even">
 <td>the <code>gr_deprecated</code> warning class</td>
 <td>none</td>
 <td>Drop handlers for it. Nothing warns about an old name now.</td>
@@ -347,10 +338,10 @@ counts the old figure came from.</td>
 <div class="section level2">
 <h2 id="from-readgpt-0-6-0-models-carry-no-prices">From readgpt 0.6.0: models carry no prices<a class="anchor" aria-label="anchor" href="#from-readgpt-0-6-0-models-carry-no-prices"></a>
 </h2>
-<p>readgpt 0.6.0 shipped a price for each built-in model. harnessr ships
-their limits and no prices, because providers change prices more often
-than the package is released. Three things change for code written for
-0.6.0:</p>
+<p>readgpt 0.6.0 shipped a price for each built-in model. harnessr 0.7.0
+ships their limits and no prices, because providers change prices more
+often than the package is released. Three things change for code written
+for 0.6.0:</p>
 <ul>
 <li>A cost for a built-in model is <code>NA</code> until you set its
 prices. That holds for <code><a href="../reference/hr_estimate_cost.html">hr_estimate_cost()</a></code>,

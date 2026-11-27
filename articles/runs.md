@@ -171,7 +171,7 @@ str(step[c("label", "attempts", "started_utc", "tokens")])
 #> List of 4
 #>  $ label      : chr "reduce"
 #>  $ attempts   : int 1
-#>  $ started_utc: chr "2026-11-26T23:23:24.454Z"
+#>  $ started_utc: chr "2026-11-27T01:23:56.818Z"
 #>  $ tokens     :List of 3
 #>   ..$ input     : int 296
 #>   ..$ output    : int 13
@@ -258,10 +258,10 @@ out the values of `api_headers`, since they can hold credentials.
 
 tr <- hr_trace(owner = "finance team", run_by = "ana", purpose = "Q3 check")
 tr
-#> <gr_trace run_20261126232324.763_c96aeb>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
+#> <gr_trace run_20261127012357.114_ab3fd3>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
 #>   cost: no cost recorded
 #>   actor: owner = finance team, run_by = ana, purpose = Q3 check 
-#>   started: 2026-11-26T23:23:24.764Z
+#>   started: 2026-11-27T01:23:57.114Z
 names(tr$config)
 #> [1] "options"   "r_version"
 ```

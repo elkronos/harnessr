@@ -115,7 +115,7 @@ checked <- hr_chain(segment = gr_step("segment"),
 checked
 #> <hr_arm checked> version 0.0.1
 #>   params: retrieve.top_k = 4, read.reader = stuff 
-#>   hash: 4cb127da751d
+#>   hash: 8e8f4986488f
 ```
 
 The arm records each step’s settings as `"step.setting"`, so a benchmark

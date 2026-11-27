@@ -152,8 +152,7 @@ An object of class `gr_screening`:
   An unclear record is a deferral, not an exclusion, so this is the set
   a review should read next. In this release `gr_extract(screened)`
   still reads `included`, and warns (class `gr_unclear_dropped`) when
-  that leaves unclear records out; from the next release it reads
-  `forward`.
+  that leaves unclear records out; from 0.9.0 it reads `forward`.
 
 - `deferred`:
 
@@ -244,12 +243,12 @@ writeLines("We randomly assigned participants to two groups.", f)
 
 s <- gr_screen(f, question = "Does the treatment work?",
                include = "Reports a randomised comparison", client = cl)
-#> [1/1] file1b202662878.txt
-#> Extracting 'file1b202662878.txt' with the 'txt' extractor.
+#> [1/1] file1b2939cf4fbc.txt
+#> Extracting 'file1b2939cf4fbc.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~15 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'screen' (head|1|none) over 1 chunk(s).
 s$table[, c("document", "decision", "reason")]
-#>              document decision                           reason
-#> 1 file1b202662878.txt  include Reports a randomised comparison.
+#>               document decision                           reason
+#> 1 file1b2939cf4fbc.txt  include Reports a randomised comparison.
 ```

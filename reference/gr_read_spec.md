@@ -689,7 +689,7 @@ existed.
 - `accept_near_verbatim` (default `FALSE`, advanced): untested. Off, as
   the code behaved before the setting existed. Not measured as a
   stopping rule; on the labelled quotation set, 25 of 46 quotations with
-  one content word swapped score near_verbatim (NEWS, 0.6.0.9000).
+  one content word swapped score near_verbatim (NEWS, 0.7.0).
 
 - `max_merge_levels` (default `6`, advanced): untested. The cap the
   merge code had as a constant; not tuned.

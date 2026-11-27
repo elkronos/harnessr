@@ -534,8 +534,8 @@ Pass `screened` itself to
 In this release
 [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 then reads the included records only, and warns (class
-`gr_unclear_dropped`) when it leaves unclear ones out; from the next
-release it reads `$forward`. To read the unclear records now, pass
+`gr_unclear_dropped`) when it leaves unclear ones out; from 0.9.0 it
+reads `$forward`. To read the unclear records now, pass
 `screened$forward`. `screened$included` works too, but a character
 vector of paths cannot carry the search, so you lose the audit’s search
 section and the bibliographic columns. `table(screened$table$criterion)`
@@ -2155,8 +2155,8 @@ is checked: a stage run on a version other than the report’s is flagged:
 page <- gr_audit_report(tempfile(fileext = ".html"), screening = screened,
                         extraction = table, open = FALSE)
 grep("UTC</td>", readLines(page), value = TRUE)
-#> [1] "<tr><td>screening</td><td>2026-11-26 23:23:18 UTC</td><td>0.6.0.9000</td></tr>" 
-#> [2] "<tr><td>extraction</td><td>2026-11-26 23:23:19 UTC</td><td>0.6.0.9000</td></tr>"
+#> [1] "<tr><td>screening</td><td>2026-11-27 01:23:51 UTC</td><td>0.7.0</td></tr>" 
+#> [2] "<tr><td>extraction</td><td>2026-11-27 01:23:51 UTC</td><td>0.7.0</td></tr>"
 ```
 
 The report puts the failures near the top and counts them there:

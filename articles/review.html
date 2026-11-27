@@ -19,7 +19,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">harnessr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -518,8 +518,8 @@ decision.</p>
 <p>Pass <code>screened</code> itself to <code><a href="../reference/gr_extract.html">gr_extract()</a></code>. In
 this release <code><a href="../reference/gr_extract.html">gr_extract()</a></code> then reads the included records
 only, and warns (class <code>gr_unclear_dropped</code>) when it leaves
-unclear ones out; from the next release it reads <code>$forward</code>.
-To read the unclear records now, pass <code>screened$forward</code>.
+unclear ones out; from 0.9.0 it reads <code>$forward</code>. To read the
+unclear records now, pass <code>screened$forward</code>.
 <code>screened$included</code> works too, but a character vector of
 paths cannot carry the search, so you lose the audit’s search section
 and the bibliographic columns.
@@ -1966,8 +1966,8 @@ flagged:</p>
 <code class="sourceCode R"><span><span class="va">page</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_audit_report.html">gr_audit_report</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".html"</span><span class="op">)</span>, screening <span class="op">=</span> <span class="va">screened</span>,</span>
 <span>                        extraction <span class="op">=</span> <span class="va">table</span>, open <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"UTC&lt;/td&gt;"</span>, <span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="va">page</span><span class="op">)</span>, value <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "&lt;tr&gt;&lt;td&gt;screening&lt;/td&gt;&lt;td&gt;2026-11-26 23:23:18 UTC&lt;/td&gt;&lt;td&gt;0.6.0.9000&lt;/td&gt;&lt;/tr&gt;" </span></span>
-<span><span class="co">#&gt; [2] "&lt;tr&gt;&lt;td&gt;extraction&lt;/td&gt;&lt;td&gt;2026-11-26 23:23:19 UTC&lt;/td&gt;&lt;td&gt;0.6.0.9000&lt;/td&gt;&lt;/tr&gt;"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "&lt;tr&gt;&lt;td&gt;screening&lt;/td&gt;&lt;td&gt;2026-11-27 01:23:51 UTC&lt;/td&gt;&lt;td&gt;0.7.0&lt;/td&gt;&lt;/tr&gt;" </span></span>
+<span><span class="co">#&gt; [2] "&lt;tr&gt;&lt;td&gt;extraction&lt;/td&gt;&lt;td&gt;2026-11-27 01:23:51 UTC&lt;/td&gt;&lt;td&gt;0.7.0&lt;/td&gt;&lt;/tr&gt;"</span></span></code></pre></div>
 <p>The report puts the failures near the top and counts them there:
 unverified quotes, documents that could not be read, screening calls
 that failed or came back in the wrong form, and citations pointing at

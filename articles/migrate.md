@@ -1,12 +1,12 @@
 # Upgrading from older versions
 
 Read this page if you have code written for readgpt, the package’s name
-up to version 0.6.0, or for its first version (v1). Each table lists an
-old name, the name that replaced it and what to change in your code.
-None of the old names has an alias: calling an old function stops with
-“could not find function”. One section has no table: built-in models now
-carry no prices, so you set the prices you pay. `NEWS.md` lists every
-change release by release.
+up to version 0.6.0, or for its first version (v1), and want it to run
+on harnessr 0.7.0. Each table lists an old name, the name that replaced
+it and what to change in your code. None of the old names has an alias:
+calling an old function stops with “could not find function”. One
+section has no table: from 0.7.0 built-in models carry no prices, so you
+set the prices you pay. `NEWS.md` lists every change release by release.
 
 The files listed under “What still loads”, at the end of this page,
 still load. A response cache written by readgpt 0.5.1 or earlier is not
@@ -92,7 +92,7 @@ inherits(cl, "gr_mock_client")
 ## From readgpt 0.6.0: the package, options and other removed names
 
 harnessr was called readgpt up to version 0.6.0, and so was its GitHub
-repository. The rename itself changes no request or key. This release
+repository. The rename itself changes no request or key. harnessr 0.7.0
 does move the response cache to the key `harnessr-cache-v3` and replay
 to `harnessr-replay-v2`; “What still loads” says how old entries are
 found.
@@ -103,15 +103,14 @@ found.
 | `readgpt_example()` | [`gr_example()`](https://elkronos.github.io/harnessr/reference/gr_example.md) | Rename the call. It returns the same path to the bundled example document. |
 | `options(readgpt.api_key =)` | `options(harnessr.api_key =)` | Rename the option. harnessr ignores the old one, so a key set only there is not found. |
 | `options(readgpt.allow_local_urls =)` | `options(harnessr.allow_local_urls =)` | Rename the option. harnessr ignores the old one. |
-| [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)’s `$kappa_legacy` | [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)’s `$kappa` | Read `$kappa`. `$decisions` holds the 3x2 counts the old figure came from. |
 | the `gr_deprecated` warning class | none | Drop handlers for it. Nothing warns about an old name now. |
 
 ## From readgpt 0.6.0: models carry no prices
 
-readgpt 0.6.0 shipped a price for each built-in model. harnessr ships
-their limits and no prices, because providers change prices more often
-than the package is released. Three things change for code written for
-0.6.0:
+readgpt 0.6.0 shipped a price for each built-in model. harnessr 0.7.0
+ships their limits and no prices, because providers change prices more
+often than the package is released. Three things change for code written
+for 0.6.0:
 
 - A cost for a built-in model is `NA` until you set its prices. That
   holds for

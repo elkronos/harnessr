@@ -19,7 +19,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">harnessr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -621,12 +621,12 @@ names what the call was for:</p>
 <span><span class="va">b</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">cl</span>, <span class="st">"Check the draft against the report."</span>, model <span class="op">=</span> <span class="st">"priced-mock"</span>,</span>
 <span>             trace <span class="op">=</span> <span class="va">tr</span>, label <span class="op">=</span> <span class="st">"check"</span><span class="op">)</span></span>
 <span><span class="va">tr</span></span>
-<span><span class="co">#&gt; &lt;gr_trace run_20261126232155.958_0beac9&gt;  2 steps, 2 model calls, 23 in / 26 out tokens, 0 error(s)</span></span>
+<span><span class="co">#&gt; &lt;gr_trace run_20261127012234.601_fcb7de&gt;  2 steps, 2 model calls, 23 in / 26 out tokens, 0 error(s)</span></span>
 <span><span class="co">#&gt;   steps: check x1, draft x1 </span></span>
 <span><span class="co">#&gt;   cost: $0.0003 across priced-mock, prices as of 2026-11</span></span>
 <span><span class="co">#&gt;   usage: estimated locally for 100% of requests (the provider reported none)</span></span>
 <span><span class="co">#&gt;   actor: purpose = core guide </span></span>
-<span><span class="co">#&gt;   started: 2026-11-26T23:21:55.958Z</span></span></code></pre></div>
+<span><span class="co">#&gt;   started: 2026-11-27T01:22:34.601Z</span></span></code></pre></div>
 <p>The trace is an environment, so every call that is passed it records
 into the same object, and you need not collect it from each result.
 Printing it gives the number of steps and calls, the tokens, the errors,
