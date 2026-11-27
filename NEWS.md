@@ -120,6 +120,13 @@
   the README now has one box per core guide, and the document run diagram
   lists `reserve_calls` and `reserve_usd` with the other limits.
 
+* **A shorter README.** It installs the 0.7.0 release or the development
+  version, makes a first call and shows its trace, then answers a question
+  about the bundled example with `answer_document()`, a block CI checks
+  against real output. It says which limits a call is held to and how a saved
+  trace replays offline. The `gr_compare()` and hand-built recipe examples
+  are left to `vignette("readers")`.
+
 # harnessr 0.7.0
 
 harnessr 0.7.0 is the first release under the name harnessr. It reframes
