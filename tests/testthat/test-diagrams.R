@@ -292,6 +292,20 @@ test_that("rerunning dev/build-diagrams.R gives byte-identical files", {
   }
 })
 
+# The text of the <text> elements of class `cls`, read without xml2, so the
+# checks of README.md and the guides run where xml2 is not installed. The
+# build writes each <text> on one line with no markup inside it, and
+# escapes only &, <, > and ".
+svg_class_text <- function(name, cls) {
+  lines <- readLines(diagram_path(name), warn = FALSE, encoding = "UTF-8")
+  hits <- regmatches(lines, regexpr(sprintf("class=\"%s\">[^<]*</text>", cls), lines))
+  out <- sub("</text>$", "", sub("^[^>]*>", "", hits))
+  out <- gsub("&quot;", "\"", out, fixed = TRUE)
+  out <- gsub("&lt;", "<", out, fixed = TRUE)
+  out <- gsub("&gt;", ">", out, fixed = TRUE)
+  gsub("&amp;", "&", out, fixed = TRUE)
+}
+
 # README.md uses the path from the repository root, which GitHub and pkgdown
 # both resolve. The guides use "../man/figures/". That path renders under
 # R CMD build, which embeds the image in the built HTML, so the installed
@@ -305,8 +319,8 @@ test_that("README and the guides show the diagrams, each with alt text", {
   # The alt text names what each layer holds, as the diagram does.
   alt <- regmatches(readme, regexpr("!\\[Two stacked layers[^]]+\\]", readme))
   expect_length(alt, 1)
-  doc <- read_diagram("layers.svg")
-  for (item in c(diagram_text(doc, "core-item"), diagram_text(doc, "doc-item"))) {
+  for (item in c(svg_class_text("layers.svg", "core-item"),
+                 svg_class_text("layers.svg", "doc-item"))) {
     expect_match(alt, item, fixed = TRUE, info = item)
   }
 
@@ -352,7 +366,8 @@ test_that("the alt text of the guides states the same facts as the package", {
                fixed = TRUE)
 
   alt <- vignette_alt("core", "request.svg")
-  steps <- diagram_text(read_diagram("request.svg"), "step")
+  steps <- svg_class_text("request.svg", "step")
+  expect_gt(length(steps), 0)
   expect_match(alt, sprintf("through %s steps. ", number_words[length(steps)]), fixed = TRUE)
   for (l in unlist(c(governor_stage_limits(), governor_stage_reserves()))) {
     expect_match(alt, l, fixed = TRUE, info = l)
