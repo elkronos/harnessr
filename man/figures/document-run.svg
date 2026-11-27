@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="900" height="752" viewBox="0 0 900 752" role="img" aria-labelledby="document-run-title document-run-desc">
 <title id="document-run-title">A document run</title>
-<desc id="document-run-desc">answer_document() runs 3 stages in order: ingest with gr_ingest(), which hands on a gr_document; segment with gr_segment(), which hands on a gr_chunks; read with gr_read(), which hands on a gr_answer. Segmenters and readers that declare model calls send each request through hr_call(): the governor checks allowed_models, max_output_tokens, max_calls, reserve_calls; the cache answers a repeat; on a miss the governor checks max_tokens_total, max_cost_usd, allow_unpriced, reserve_usd; the client answers it; trace_record() adds a step. Readers size prompts with hr_budget(). One trace from hr_trace() goes to every stage.</desc>
+<desc id="document-run-desc">answer_document() runs 3 stages in order: ingest with gr_ingest(), which hands on a gr_document; segment with gr_segment(), which hands on a gr_chunks; read with gr_read(), which hands on a gr_answer. Segmenters and readers that declare model calls send each request through hr_call(): the governor checks allowed_models, max_output_tokens, max_calls and reserve_calls; the cache answers a repeat; on a miss the governor checks max_tokens_total, max_cost_usd, allow_unpriced and reserve_usd; the client answers it; trace_record() adds a step. Readers size prompts with hr_budget(). One trace from hr_trace() goes to every stage.</desc>
 <defs>
 <marker id="document-run-arrow-neutral" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#8c959f"/></marker>
 <marker id="document-run-arrow-core" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#0969da"/></marker>
@@ -43,8 +43,8 @@
 <path d="M670 124 L670 144" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#document-run-arrow-neutral)"/>
 <rect x="464" y="144" width="412" height="64" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
 <text x="670" y="163.7" text-anchor="middle" font-weight="bold">1. governor, before the cache</text>
-<text x="670" y="180.9" font-size="13" text-anchor="middle" class="limits-call">allowed_models, max_output_tokens, max_calls,</text>
-<text x="670" y="197.8" font-size="13" text-anchor="middle" class="limits-call">reserve_calls</text>
+<text x="670" y="180.9" font-size="13" text-anchor="middle" class="limits-call">allowed_models, max_output_tokens, max_calls</text>
+<text x="670" y="197.8" font-size="13" text-anchor="middle" fill="#57606a" class="reserve-call">reserve_calls, kept for closing = TRUE requests</text>
 <path d="M670 208 L670 228" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#document-run-arrow-neutral)"/>
 <rect x="464" y="228" width="412" height="56" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
 <text x="670" y="252.2" text-anchor="middle" font-weight="bold">2. cache: hr_cache_client()</text>
@@ -52,8 +52,8 @@
 <path d="M670 284 L670 304" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#document-run-arrow-neutral)"/>
 <rect x="464" y="304" width="412" height="64" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
 <text x="670" y="323.7" text-anchor="middle" font-weight="bold">3. governor, on a cache miss</text>
-<text x="670" y="340.9" font-size="13" text-anchor="middle" class="limits-send">max_tokens_total, max_cost_usd, allow_unpriced,</text>
-<text x="670" y="357.8" font-size="13" text-anchor="middle" class="limits-send">reserve_usd</text>
+<text x="670" y="340.9" font-size="13" text-anchor="middle" class="limits-send">max_tokens_total, max_cost_usd, allow_unpriced</text>
+<text x="670" y="357.8" font-size="13" text-anchor="middle" fill="#57606a" class="reserve-send">reserve_usd, kept for closing = TRUE requests</text>
 <path d="M670 368 L670 388" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#document-run-arrow-neutral)"/>
 <rect x="464" y="388" width="412" height="56" rx="8" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.5"/>
 <text x="670" y="412.2" text-anchor="middle" font-weight="bold">4. the client answers it</text>

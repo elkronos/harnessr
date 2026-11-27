@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="900" height="864" viewBox="0 0 900 864" role="img" aria-labelledby="request-title request-desc">
 <title id="request-title">The life of one request</title>
-<desc id="request-desc">hr_call() takes a request through seven steps. 1: it counts the prompt and caps the reply; a prompt that leaves no room is a failed step, not sent. 2: the governor checks allowed_models, max_output_tokens, max_calls, reserve_calls; a refused request is not sent and not a step. 3: the cache of hr_cache_client() returns a hit with nothing paid; a replay client answers from its recording. 4: on a miss the governor checks max_tokens_total, max_cost_usd, allow_unpriced, reserve_usd. A closing request may spend the reserves. 5: the client sends it; hr_client() retries a dropped connection and HTTP 408, 409, 425, 429, 500, 502, 503, 504 up to 4 times, and the cache keeps a usable reply. 6: trace_record() adds the step. 7: a provider's refusal of a prompt that is too long signals hr_context_overflow, and an on_overflow function can retry it once with a smaller prompt. The call returns a gr_result.</desc>
+<desc id="request-desc">hr_call() takes a request through seven steps. 1: it counts the prompt and caps the reply; a prompt that leaves no room is a failed step, not sent. 2: the governor checks allowed_models, max_output_tokens, max_calls and reserve_calls; a refused request is not sent and not a step. 3: the cache of hr_cache_client() returns a hit with nothing paid; a replay client answers from its recording. 4: on a miss the governor checks max_tokens_total, max_cost_usd, allow_unpriced and reserve_usd. A closing request may spend the reserves. 5: the client sends it; hr_client() retries a dropped connection and HTTP 408, 409, 425, 429, 500, 502, 503, 504 up to 4 times, and the cache keeps a usable reply. 6: trace_record() adds the step. 7: a provider's refusal of a prompt that is too long signals hr_context_overflow, and an on_overflow function can retry it once with a smaller prompt. The call returns a gr_result.</desc>
 <defs>
 <marker id="request-arrow-neutral" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#8c959f"/></marker>
 <marker id="request-arrow-core" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#0969da"/></marker>
@@ -26,8 +26,8 @@
 <path d="M274 208 L274 228" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#request-arrow-neutral)"/>
 <rect x="24" y="228" width="500" height="81" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
 <text x="274" y="256.2" text-anchor="middle" font-weight="bold" class="step">2. governor, before the cache</text>
-<text x="274" y="273.4" font-size="13" text-anchor="middle" class="limits-call">allowed_models, max_output_tokens, max_calls, reserve_calls</text>
-<text x="274" y="290.3" font-size="13" text-anchor="middle" fill="#57606a">closing = TRUE may spend reserve_calls</text>
+<text x="274" y="273.4" font-size="13" text-anchor="middle" class="limits-call">allowed_models, max_output_tokens, max_calls</text>
+<text x="274" y="290.3" font-size="13" text-anchor="middle" fill="#57606a" class="reserve-call">reserve_calls, kept for closing = TRUE requests</text>
 <path d="M524 268.5 L564 268.5" fill="none" stroke="#bc4c00" stroke-width="1.75" marker-end="url(#request-arrow-accent)"/>
 <rect x="564" y="228" width="312" height="81" rx="8" fill="#fff1e5" stroke="#bc4c00" stroke-width="1.5"/>
 <text x="720" y="247.8" text-anchor="middle" font-weight="bold" fill="#953800">refused</text>
@@ -47,8 +47,8 @@
 <path d="M274 393 L274 413" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#request-arrow-neutral)"/>
 <rect x="24" y="413" width="500" height="64" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
 <text x="274" y="432.7" text-anchor="middle" font-weight="bold" class="step">4. governor, on a cache miss</text>
-<text x="274" y="449.9" font-size="13" text-anchor="middle" class="limits-send">max_tokens_total, max_cost_usd, allow_unpriced, reserve_usd</text>
-<text x="274" y="466.8" font-size="13" text-anchor="middle" fill="#57606a">closing = TRUE may spend reserve_usd</text>
+<text x="274" y="449.9" font-size="13" text-anchor="middle" class="limits-send">max_tokens_total, max_cost_usd, allow_unpriced</text>
+<text x="274" y="466.8" font-size="13" text-anchor="middle" fill="#57606a" class="reserve-send">reserve_usd, kept for closing = TRUE requests</text>
 <path d="M524 445 L564 445" fill="none" stroke="#bc4c00" stroke-width="1.75" marker-end="url(#request-arrow-accent)"/>
 <rect x="564" y="413" width="312" height="64" rx="8" fill="#fff1e5" stroke="#bc4c00" stroke-width="1.5"/>
 <text x="720" y="432.7" text-anchor="middle" font-weight="bold" fill="#953800">refused</text>

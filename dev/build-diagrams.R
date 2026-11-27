@@ -436,19 +436,26 @@ must(calls_in_order(ns$model_call, c("governor_check(trace, gate, \"call\")",
 must(calls_in_order(get("client_dispatch.gr_client", envir = ns),
                     c("cache_get(", "req$admit()", "client_send(client, req)", "cache_put(")),
      "a client looks in its cache before the spend check and sends only on a miss")
-# The limits governor_check() reads before the cache and after a miss: a
-# field read as gov$name, or a reserve read through governor_hold(gov, "name").
+# The limits governor_check() reads before the cache and after a miss, and
+# the reserve each stage holds back for closing requests, read through
+# governor_hold(gov, "name").
 gov_body <- paste(deparse(body(ns$governor_check), width.cutoff = 500L), collapse = "\n")
 gov_split <- strsplit(gov_body, "if (stage %in% c(\"both\", \"send\"))", fixed = TRUE)[[1]]
 must(length(gov_split) == 2, "governor_check() has a call stage and a send stage")
 gov_limits <- lapply(gov_split, function(part) {
-  hits <- regmatches(part, gregexpr("gov\\$[a-z_]+|governor_hold\\(gov, \"[a-z_]+\"", part))[[1]]
-  unique(gsub("^gov\\$|^governor_hold\\(gov, \"|\"$", "", hits))
+  hits <- regmatches(part, gregexpr("gov\\$[a-z_]+", part))[[1]]
+  unique(sub("^gov\\$", "", hits))
 })
-must(all(c("reserve_calls", "reserve_usd") %in% unlist(gov_limits)),
-     "governor_check() holds back reserve_calls and reserve_usd for closing requests")
-must(all(unlist(gov_limits) %in% names(formals(ns$hr_governor))),
+gov_reserves <- lapply(gov_split, function(part) {
+  hits <- regmatches(part, gregexpr("governor_hold\\(gov, \"[a-z_]+\"", part))[[1]]
+  unique(gsub("^governor_hold\\(gov, \"|\"$", "", hits))
+})
+must(identical(gov_reserves, list("reserve_calls", "reserve_usd")),
+     "governor_check() holds back reserve_calls in its call stage and reserve_usd in its send stage")
+must(all(unlist(c(gov_limits, gov_reserves)) %in% names(formals(ns$hr_governor))),
      "each limit governor_check() reads is an argument of hr_governor()")
+# The line under a governor stage's limits that names its reserve.
+reserve_line <- function(reserve) sprintf("%s, kept for closing = TRUE requests", reserve)
 readers_budget <- basename(r_files[startsWith(basename(r_files), "doc-read-") &
   vapply(r_files, function(f) any(grepl("hr_budget(", readLines(f, warn = FALSE),
                                         fixed = TRUE)), logical(1))])
@@ -499,18 +506,17 @@ draw_document_run <- function() {
                                   14, bold = TRUE, cls = "fn")), "core")
   arrow(cv, c(lx + lw, segment_mid, 444, segment_mid), head = FALSE)
   arrow(cv, c(lx + lw, read_mid, 444, read_mid, 444, 104, rx, 104))
-  # The limits of each stage, wrapped to the box at spaces; the test joins
-  # the lines again.
-  limit_lines <- function(limits, cls) {
-    lapply(wrap(paste(limits, collapse = ", "), rw - 24, 13), function(s) ln(s, 13, cls = cls))
-  }
   steps <- list(
-    list(c(list(ln("1. governor, before the cache", 14, bold = TRUE)),
-           limit_lines(gov_limits[[1]], "limits-call")), "core"),
+    list(list(ln("1. governor, before the cache", 14, bold = TRUE),
+              ln(paste(gov_limits[[1]], collapse = ", "), 13, cls = "limits-call"),
+              ln(reserve_line(gov_reserves[[1]]), 13, color = muted, cls = "reserve-call")),
+         "core"),
     list(list(ln(sprintf("2. cache: %s()", fn("hr_cache_client", "core")), 14, bold = TRUE),
               ln("a hit is returned; nothing is sent", 13)), "core"),
-    list(c(list(ln("3. governor, on a cache miss", 14, bold = TRUE)),
-           limit_lines(gov_limits[[2]], "limits-send")), "core"),
+    list(list(ln("3. governor, on a cache miss", 14, bold = TRUE),
+              ln(paste(gov_limits[[2]], collapse = ", "), 13, cls = "limits-send"),
+              ln(reserve_line(gov_reserves[[2]]), 13, color = muted, cls = "reserve-send")),
+         "core"),
     list(list(ln("4. the client answers it", 14, bold = TRUE),
               ln("a provider over HTTP, a mock or a replay", 13)), "neutral"),
     list(list(ln(sprintf("5. %s()", fn("trace_record", "core", internal = TRUE)), 14,
@@ -549,9 +555,9 @@ draw_document_run <- function() {
                         collapse = "; "),
                   ". Segmenters and readers that declare model calls send each request ",
                   "through hr_call(): the governor checks ", paste(gov_limits[[1]], collapse = ", "),
-                  "; the cache answers a repeat; on a miss the governor checks ",
-                  paste(gov_limits[[2]], collapse = ", "),
-                  "; the client answers it; trace_record() adds a step. Readers size prompts with ",
+                  " and ", gov_reserves[[1]], "; the cache answers a repeat; on a miss the ",
+                  "governor checks ", paste(gov_limits[[2]], collapse = ", "), " and ",
+                  gov_reserves[[2]], "; the client answers it; trace_record() adds a step. Readers size prompts with ",
                   "hr_budget(). One trace from hr_trace() goes to every stage."))
 }
 
@@ -907,15 +913,7 @@ draw_request <- function() {
   box(cv, mx, 84, mw, 40, list(ln(sprintf("%s(client, messages, ..., closing = FALSE)",
                                           fn("hr_call", "core")), 14, bold = TRUE, cls = "fn")),
       "core")
-  limit_lines <- function(limits, cls) {
-    lapply(wrap(paste(limits, collapse = ", "), mw - 24, 13), function(s) ln(s, 13, cls = cls))
-  }
   step <- function(title, ...) c(list(ln(title, 14, bold = TRUE, cls = "step")), list(...))
-  flat <- function(...) {
-    out <- list()
-    for (x in list(...)) out <- c(out, if (is.null(x$s)) x else list(x))
-    out
-  }
   rows <- list(
     list(main = step(sprintf("1. count and cap: %s()", fn("hr_count_tokens", "core")),
                      ln("counts the prompt; max_output is held to the model's", 13),
@@ -923,9 +921,9 @@ draw_request <- function() {
          out = list(ln("no room for a reply", 14, bold = TRUE, color = pal$accent$ink),
                     ln("a failed result with status 0;", 13),
                     ln("a step of the trace, never sent", 13)), out_style = "accent"),
-    list(main = flat(step("2. governor, before the cache"),
-                     limit_lines(gov_limits[[1]], "limits-call"),
-                     ln("closing = TRUE may spend reserve_calls", 13, color = muted)),
+    list(main = step("2. governor, before the cache",
+                     ln(paste(gov_limits[[1]], collapse = ", "), 13, cls = "limits-call"),
+                     ln(reserve_line(gov_reserves[[1]]), 13, color = muted, cls = "reserve-call")),
          out = list(ln("refused", 14, bold = TRUE, color = pal$accent$ink),
                     ln("ok = FALSE, refused = TRUE;", 13),
                     ln("class hr_budget_refused;", 13),
@@ -937,9 +935,9 @@ draw_request <- function() {
          out = list(ln("a hit", 14, bold = TRUE),
                     ln("returned with cached = TRUE and", 13),
                     ln("attempts = 0; nothing is paid", 13)), out_style = "core"),
-    list(main = flat(step("4. governor, on a cache miss"),
-                     limit_lines(gov_limits[[2]], "limits-send"),
-                     ln("closing = TRUE may spend reserve_usd", 13, color = muted)),
+    list(main = step("4. governor, on a cache miss",
+                     ln(paste(gov_limits[[2]], collapse = ", "), 13, cls = "limits-send"),
+                     ln(reserve_line(gov_reserves[[2]]), 13, color = muted, cls = "reserve-send")),
          out = list(ln("refused", 14, bold = TRUE, color = pal$accent$ink),
                     ln("as at step 2: nothing is sent", 13),
                     ln("and nothing is paid", 13)), out_style = "accent"),
@@ -990,11 +988,12 @@ draw_request <- function() {
   svg_file(cv, "The life of one request",
            paste0("hr_call() takes a request through seven steps. 1: it counts the prompt and ",
                   "caps the reply; a prompt that leaves no room is a failed step, not sent. ",
-                  "2: the governor checks ", paste(gov_limits[[1]], collapse = ", "),
-                  "; a refused request is not sent and not a step. 3: the cache of ",
+                  "2: the governor checks ", paste(gov_limits[[1]], collapse = ", "), " and ",
+                  gov_reserves[[1]], "; a refused request is not sent and not a step. 3: the cache of ",
                   "hr_cache_client() returns a hit with nothing paid; a replay client answers ",
                   "from its recording. 4: on a miss the governor checks ",
-                  paste(gov_limits[[2]], collapse = ", "), ". A closing request may spend the ",
+                  paste(gov_limits[[2]], collapse = ", "), " and ", gov_reserves[[2]],
+                  ". A closing request may spend the ",
                   "reserves. 5: the client sends it; hr_client() retries a dropped connection and ",
                   "HTTP ", paste(retry_status, collapse = ", "), " up to ", max_retries,
                   " times, and the cache keeps a usable reply. 6: trace_record() adds the step. ",
