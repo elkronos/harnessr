@@ -1702,6 +1702,7 @@
 "stopped_answer","doc","function"
 "strength_guard","doc","function"
 "strip_bold","doc","function"
+"strip_cut_marker","doc","function"
 "study_fields","doc","function"
 "study_identity","doc","function"
 "study_verified","doc","function"

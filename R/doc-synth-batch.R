@@ -751,8 +751,10 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
               class = "gr_gaps_truncated")
       # A cut inside the first line ends in the default marker, which is not
       # text kept; a cut at a line boundary has none and the guard skips it.
+      # Under a policy the body comes without its marker already.
       trace_truncation(trace, "synthesise.gaps", gaps, attr(fit, "body") %||% as.character(fit),
-                       limit = max(1L, room %/% 4L), marker = " ...[truncated]",
+                       limit = max(1L, room %/% 4L),
+                       marker = if (is.null(context_policy)) " ...[truncated]" else "",
                        section = closing)
       gaps <- as.character(fit)
       gaps_cut <- TRUE
@@ -1156,6 +1158,10 @@ cap_gap_lines <- function(gaps, n) {
 #' Each line is counted on its own, so the lines kept add up to fewer tokens
 #' than `n`: the fit errs towards cutting more, never towards a prompt that
 #' overruns.
+#'
+#' The `body` attribute is the text kept: the lines without the notice, and a
+#' line cut in part without the policy's marker, so the trace counts only
+#' the text that was kept.
 #' @noRd
 fit_gap_lines <- function(gaps, n, policy) {
   if (hr_count_tokens(gaps) <= n) return(gaps)
@@ -1164,9 +1170,27 @@ fit_gap_lines <- function(gaps, n, policy) {
   titles <- stats::setNames(trimws(sub(":.*$", "", sub("^- ", "", lines))), ids)
   fit <- hr_context_fit(stats::setNames(lines, ids), n, policy, where = "synthesise.gaps",
                         titles = titles)
-  kept <- unname(fit$pieces[nzchar(fit$pieces)])
+  shown <- nzchar(fit$pieces)
+  kept <- unname(fit$pieces[shown])
+  body <- fit$pieces
+  part <- shown & names(body) %in% fit$cut
+  body[part] <- strip_cut_marker(body[part], policy$marker %||% " ...[truncated]")
   out <- paste(c(kept, if (nzchar(fit$notice)) fit$notice), collapse = "\n")
-  structure(out, kept = length(kept), of = length(lines), body = paste(kept, collapse = "\n"))
+  structure(out, kept = length(kept), of = length(lines),
+            body = paste(unname(body[shown]), collapse = "\n"))
+}
+
+#' `text` without the marker a cut wrote into it: `marker` with its
+#' `{tokens_dropped}` and `{units_dropped}` read as any count.
+#' @noRd
+strip_cut_marker <- function(text, marker) {
+  mk <- trimws(marker)
+  if (!nzchar(mk)) return(text)
+  rx <- gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", mk)
+  for (ph in c("tokens_dropped", "units_dropped")) {
+    rx <- gsub(sprintf("\\{%s\\}", ph), "[0-9]+", rx, fixed = TRUE)
+  }
+  trimws(gsub(rx, "", text))
 }
 
 #' A section that could not be written at all, with the warning that says so.
