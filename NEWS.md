@@ -52,11 +52,12 @@
   condition of class `hr_context_overflow` and sets `$error_class` to the
   same name. A refusal raised as an error through `hr_ellmer_client()` or
   `hr_backend_client()` gets the name too when its message carries httr2's
-  "HTTP 400" or "HTTP 413" and one of those phrasings. The result's `$overflow` and the trace step's `overflow` field
-  hold the local count of the prompt, the window registered for the model
-  and the status, so you can see how far the local count was off. The error
-  text is unchanged, a 400 for any other reason is left as it was, and a
-  replay of the trace names the refusal again.
+  "HTTP 400" or "HTTP 413" and one of those phrasings. The result's
+  `$overflow` and the trace step's `overflow` field hold the local count of
+  the prompt, the window registered for the model and the status, so you
+  can see how far the local count was off. The error text is unchanged, a
+  400 for any other reason is left as it was, and a replay of the trace
+  names the refusal again.
 
 * **`hr_options()` gains `on_overflow`.** The default, `"error"`, returns
   the failed result and sends nothing more. A function of
