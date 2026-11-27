@@ -296,7 +296,8 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
 #' folded in, but its share's refusals are not: they say nothing of the run's
 #' own limits, and copied in they marked a run with headroom left as stopped.
 #' A warning says the item's result is short of what the run would have
-#' given it. No caller makes two requests per item (see gr_lapply()).
+#' given it. Only an `on_overflow` retry makes a second request for an item
+#' (see gr_lapply()).
 #' @noRd
 batch_collect <- function(out, trace, state, rerun = NULL) {
   me <- Sys.getpid()
@@ -446,25 +447,31 @@ worker_item <- function(fn, ctx, state) {
 
 #' The user's own functions a batch runs in its workers.
 #'
-#' Every item of every batch makes its one request through hr_call(), which
+#' Every item of every batch makes its request through hr_call(), which
 #' calls the client's handler (a mock's or a backend's) and counts tokens with
 #' the tokenizer in use. Nothing else of the user's runs there: readers,
 #' segmenters, embedders, cleaners and extractors, and the client's embedding
 #' handler, run in the process that builds the batch. What those refer to in
-#' the workspace stays there, as it always did.
+#' the workspace stays there, as it always did. An `on_overflow` function set
+#' in hr_options() runs there too, when a provider refuses an item's prompt
+#' as too long.
 #' @noRd
 worker_functions <- function(client, opts) {
   tok <- opts$tokenizer
+  ov <- opts[["on_overflow", exact = TRUE]]
   list(handler = if (is.list(client)) client[["handler", exact = TRUE]],
-       tokenizer = if (is_nonblank(tok)) (hr_state$tokenizers %||% list())[[tok]])
+       tokenizer = if (is_nonblank(tok)) (hr_state$tokenizers %||% list())[[tok]],
+       on_overflow = if (is.function(ov)) ov)
 }
 
 #' Which limit a batch of `n` items could pass, or NULL when it fits.
 #'
 #' Measured without recording a stop: the batch then runs in this process,
 #' where each request is checked against the run, and only a refusal stops a
-#' run. Each item makes at most one request, so `n` more calls is the most a
-#' batch adds; `item_usd`, when known, prices each at its worst. A run with
+#' run. Each item makes one request, so `n` more calls is what a batch needs;
+#' an `on_overflow` retry is a second one, which the item's share refuses
+#' when the run has no room for it. `item_usd`, when known, prices each at
+#' its worst. A run with
 #' nothing left to spend sends no batch either: every worker's share would be
 #' nothing.
 #' @noRd

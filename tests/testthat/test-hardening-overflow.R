@@ -191,3 +191,11 @@ test_that("the overflow record keeps the status, so a replay names the refusal a
   expect_identical(tr2$steps[[1]]$overflow$status, 400L)
   expect_true(tr2$steps[[2]]$overflow_retry)
 })
+
+test_that("an on_overflow function travels to the workers of a parallel batch", {
+  fn <- function(messages, info) messages
+  got <- harnessr:::worker_functions(NULL, list(tokenizer = "heuristic", on_overflow = fn))
+  expect_identical(got$on_overflow, fn)
+  expect_null(harnessr:::worker_functions(NULL, list(tokenizer = "heuristic",
+                                                     on_overflow = "error"))$on_overflow)
+})
