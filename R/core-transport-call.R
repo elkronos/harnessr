@@ -211,6 +211,18 @@ print.gr_result <- function(x, ...) {
 #'   `$error` naming the limit and the condition in `$refusal`, after a
 #'   condition of class `hr_budget_refused` is signalled. It is not recorded
 #'   as a step of the trace.
+#'
+#'   A request the provider refuses because its prompt is longer than the
+#'   model's context window (a 400 or 413 whose error body says so in one of
+#'   the phrasings providers use, such as `context_length_exceeded`, "maximum
+#'   context length" or "prompt is too long") comes back as a failed result
+#'   with the same error text and `$error_class = "hr_context_overflow"`, and
+#'   `$overflow` holds `estimate_tokens`, the local count of the prompt, and
+#'   `context_window`, the window registered for the model. The trace step
+#'   records the same in its `overflow` field, and a condition of class
+#'   `hr_context_overflow` is signalled. A 400 with any other body is left as
+#'   it was. `hr_options(on_overflow =)` can retry such a request once with a
+#'   smaller prompt your own function makes; see [hr_options()].
 #' @seealso [hr_client()], [hr_mock_client()], [gr_result], [hr_budget()],
 #'   [hr_cache_client()], [hr_replay_client()]
 #' @export
@@ -287,7 +299,8 @@ check_draw_index <- function(draw_index) {
 model_call <- function(client, messages, model = NULL, max_output = NULL,
                        temperature = NULL, schema = NULL, schema_name = "result",
                        trace = NULL, label = "call", extra = list(), accept = NULL,
-                       effort = NULL, draw_index = 0L, closing = FALSE) {
+                       effort = NULL, draw_index = 0L, closing = FALSE,
+                       overflow_retry = FALSE) {
   if (!inherits(client, "gr_client")) gr_abort("`client` must come from hr_client() or hr_mock_client().")
   messages <- normalise_messages(messages)
   model <- as_chr1(model %||% client$model)
@@ -414,11 +427,94 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
     params$effort <- NULL
     if (is.list(sent)) sent$effort <- NA_character_
   }
+  # A provider's refusal of a prompt longer than the model's window is named,
+  # and the step keeps the local count and the window beside it.
+  overflow <- NULL
+  if (is_context_overflow(res)) {
+    overflow <- list(estimate_tokens = as_num1(prompt_tokens, NA_real_),
+                     context_window = as_num1(info$context_window, NA_real_))
+    res$error_class <- "hr_context_overflow"
+    res$overflow <- overflow
+  }
+  if (isTRUE(overflow_retry)) res$overflow_retry <- TRUE
   trace_record(trace, label, messages, res, params,
                seconds = as.numeric(difftime(ended, started, units = "secs")),
                sent = sent, started = started, ended = ended, replay_key = rkey,
-               draw_scope = draw_scope)
-  res
+               draw_scope = draw_scope, overflow = overflow,
+               overflow_retry = overflow_retry)
+  if (is.null(overflow)) return(res)
+  signalCondition(structure(class = c("hr_context_overflow", "condition"), list(
+    message = as_chr1(res$error, "context overflow"), call = NULL, label = label, model = model,
+    status = res$status, estimate_tokens = overflow$estimate_tokens,
+    context_window = overflow$context_window)))
+  smaller <- if (!isTRUE(overflow_retry)) overflow_refit(messages, label, model, overflow, res)
+  if (is.null(smaller)) return(res)
+  # One retry, as a request like any other: the governor checks it, the trace
+  # records it, and it is never retried again.
+  model_call(client, smaller, model = model, max_output = asked_cap, temperature = temperature,
+             schema = schema, schema_name = schema_name, trace = trace, label = label,
+             extra = extra, accept = accept, effort = effort_map, draw_index = draw_index,
+             closing = closing, overflow_retry = TRUE)
+}
+
+#' Phrasings providers put in the error body of a request whose prompt is
+#' longer than the model's context window. Matched without regard to case,
+#' and only on a 400 or 413, so a rate limit's "too many tokens per minute"
+#' (a 429) is not one.
+#'
+#' - "context_length_exceeded": OpenAI's and Azure OpenAI's error code.
+#' - "maximum context length": OpenAI's message ("This model's maximum
+#'   context length is ..."), also sent by vLLM and other OpenAI-compatible
+#'   servers.
+#' - "prompt is too long": Anthropic ("prompt is too long: N tokens > M
+#'   maximum").
+#' - "exceeds the maximum number of tokens": Google Gemini ("The input token
+#'   count (N) exceeds the maximum number of tokens allowed (M)").
+#' - "input is too long": Amazon Bedrock ("Input is too long for requested
+#'   model").
+#' - "exceeds the available context size": llama.cpp's server.
+#' - "reduce the length of the messages": Groq and other OpenAI-compatible
+#'   servers.
+#' - "too many tokens": the generic wording several gateways use.
+#' @noRd
+.hr_overflow_phrases <- c("context_length_exceeded", "maximum context length",
+                          "prompt is too long", "exceeds the maximum number of tokens",
+                          "input is too long", "exceeds the available context size",
+                          "reduce the length of the messages", "too many tokens")
+
+#' Whether a failed result is a provider refusing a prompt longer than the
+#' model's window: a 400 or 413 whose error names it in one of
+#' .hr_overflow_phrases. A bare 400 is not one.
+#' @noRd
+is_context_overflow <- function(res) {
+  if (!is.list(res) || isTRUE(res$ok) || isTRUE(res[["refused", exact = TRUE]])) return(FALSE)
+  status <- as_int1(res$status, NA_integer_)
+  if (is.na(status) || !status %in% c(400L, 413L)) return(FALSE)
+  err <- tolower(as_chr1(res$error, ""))
+  any(vapply(.hr_overflow_phrases, grepl, logical(1), x = err, fixed = TRUE))
+}
+
+#' The smaller prompt the caller's `on_overflow` function gives for an
+#' overflowed request, normalised, or NULL when there is no function, it
+#' fails, or it gives nothing.
+#' @noRd
+overflow_refit <- function(messages, label, model, overflow, res) {
+  fn <- hr_options("on_overflow")
+  if (!is.function(fn)) return(NULL)
+  info <- list(label = label, model = model, estimate_tokens = overflow$estimate_tokens,
+               context_window = overflow$context_window, error = as_chr1(res$error, ""))
+  out <- tryCatch(fn(messages, info), error = function(e) {
+    gr_warn(sprintf("The on_overflow function failed for the '%s' request, so it was not retried: %s",
+                    label, conditionMessage(e)), class = "hr_overflow_refit_failed")
+    NULL
+  })
+  if (is.null(out)) return(NULL)
+  tryCatch(normalise_messages(out), error = function(e) {
+    gr_warn(sprintf(paste0("The on_overflow function returned no messages hr_call() can send for ",
+                           "the '%s' request, so it was not retried."), label),
+            class = "hr_overflow_refit_failed")
+    NULL
+  })
 }
 
 #' What the governor is told about a prepared request: its model and label, the

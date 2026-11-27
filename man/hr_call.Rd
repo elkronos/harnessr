@@ -100,6 +100,18 @@ is not sent: it comes back with \code{ok = FALSE}, \verb{$refused = TRUE}, an
 \verb{$error} naming the limit and the condition in \verb{$refusal}, after a
 condition of class \code{hr_budget_refused} is signalled. It is not recorded
 as a step of the trace.
+
+A request the provider refuses because its prompt is longer than the
+model's context window (a 400 or 413 whose error body says so in one of
+the phrasings providers use, such as \code{context_length_exceeded}, "maximum
+context length" or "prompt is too long") comes back as a failed result
+with the same error text and \verb{$error_class = "hr_context_overflow"}, and
+\verb{$overflow} holds \code{estimate_tokens}, the local count of the prompt, and
+\code{context_window}, the window registered for the model. The trace step
+records the same in its \code{overflow} field, and a condition of class
+\code{hr_context_overflow} is signalled. A 400 with any other body is left as
+it was. \code{hr_options(on_overflow =)} can retry such a request once with a
+smaller prompt your own function makes; see \code{\link[=hr_options]{hr_options()}}.
 }
 \description{
 Call a model

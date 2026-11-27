@@ -279,6 +279,8 @@ config_snapshot <- function() {
   # defaults reads as one made before they existed.
   late <- setdiff(.gr_late_options, names(nondefault_options()))
   opts[late] <- NULL
+  # A function cannot be written as JSON, and its code is the caller's.
+  if (is.function(opts[["on_overflow", exact = TRUE]])) opts["on_overflow"] <- list("<function>")
   h <- opts[["api_headers", exact = TRUE]]
   if (length(h)) opts["api_headers"] <- list(stats::setNames(rep("<set>", length(h)), names(h)))
   list(options = opts, r_version = R.version$version.string)
@@ -339,7 +341,8 @@ usd12 <- function(x) {
 #' @noRd
 trace_record <- function(trace, label, messages, result, params = list(), seconds = NA_real_,
                          embedding = FALSE, sent = NULL, started = NULL, ended = NULL,
-                         replay_key = NULL, draw_scope = NULL) {
+                         replay_key = NULL, draw_scope = NULL, overflow = NULL,
+                         overflow_retry = FALSE) {
   if (is.null(trace) || !inherits(trace, "gr_trace")) return(invisible(NULL))
   trace$calls <- trace$calls + 1L
   if (isTRUE(result$cached)) trace$cached <- trace$cached + 1L
@@ -444,6 +447,11 @@ trace_record <- function(trace, label, messages, result, params = list(), second
   if (is.character(draw_scope) && length(draw_scope) == 1L && !is.na(draw_scope)) {
     step$draw_scope <- draw_scope
   }
+  # A provider's refusal of a prompt longer than the window: the local count
+  # of the prompt and the window registered for the model, side by side. And
+  # the retry an on_overflow function made. Only on such steps.
+  if (is.list(overflow)) step$overflow <- overflow
+  if (isTRUE(overflow_retry)) step$overflow_retry <- TRUE
   trace_push_steps(trace, list(step))
   invisible(NULL)
 }

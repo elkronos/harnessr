@@ -14,8 +14,8 @@ hr_mock_client(handler = NULL, embed_handler = NULL, mode = NULL)
 with one row per input.}
 
 \item{mode}{\code{NULL} (the default) for replies as the handler gives them, or
-one of \code{"bad_json"}, \code{"refuse"} and \code{"at_cap"}, or a vector of HTTP
-status codes such as \code{c(429, 500, 200)}. See Details.}
+one of \code{"bad_json"}, \code{"refuse"}, \code{"at_cap"} and \code{"overflow"}, or a
+vector of HTTP status codes such as \code{c(429, 500, 200)}. See Details.}
 }
 \value{
 An object of class \code{gr_client}, with \verb{$calls()}, \verb{$embeds()} and
@@ -52,6 +52,12 @@ a provider.}
 \item{\code{"at_cap"}}{Every reply is the handler's, marked as cut off at the
 output cap (\code{finish_reason = "length"}) and billed at the full cap. A
 failed \link{gr_result} from the handler comes back as it is.}
+\item{\code{"overflow"}}{The first request fails with status 400 and the body
+OpenAI sends for a prompt longer than the model's context window, which
+\code{\link[=hr_call]{hr_call()}} reports with class \code{hr_context_overflow}. Every request
+after it gets the handler's reply, so a retry with a smaller prompt
+(see \code{on_overflow} in \code{\link[=hr_options]{hr_options()}}) succeeds. \verb{$reset()} makes the
+next request fail again.}
 \item{A vector of HTTP status codes}{Call \code{i} gets the \code{i}-th status, and
 every call after the last gets the last one. A status from 200 to 299
 gives the handler's reply; any other gives a failed result with that

@@ -228,6 +228,7 @@
   options.max_tokens_total = "runs#set-limits", options.max_output_tokens = "runs#set-limits",
   options.allowed_models = "runs#set-limits", options.allow_unpriced = "models#set-unpriced",
   options.reserve_calls = "runs#set-limits", options.reserve_usd = "runs#set-limits",
+  options.on_overflow = "context#set-overflow",
   options.price_max_age_days = "models#set-price-age",
   options.unknown_model_action = "models#set-unknown-model",
   options.tokenizer = "models#set-tokenizer",

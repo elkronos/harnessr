@@ -782,7 +782,13 @@ Warnings:
 Conditions that are neither: `hr_budget_refused`, signalled for each request the
 limits stop, with `hr_model_not_allowed` added when the model is not in
 `allowed_models`, and `hr_budget_stopped`, the warning a benchmark gives when its
-limits stopped runs. `vignette("runs")` lists the document layer's classes.
+limits stopped runs. `hr_context_overflow` is signalled when a provider refuses
+a prompt as longer than the model's window; the failed result carries the same
+name in `$error_class`, and its `$overflow` holds the local count of the prompt
+and the window. `vignette("context")` shows it, and the `on_overflow` option
+that retries such a request once with a smaller prompt you make. A warning of
+class `hr_overflow_refit_failed` says that function failed or gave nothing
+`hr_call()` can send. `vignette("runs")` lists the document layer's classes.
 
 ## API keys and options
 

@@ -60,6 +60,10 @@ gr_defaults <- list(
   # requests (see hr_governor()). 0 = none.
   reserve_calls       = 0L,
   reserve_usd         = 0,
+  # What a request does when the provider refuses its prompt as longer than
+  # the model's window: "error" returns the failure, or a function of
+  # (messages, info) returns a smaller prompt to send once more.
+  on_overflow         = "error",
   # Prices older than this many days, counted from the first day of their
   # as_of month, warn once per model when a cost is computed from them. NULL =
   # never.
@@ -89,7 +93,7 @@ gr_defaults <- list(
 .gr_late_options <- c("auto_max_tokens", "auto_room_share", "reasoning_floor",
                       "output_reserve_share", "near_verbatim_sim", "near_verbatim_sim_short",
                       "near_verbatim_short_chars", "price_max_age_days", "reserve_calls",
-                      "reserve_usd")
+                      "reserve_usd", "on_overflow")
 
 #' The options among `names` that are not their default, as a named list.
 #' Empty at the defaults, so a key built with it is the key built without it.
@@ -207,6 +211,11 @@ nondefault_options <- function(names = .gr_late_options) {
                            evidence = list(status = "untested", source = paste0(
                              "0 holds nothing back, so runs are what they were; a choice, ",
                              "not a tuned value."))),
+  # A choice, checked by check_option() itself; listed for its evidence.
+  on_overflow       = list(kind = "switch",
+                           evidence = list(status = "untested", source = paste0(
+                             "\"error\" sends nothing more, so a run costs what it did; a ",
+                             "retry is an extra call, so it is yours to ask for."))),
   # A switch, checked by check_option() itself; listed for its evidence.
   allow_unpriced    = list(kind = "switch",
                            evidence = list(status = "untested", source = paste0(
@@ -225,6 +234,11 @@ check_option <- function(name, value) {
                       "or NULL for any model."), class = "gr_bad_option")
     }
     return(unique(unname(value)))
+  }
+  if (identical(name, "on_overflow")) {
+    if (is.function(value) || identical(value, "error")) return(value)
+    gr_abort(paste0("hr_options(on_overflow = ) must be \"error\" or a function of ",
+                    "(messages, info) that returns a smaller prompt."), class = "gr_bad_option")
   }
   if (identical(name, "allow_unpriced")) {
     if (!is.logical(value) || length(value) != 1L || is.na(value)) {
@@ -422,6 +436,19 @@ check_option <- function(name, value) {
 #'   \item{`reserve_usd` (0)}{Dollars held back from `max_cost_usd` for a
 #'     run's closing requests, in the same way. 0 holds none back.
 #'     Untested: a choice, not a tuned value.}
+#'   \item{`on_overflow` ("error")}{What a request does when the provider
+#'     refuses its prompt as longer than the model's context window (an
+#'     error of class `hr_context_overflow`; see [hr_call()]). `"error"`
+#'     returns the failed result. A function of `(messages, info)` is called
+#'     with the messages sent and a list of `label`, `model`,
+#'     `estimate_tokens` (the local count of the prompt), `context_window`
+#'     and `error`, and returns smaller messages, which are sent once more as
+#'     a new request: the governor checks it, the trace records it as a step
+#'     with `overflow_retry = TRUE`, and it is not retried again. Return
+#'     `NULL` to send nothing more. Write the function yourself, and keep it
+#'     deterministic, such as one that cuts the longest message with
+#'     [hr_truncate()]; harnessr never asks a model to shorten a prompt.
+#'     Untested: a choice, not a tuned value.}
 #'   \item{`price_max_age_days` (120)}{How old a price may be, in days, before
 #'     a cost computed from it warns with class `hr_stale_price`. A price's age
 #'     is counted from the first day of its `as_of` month (see [hr_models()]),
@@ -477,13 +504,14 @@ check_option <- function(name, value) {
 #' @section Where the defaults come from:
 #' The settings listed last above were constants in the code until they were
 #' options; each keeps the constant's value. A trace records them, and
-#' `price_max_age_days`, `reserve_calls` and `reserve_usd`, (in its options
-#' snapshot) only when one is not its default, so a trace made at the
-#' defaults reads as it did before they existed. Each tuning setting's entry
+#' `price_max_age_days`, `reserve_calls`, `reserve_usd` and `on_overflow`,
+#' (in its options snapshot) only when one is not its default, so a trace
+#' made at the defaults reads as it did before they existed. A function given
+#' as `on_overflow` is recorded as `"<function>"`. Each tuning setting's entry
 #' above (`temperature`, `max_retries`, `retry_pause_base`,
 #' `request_timeout`, `safety_margin`, `min_output_tokens`, `workers`,
 #' `price_max_age_days` and the settings listed last) says where its default
-#' came from, as do `allow_unpriced`'s and the reserves';
+#' came from, as do those of `allow_unpriced`, the reserves and `on_overflow`;
 #' "untested" means no measurement backs the value. The other entries are
 #' switches, limits and names, which are choices rather than tuned values.
 #'

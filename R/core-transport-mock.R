@@ -31,6 +31,12 @@
 #'   \item{`"at_cap"`}{Every reply is the handler's, marked as cut off at the
 #'     output cap (`finish_reason = "length"`) and billed at the full cap. A
 #'     failed [gr_result] from the handler comes back as it is.}
+#'   \item{`"overflow"`}{The first request fails with status 400 and the body
+#'     OpenAI sends for a prompt longer than the model's context window, which
+#'     [hr_call()] reports with class `hr_context_overflow`. Every request
+#'     after it gets the handler's reply, so a retry with a smaller prompt
+#'     (see `on_overflow` in [hr_options()]) succeeds. `$reset()` makes the
+#'     next request fail again.}
 #'   \item{A vector of HTTP status codes}{Call `i` gets the `i`-th status, and
 #'     every call after the last gets the last one. A status from 200 to 299
 #'     gives the handler's reply; any other gives a failed result with that
@@ -45,8 +51,8 @@
 #' @param embed_handler Function of `(texts, params)` returning a numeric matrix
 #'   with one row per input.
 #' @param mode `NULL` (the default) for replies as the handler gives them, or
-#'   one of `"bad_json"`, `"refuse"` and `"at_cap"`, or a vector of HTTP
-#'   status codes such as `c(429, 500, 200)`. See Details.
+#'   one of `"bad_json"`, `"refuse"`, `"at_cap"` and `"overflow"`, or a
+#'   vector of HTTP status codes such as `c(429, 500, 200)`. See Details.
 #' @return An object of class `gr_client`, with `$calls()`, `$embeds()` and
 #'   `$reset()`.
 #' @seealso [hr_client()], [hr_call()], [gr_result], [gr_example()] for a
@@ -121,7 +127,7 @@ hr_mock_client <- function(handler = NULL, embed_handler = NULL, mode = NULL) {
 #' @noRd
 mock_mode <- function(mode) {
   if (is.null(mode)) return(NULL)
-  named <- c("bad_json", "refuse", "at_cap")
+  named <- c("bad_json", "refuse", "at_cap", "overflow")
   if (is.character(mode) && length(mode) == 1L && !is.na(mode) && mode %in% named) return(mode)
   if (is.numeric(mode) && length(mode) && !anyNA(mode) && all(mode == round(mode)) &&
       all(mode >= 100 & mode <= 599)) {
@@ -132,6 +138,15 @@ mock_mode <- function(mode) {
                    paste0("\"", named, "\"", collapse = ", ")),
            class = "gr_bad_setting")
 }
+
+#' The error body OpenAI returns for a prompt longer than the model's window,
+#' which the mock's "overflow" mode sends.
+#' @noRd
+.gr_mock_overflow_body <- paste0(
+  "{\"error\": {\"message\": \"This model's maximum context length is 128000 tokens. ",
+  "However, your messages resulted in 130000 tokens. Please reduce the length of the ",
+  "messages.\", \"type\": \"invalid_request_error\", \"param\": \"messages\", ",
+  "\"code\": \"context_length_exceeded\"}}")
 
 #' The handler a mock with a mode calls: `handler` wrapped so that its reply
 #' is broken the way `mode` says. `log$mode_calls` counts the calls, for a
@@ -153,6 +168,10 @@ mock_mode_handler <- function(handler, mode, log) {
     switch(mode,
       bad_json = "{\"answer\": \"Revenue was 45.2 million",
       refuse = "",
+      overflow = if (log$mode_calls == 1L) {
+        gr_result(FALSE, status = 400L, retryable = FALSE, error = sprintf(
+          "HTTP 400 from the mock client: %s", .gr_mock_overflow_body))
+      } else handler(messages, params),
       at_cap = {
         out <- handler(messages, params)
         # A failed reply stays failed: only a reply can be cut off at the cap.

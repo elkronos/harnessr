@@ -133,6 +133,19 @@ value.}
 \item{\code{reserve_usd} (0)}{Dollars held back from \code{max_cost_usd} for a
 run's closing requests, in the same way. 0 holds none back.
 Untested: a choice, not a tuned value.}
+\item{\code{on_overflow} ("error")}{What a request does when the provider
+refuses its prompt as longer than the model's context window (an
+error of class \code{hr_context_overflow}; see \code{\link[=hr_call]{hr_call()}}). \code{"error"}
+returns the failed result. A function of \verb{(messages, info)} is called
+with the messages sent and a list of \code{label}, \code{model},
+\code{estimate_tokens} (the local count of the prompt), \code{context_window}
+and \code{error}, and returns smaller messages, which are sent once more as
+a new request: the governor checks it, the trace records it as a step
+with \code{overflow_retry = TRUE}, and it is not retried again. Return
+\code{NULL} to send nothing more. Write the function yourself, and keep it
+deterministic, such as one that cuts the longest message with
+\code{\link[=hr_truncate]{hr_truncate()}}; harnessr never asks a model to shorten a prompt.
+Untested: a choice, not a tuned value.}
 \item{\code{price_max_age_days} (120)}{How old a price may be, in days, before
 a cost computed from it warns with class \code{hr_stale_price}. A price's age
 is counted from the first day of its \code{as_of} month (see \code{\link[=hr_models]{hr_models()}}),
@@ -190,13 +203,14 @@ than the default joins the store key of \code{\link[=gr_read_many]{gr_read_many(
 
 The settings listed last above were constants in the code until they were
 options; each keeps the constant's value. A trace records them, and
-\code{price_max_age_days}, \code{reserve_calls} and \code{reserve_usd}, (in its options
-snapshot) only when one is not its default, so a trace made at the
-defaults reads as it did before they existed. Each tuning setting's entry
+\code{price_max_age_days}, \code{reserve_calls}, \code{reserve_usd} and \code{on_overflow},
+(in its options snapshot) only when one is not its default, so a trace
+made at the defaults reads as it did before they existed. A function given
+as \code{on_overflow} is recorded as \code{"<function>"}. Each tuning setting's entry
 above (\code{temperature}, \code{max_retries}, \code{retry_pause_base},
 \code{request_timeout}, \code{safety_margin}, \code{min_output_tokens}, \code{workers},
 \code{price_max_age_days} and the settings listed last) says where its default
-came from, as do \code{allow_unpriced}'s and the reserves';
+came from, as do those of \code{allow_unpriced}, the reserves and \code{on_overflow};
 "untested" means no measurement backs the value. The other entries are
 switches, limits and names, which are choices rather than tuned values.
 }
