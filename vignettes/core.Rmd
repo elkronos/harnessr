@@ -728,7 +728,7 @@ hr_options(prev)
 Sys.unsetenv(c("DEMO_SERVICE_TOKEN", "DEMO_REGION"))
 ```
 
-Both are hygiene, not a sandbox: the program still runs with your permissions.
+Neither setting confines the program: it still runs with your permissions.
 Masking is off by default so that traces and output stay byte for byte what
 they were; turn it on before you share a trace file or a step's output.
 `?hr_options` lists the shapes masked.

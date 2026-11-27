@@ -128,8 +128,8 @@
 #' With `hr_options(mask_secrets = TRUE)` the `stdout` and `stderr` kept in
 #' the result have key-shaped strings replaced with `<masked>`, and the step
 #' records how many in the trace as `masked`. The hash of the output is taken
-#' before masking. [hr_options()] lists the shapes masked. This is hygiene,
-#' not a sandbox: the program still runs with your permissions and can read
+#' before masking. [hr_options()] lists the shapes masked. Neither setting
+#' confines the program: it still runs with your permissions and can read
 #' your files.
 #'
 #' @param name The step's name, one string.

@@ -118,8 +118,8 @@ configuration files and stored logins.
 With \code{hr_options(mask_secrets = TRUE)} the \code{stdout} and \code{stderr} kept in
 the result have key-shaped strings replaced with \verb{<masked>}, and the step
 records how many in the trace as \code{masked}. The hash of the output is taken
-before masking. \code{\link[=hr_options]{hr_options()}} lists the shapes masked. This is hygiene,
-not a sandbox: the program still runs with your permissions and can read
+before masking. \code{\link[=hr_options]{hr_options()}} lists the shapes masked. Neither setting
+confines the program: it still runs with your permissions and can read
 your files.
 }
 
