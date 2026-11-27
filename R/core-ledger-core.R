@@ -109,6 +109,12 @@
 #'     included: 0 when a cache or a recording answered it.}
 #'   \item{`started_utc`, `ended_utc`}{When the request started and ended,
 #'     ISO 8601 in UTC with a trailing `Z`.}
+#'   \item{`overflow`, `overflow_retry`}{Only on a request the provider
+#'     refused as longer than the model's context window: `overflow` holds
+#'     `estimate_tokens`, the local count of the prompt, and
+#'     `context_window`, the window registered for the model. On the retry
+#'     that `hr_options(on_overflow =)` sent, `overflow_retry` is `TRUE` (see
+#'     [hr_call()]).}
 #' }
 #'
 #' @section One row per request:
