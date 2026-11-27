@@ -1,5 +1,15 @@
 # harnessr 0.7.0.9000
 
+## Model picks marked as advisory
+
+* **`gr_extract(resolve = "model")` names the values a model chose.** The
+  table gains a `model_picks` column after `error`, listing the fields whose
+  value the adjudicating call chose, or `NA` when it chose none. The print
+  counts these values and the audit report flags them. A model's pick is
+  advisory: no validation against people's judgements backs it, so check
+  each one against its quote. Under `"first"` and `"vote"` the table keeps
+  its columns. `model_picks` is now a reserved field name.
+
 ## Run time in the trace
 
 * **`hr_trace_summary()` reads `elapsed_s` from the steps.** It was the time

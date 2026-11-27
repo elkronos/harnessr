@@ -726,7 +726,9 @@ table$table[, c("document", "region", "revenue", "year", "n_unverified")]
 Reconciling the chunks costs nothing by default. If the document contradicts
 itself, `conflicts` names the field and the earliest chunk's value is kept;
 `resolve = "model"` spends one call per disagreeing field to have the model
-choose instead.
+choose instead. The table then gains a `model_picks` column that names each
+field whose value the model chose. A model's pick is advisory: no validation
+against people's judgements backs it, so check each one against its quote.
 
 Check `n_unverified` before you trust a row: zero means every value in it has a
 quote found in the document. `table$evidence` is the long form, one row per
@@ -1344,7 +1346,9 @@ document give different values for a field:
   `conflicts`, at no cost.
 - `"vote"` keeps the value most chunks gave, also at no cost; a tie goes to
   the earliest value, as under `"first"`.
-- `"model"` spends one request per disagreeing field to choose.
+- `"model"` spends one request per disagreeing field to choose, and names
+  each field it chose in a `model_picks` column. Treat those values as
+  advisory and check them against their quotes.
 
 `agreement_columns = TRUE` adds a `<field>_agreement` column (how many of the
 chunks that reported the field give its most common value, as `"2/3"`) and a
