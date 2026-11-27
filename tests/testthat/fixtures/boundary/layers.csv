@@ -992,6 +992,7 @@
 "check_recall_target","doc","function"
 "check_record_identity","doc","function"
 "check_reply","doc","function"
+"check_sample_k","doc","function"
 "check_stacked","doc","function"
 "chunk_section_paths","doc","function"
 "chunk_table_provenance","doc","function"

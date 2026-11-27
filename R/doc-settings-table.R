@@ -76,7 +76,9 @@
   gr_screen.samples = ev_untested("One request per document, as before; not compared."),
   gr_screen.sample_rule = ev_untested(paste0(
     "\"include_if_any\" so that no study one draw would keep is lost; not compared with ",
-    "\"majority\".")),
+    "\"majority\" or \"k_of_n\".")),
+  gr_screen.sample_k = ev_untested(paste0(
+    "None: k_of_n needs the caller to choose k, and no value of k has been compared.")),
   hr_error_correlation.strata = ev_untested(paste0(
     "NULL: strata of difficulty read from the same runs; a rule, not a tuned value.")),
   hr_error_correlation.seed = ev_untested(paste0(
@@ -202,6 +204,7 @@
   read.rerank_candidates = "readers#set-low-score",
   screen.criteria_schema = "review#set-screen-reply",
   screen.samples = "review#set-screen-reply", screen.sample_rule = "review#set-screen-reply",
+  screen.sample_k = "review#set-screen-reply",
   screen.gr_calibrate.recall_target = "review#set-calibration",
   screen.gr_calibrate.conf = "review#set-calibration",
   screen.gr_calibrate.max_width = "review#set-calibration",
