@@ -26,6 +26,7 @@
 ".hr_alt_epsilon","core","value"
 ".hr_calibration_key_fields","core","value"
 ".hr_calibration_min_errors","core","value"
+".hr_command_header_min","core","value"
 ".hr_command_hidden_names","core","value"
 ".hr_command_hidden_patterns","core","value"
 ".hr_command_output_cap","core","value"
