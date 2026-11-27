@@ -40,6 +40,28 @@
   each answer's notes carry `sample_k`. At `samples = 1` the request, the
   cache key, the table and the result's fields are as before.
 
+## A context policy for synthesis, and cuts that say what they removed
+
+* **`gr_synthesise()` gains `context_policy` and `context_order`.** A policy
+  from `hr_context_policy()` sets the two cuts a write-up makes: the gaps,
+  now fitted line by line with `hr_context_fit()`, and batch drafts too long
+  for a merge. `context_order` places a section's claims by rank, by claim
+  number or at the edges, and each claim keeps its sentence budget. Both
+  default to what the write-up did before, so its requests and cache keys
+  do not change.
+* **A marker can count what a cut removed.** `hr_truncate()`, and
+  `hr_context_fit()` through a policy's new `marker`, fill
+  `{tokens_dropped}` and `{units_dropped}`, as in `"[{tokens_dropped}
+  tokens cut]"`. The readers use a policy's marker for the cuts they make
+  under it.
+* **`hr_context_policy()` gains `overflow = "stubs"` and
+  `disclose_subset`.** Stubs list the pieces cut away entirely, by name and
+  with the titles passed to `hr_context_fit()`, in at most `stub_tokens`
+  tokens. `disclose_subset` adds one line such as "12 of 40 studies shown; do
+  not state totals". `hr_context_fit()` returns both as `notice`, with the
+  names cut away in `omitted`, and sets room aside for them before it cuts.
+  A policy that sets none of the new arguments is the object it was.
+
 ## Run time in the trace
 
 * **`hr_trace_summary()` reads `elapsed_s` from the steps.** It was the time
