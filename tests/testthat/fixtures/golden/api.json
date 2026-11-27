@@ -389,11 +389,11 @@
       "type": "function"
     },
     "hr_context_fit": {
-      "formals": ["pieces", "budget", "policy = hr_context_policy()", "scores = NULL", "trace = NULL", "where = \"context\""],
+      "formals": ["pieces", "budget", "policy = hr_context_policy()", "scores = NULL", "trace = NULL", "where = \"context\"", "titles = NULL"],
       "type": "function"
     },
     "hr_context_policy": {
-      "formals": ["pin = c(\"question\", \"instructions\")", "cut_order = character(0)", "keep = \"head\"", "order_merges = FALSE"],
+      "formals": ["pin = c(\"question\", \"instructions\")", "cut_order = character(0)", "keep = \"head\"", "order_merges = FALSE", "marker = NULL", "overflow = c(\"marker\", \"stubs\")", "stub_tokens = 200L", "disclose_subset = FALSE"],
       "type": "function"
     },
     "hr_contrast": {

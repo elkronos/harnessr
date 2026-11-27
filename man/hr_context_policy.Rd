@@ -9,7 +9,11 @@ hr_context_policy(
   pin = c("question", "instructions"),
   cut_order = character(0),
   keep = "head",
-  order_merges = FALSE
+  order_merges = FALSE,
+  marker = NULL,
+  overflow = c("marker", "stubs"),
+  stub_tokens = 200L,
+  disclose_subset = FALSE
 )
 
 \method{print}{hr_context_policy}(x, ...)
@@ -24,13 +28,30 @@ vector of them named by piece.}
 
 \item{order_merges}{Whether merge packers follow \code{context_order}.}
 
+\item{marker}{\code{NULL} (the default) for each packer's own marker, or the
+text that marks a cut, with \code{{tokens_dropped}} and \code{{units_dropped}}
+filled in.}
+
+\item{overflow}{\code{"marker"} (the default): a piece cut away entirely
+leaves nothing behind. \code{"stubs"}: such pieces are listed by name and
+title in the fit's \code{notice}.}
+
+\item{stub_tokens}{The most tokens the list of stubs may take; 200 by
+default.}
+
+\item{disclose_subset}{\code{FALSE} (the default), \code{TRUE}, or a template with
+\code{{shown}} and \code{{total}}: the line added to the fit's \code{notice} when
+pieces were cut away.}
+
 \item{x}{An \code{hr_context_policy}.}
 
 \item{...}{Ignored.}
 }
 \value{
 An object of class \code{hr_context_policy}: a list of \code{pin},
-\code{cut_order}, \code{keep} and \code{order_merges}.
+\code{cut_order}, \code{keep} and \code{order_merges}, followed by \code{marker},
+\code{overflow}, \code{stub_tokens} and \code{disclose_subset} for those set away from
+their defaults.
 }
 \description{
 A context policy tells a packer, the code that fits named pieces of text
@@ -45,18 +66,35 @@ merge findings to place them by the read's \code{context_order} as well; see
 \code{\link[=gr_read_spec]{gr_read_spec()}} for which packers those are.
 }
 \details{
+Three settings make a cut say what it removed. \code{marker} replaces the text
+that marks a cut piece, and may hold \code{{tokens_dropped}} and
+\code{{units_dropped}} (see \code{\link[=hr_truncate]{hr_truncate()}}). \code{overflow = "stubs"} lists the
+pieces cut away entirely by name, with the titles the caller gives
+\code{\link[=hr_context_fit]{hr_context_fit()}}, in at most \code{stub_tokens} tokens; fetching one by its
+name is left to the caller. \code{disclose_subset} adds one line when pieces
+were cut away, such as "12 of 40 studies shown; do not state totals":
+\code{TRUE} writes "\code{{shown}} of \code{{total}} items shown; do not state totals.",
+and a string is used as the template. \code{\link[=hr_context_fit]{hr_context_fit()}} returns the
+list and the line as its \code{notice}, for the caller to place in the
+request. A policy that leaves these three at their defaults is the same
+object it was before they existed.
+
 A pinned piece is never cut by the policy. When the pinned pieces alone
 do not fit, \code{\link[=hr_context_fit]{hr_context_fit()}} says so (\code{fits = FALSE}) and leaves the
 decision to its caller.
 
 \code{\link[=hr_context_fit]{hr_context_fit()}} applies a policy to a set of pieces. In the document
 layer, a read takes one as the \code{context_policy} setting of
-\code{\link[=gr_read_spec]{gr_read_spec()}}; \code{NULL}, the default, keeps each reader's own cuts.
+\code{\link[=gr_read_spec]{gr_read_spec()}}, and a write-up as the \code{context_policy} argument of
+\code{\link[=gr_synthesise]{gr_synthesise()}}; \code{NULL}, the default, keeps each packer's own cuts.
 }
 \examples{
 p <- hr_context_policy(pin = c("question", "instructions", "draft"),
                        keep = c(excerpt = "both", "head"))
 p
+# A policy that names what it leaves out.
+hr_context_policy(marker = " [{tokens_dropped} tokens cut]", overflow = "stubs",
+                  disclose_subset = "{shown} of {total} studies shown; do not state totals.")
 }
 \seealso{
 \code{\link[=hr_context_fit]{hr_context_fit()}}, \code{\link[=hr_truncate]{hr_truncate()}}, \code{\link[=gr_read_spec]{gr_read_spec()}}

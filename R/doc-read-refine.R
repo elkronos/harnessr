@@ -52,15 +52,19 @@ read_refine <- function(chunks, question, client, spec, trace) {
       # A policy whose pinned pieces do not fit cannot be followed: the
       # request would be refused as too long. Its own cuts are not made, and
       # the even split below cuts the pieces instead.
-      fit <- hr_context_fit(pieces, bud$input, spec$context_policy, trace = NULL,
-                            where = "refine")
+      # Two pieces and no titles: the policy's marker applies, and no room
+      # is set aside for stubs or a subset line, which this prompt does not
+      # carry.
+      pol <- spec$context_policy
+      pol$overflow <- NULL
+      pol$disclose_subset <- NULL
+      fit <- hr_context_fit(pieces, bud$input, pol, trace = NULL, where = "refine")
       if (!isTRUE(fit$fits)) {
         policy_unfit_warning(trace, "refine", intersect(spec$context_policy$pin, names(pieces)),
                              fit$tokens, bud$input)
         fit <- NULL
       } else if (length(fit$cut)) {
-        fit <- hr_context_fit(pieces, bud$input, spec$context_policy, trace = trace,
-                              where = "refine")
+        fit <- hr_context_fit(pieces, bud$input, pol, trace = trace, where = "refine")
       }
     }
     if (!is.null(fit)) {

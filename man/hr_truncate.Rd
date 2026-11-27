@@ -28,7 +28,10 @@ first. Ties keep the earlier unit.}
 
 \item{marker}{The text that marks a cut; \code{""} for none. As in
 \code{\link[=hr_truncate_tokens]{hr_truncate_tokens()}}, it is dropped when it would cost half the budget
-or more.}
+or more. A marker may hold \code{{tokens_dropped}} and \code{{units_dropped}},
+which are replaced by the tokens of \code{text} the cut removed and the units
+it did not keep whole (the elements of \code{text} when it has more than one,
+else its paragraphs), as in \code{"[{tokens_dropped} tokens cut]"}.}
 
 \item{trace}{Optional \code{gr_trace} to write the cut to.}
 
@@ -70,6 +73,8 @@ hr_truncate(txt, 20, keep = "tail")       # the end
 cat(hr_truncate(txt, 24, keep = "both"))  # both ends
 # The paragraphs that score highest, in document order.
 cat(hr_truncate(txt, 20, keep = "scored", scores = c(1, 9, 2, 8, 3, 4)))
+# A marker that says how much was cut.
+hr_truncate(txt, 20, marker = " [{tokens_dropped} tokens cut]")
 
 # The cut is written to a trace.
 tr <- hr_trace()
